@@ -1,4 +1,10 @@
-# source-lightbox
+# neuro-lightbox
+
+*Formerly **source-lightbox**. The `source-lightbox` command and the
+`source_lightbox` import still work, with a deprecation note, for scripts
+written before the rename. It is being generalised from EEG to any neuro
+study (EEG and MRI profiles): see
+[`NEURO_LIGHTBOX_PLAN.md`](NEURO_LIGHTBOX_PLAN.md).*
 
 Static gallery builder for EEG source-analysis results. It turns the output
 folders of [`source-localization`](../source-localization) and
@@ -15,10 +21,10 @@ so it hosts on any web server — see [`DEPLOY.md`](DEPLOY.md).
 
 ```bash
 # 1. install (editable; one-time)
-cd ~/sandbox/source-lightbox && uv sync
+cd ~/sandbox/neuro-lightbox && uv sync
 
 # 2. build a gallery from your study config, and preview it
-source-lightbox build --config /path/to/study.yaml --serve
+neuro-lightbox build --config /path/to/study.yaml --serve
 #   → builds the gallery folder named in the config, then serves it at
 #     http://localhost:5500  (Ctrl+C to stop)
 ```
@@ -31,9 +37,9 @@ connectivity metrics) is read from it.
 If you don't want to keep the server running, build and serve separately:
 
 ```bash
-source-lightbox build --config study.yaml      # writes the gallery folder
-source-lightbox serve  ./gallery_treatment      # serve it later, any time
-source-lightbox info   ./gallery_treatment      # print figure/table counts
+neuro-lightbox build --config study.yaml      # writes the gallery folder
+neuro-lightbox serve  ./gallery_treatment      # serve it later, any time
+neuro-lightbox info   ./gallery_treatment      # print figure/table counts
 ```
 
 ---
@@ -112,7 +118,7 @@ current results with nothing to mark them as retired. Pass `--include-retired`
 
 ## The config the gallery reads
 
-source-lightbox reads a **subset** of the study config — if you already run
+neuro-lightbox reads a **subset** of the study config — if you already run
 `source-analytics` from a `study.yaml`, point the gallery at the same file. Only
 these keys are consulted:
 
@@ -158,14 +164,14 @@ study-specific figures.
 
 > Anything the config doesn't cover can still be passed as an explicit flag
 > (`--results … --label …`, `--output …`, `--title …`); CLI flags override the
-> config. Run `source-lightbox build --help` for the full set.
+> config. Run `neuro-lightbox build --help` for the full set.
 
 ---
 
 ## What gets rendered (the figure standard)
 
 `source-analytics` writes stat **tables** but leaves `figures/` empty by
-convention. At build time source-lightbox renders **one canonical overview
+convention. At build time neuro-lightbox renders **one canonical overview
 figure per analysis module** straight from the tables — the goal is a gallery a
 reader can absorb (a handful of high-signal figures, not hundreds). Disable with
 `--no-render-figures`.
@@ -192,7 +198,7 @@ Low Gamma, High Gamma (unknown bands appended). Per-vertex raw tables
 (`vertex_idx`) are skipped — their `*_summary` carries the overview. A module
 whose tables match no renderer simply contributes no figure; its tables stay in
 the gallery as sortable CSVs. To add a figure type, append a renderer to
-`REGISTRY` in `src/source_lightbox/render.py`.
+`REGISTRY` in `src/neuro_lightbox/render.py`.
 
 > Per-subject localization figures are **not** analysis figures — they live under
 > **Localization → Subjects** (one subject at a time) and **→ QC**, separate from
@@ -202,7 +208,7 @@ the gallery as sortable CSVs. To add a figure type, append a renderer to
 
 Two module types get a richer figure than a heatmap, delegated to
 `source-analytics` (its atlas data) via a subprocess to its venv — so
-source-lightbox itself stays lightweight. If that interpreter isn't found, both
+neuro-lightbox itself stays lightweight. If that interpreter isn't found, both
 fall back to a heatmap.
 
 - **Brain mosaics** — ROI modules with a `*_posthoc_roi` table get ROI effect

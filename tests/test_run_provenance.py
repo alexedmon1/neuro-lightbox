@@ -8,8 +8,8 @@ from pathlib import Path
 import pytest
 import yaml
 
-from source_lightbox.config import RETIRED_ANALYSES
-from source_lightbox.scanner import (
+from neuro_lightbox.config import RETIRED_ANALYSES
+from neuro_lightbox.scanner import (
     FigureEntry,
     LocalizationScanner,
     ScanResult,
@@ -183,8 +183,8 @@ class TestBuildEndToEnd:
         return loc, res, tmp_path / "gallery"
 
     def _build(self, study, **over):
-        from source_lightbox.builder import build
-        from source_lightbox.config import BuildConfig, SourceInput
+        from neuro_lightbox.builder import build
+        from neuro_lightbox.config import BuildConfig, SourceInput
 
         loc, res, out = study
         cfg = BuildConfig(
@@ -266,32 +266,32 @@ class TestAnalyticsProvenance:
         return root
 
     def test_scanner_reads_it(self, tmp_path):
-        from source_lightbox.scanner import ResultsScanner
+        from neuro_lightbox.scanner import ResultsScanner
 
         res = ResultsScanner(self._results(tmp_path, self.RECORD), "R").scan()
         assert res.provenance[("resting", "roi_psd")]["analysis"] == "roi_psd"
 
     def test_scanner_tolerates_absence(self, tmp_path):
-        from source_lightbox.scanner import ResultsScanner
+        from neuro_lightbox.scanner import ResultsScanner
 
         res = ResultsScanner(self._results(tmp_path, None), "R").scan()
         assert res.provenance == {}
 
     def test_scanner_tolerates_corruption(self, tmp_path):
-        from source_lightbox.scanner import ResultsScanner
+        from neuro_lightbox.scanner import ResultsScanner
 
         root = self._results(tmp_path, self.RECORD)
         (root / "tables" / "resting" / "roi_psd" / "provenance.json").write_text("{ bad")
         assert ResultsScanner(root, "R").scan().provenance == {}
 
     def test_provenance_is_not_read_as_a_table(self, tmp_path):
-        from source_lightbox.scanner import ResultsScanner
+        from neuro_lightbox.scanner import ResultsScanner
 
         res = ResultsScanner(self._results(tmp_path, self.RECORD), "R").scan()
         assert [t.filename for t in res.tables] == ["roi_psd_hypotheses.csv"]
 
     def test_trim_keeps_what_is_displayed(self):
-        from source_lightbox.manifest import _trim_provenance
+        from neuro_lightbox.manifest import _trim_provenance
 
         t = _trim_provenance(self.RECORD)
         assert t["source_analytics"] == "v0.8.2"
@@ -303,34 +303,34 @@ class TestAnalyticsProvenance:
 
     def test_trim_drops_what_is_not_displayed(self):
         """The manifest is inlined into index.html, once per analysis."""
-        from source_lightbox.manifest import _trim_provenance
+        from neuro_lightbox.manifest import _trim_provenance
 
         blob = json.dumps(_trim_provenance(self.RECORD))
         assert "sub-901" not in blob, "subject ids are provenance, not display"
         assert "steps" not in blob
 
     def test_trim_names_only_the_plugin_that_provided_the_analysis(self):
-        from source_lightbox.manifest import _trim_provenance
+        from neuro_lightbox.manifest import _trim_provenance
 
         assert _trim_provenance(self.RECORD)["plugin"] == "vertex 0.1.0"
 
     def test_trim_omits_plugin_when_the_analysis_is_built_in(self):
-        from source_lightbox.manifest import _trim_provenance
+        from neuro_lightbox.manifest import _trim_provenance
 
         rec = json.loads(json.dumps(self.RECORD))
         rec["plugins"] = {"other": {"version": "2.0"}}
         assert "plugin" not in _trim_provenance(rec)
 
     def test_trim_omits_caveats_for_a_fixed_grid_run(self):
-        from source_lightbox.manifest import _trim_provenance
+        from neuro_lightbox.manifest import _trim_provenance
 
         rec = json.loads(json.dumps(self.RECORD))
         del rec["parcel_caveats"]
         assert "parcel_caveats" not in _trim_provenance(rec)
 
     def test_it_reaches_the_built_manifest(self, tmp_path):
-        from source_lightbox.builder import build
-        from source_lightbox.config import BuildConfig, SourceInput
+        from neuro_lightbox.builder import build
+        from neuro_lightbox.config import BuildConfig, SourceInput
 
         res = self._results(tmp_path / "results", self.RECORD)
         self._results(tmp_path / "results", None, analysis="roi_aperiodic")

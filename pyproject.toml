@@ -3,9 +3,9 @@ requires = ["setuptools>=68.0", "setuptools-scm>=8.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "source-lightbox"
+name = "neuro-lightbox"
 version = "0.1.0"
-description = "Static gallery builder for EEG source analysis results"
+description = "Static gallery builder for neuro study results (formerly source-lightbox)"
 readme = "README.md"
 requires-python = ">=3.10"
 license = {text = "MIT"}
@@ -22,10 +22,12 @@ dependencies = [
 dev = ["pytest>=7.0"]
 
 [project.scripts]
-source-lightbox = "source_lightbox.cli:main"
+neuro-lightbox = "neuro_lightbox.cli:main"
+# The old name, for scripts that still call it (deprecated; says so on stderr).
+source-lightbox = "neuro_lightbox.cli:deprecated_main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
 
 [tool.setuptools.package-data]
-source_lightbox = ["templates/*.j2", "static/**/*"]
+neuro_lightbox = ["templates/*.j2", "static/**/*"]

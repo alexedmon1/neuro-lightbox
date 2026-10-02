@@ -1,8 +1,8 @@
 """Tests for study-contrast normalization (legacy contrasts: vs migrated hypotheses:)."""
 
-from source_lightbox.cli import normalize_study_contrasts
-from source_lightbox.manifest import build_manifest
-from source_lightbox.scanner import ScanResult
+from neuro_lightbox.cli import normalize_study_contrasts
+from neuro_lightbox.manifest import build_manifest
+from neuro_lightbox.scanner import ScanResult
 
 
 def test_legacy_contrasts_pass_through():

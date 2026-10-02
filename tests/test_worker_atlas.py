@@ -20,9 +20,9 @@ from pathlib import Path
 import pytest
 import yaml
 
-from source_lightbox import _worker_atlas as wa
-from source_lightbox import brain_mosaic, circos
-from source_lightbox.render import render_table_figures
+from neuro_lightbox import _worker_atlas as wa
+from neuro_lightbox import brain_mosaic, circos
+from neuro_lightbox.render import render_table_figures
 
 PKG = Path(wa.__file__).resolve().parent
 
@@ -96,7 +96,7 @@ def test_both_launchers_forward_categories_and_atlas(monkeypatch, tmp_path):
 
 
 def test_render_passes_the_study_atlas_and_categories_to_circos(tmp_path, monkeypatch):
-    from source_lightbox.scanner import TableEntry
+    from neuro_lightbox.scanner import TableEntry
 
     tbl = tmp_path / "tables"
     tbl.mkdir()

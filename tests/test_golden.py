@@ -78,7 +78,7 @@ def _build(case: str, root: Path) -> dict:
     """Build one case; return its golden artefacts as {name: text}."""
     from click.testing import CliRunner
 
-    from source_lightbox.cli import main
+    from neuro_lightbox.cli import main
 
     fixture_name, extra = CASES[case]
     fixture = FIXTURES / fixture_name

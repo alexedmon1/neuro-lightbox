@@ -677,7 +677,7 @@ def render_table_figures(tables, staging_dir, dpi: int = 150, log=lambda *a, **k
     (``categories`` may be None — the worker then auto-picks the bundled atlas
     file). ``circos`` is ``{analytics_dir, contrasts, labels, metrics, python}``.
 
-    Returns a list of :class:`~source_lightbox.scanner.FigureEntry`
+    Returns a list of :class:`~neuro_lightbox.scanner.FigureEntry`
     (category ``"analytics"``).
     """
     staging = Path(staging_dir)

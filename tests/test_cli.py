@@ -2,7 +2,7 @@
 
 from pathlib import Path
 
-from source_lightbox.cli import (
+from neuro_lightbox.cli import (
     normalize_study_contrasts,
     resolve_config_path,
     study_group_display,
@@ -43,8 +43,8 @@ def _config_from_study(tmp_path, monkeypatch, study: dict):
     import yaml
     from click.testing import CliRunner
 
-    import source_lightbox.builder as builder
-    from source_lightbox.cli import main
+    import neuro_lightbox.builder as builder
+    from neuro_lightbox.cli import main
 
     seen = {}
     monkeypatch.setattr(builder, "build", lambda config, verbose=True: seen.setdefault("config", config))

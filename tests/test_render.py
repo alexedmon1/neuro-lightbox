@@ -2,7 +2,7 @@
 
 from pathlib import Path
 
-from source_lightbox.render import (
+from neuro_lightbox.render import (
     ClusterHeatmap,
     EffectSizeHeatmap,
     MvpaHeatmap,
@@ -13,7 +13,7 @@ from source_lightbox.render import (
     render_table_figures,
     select_renderer,
 )
-from source_lightbox.scanner import TableEntry
+from neuro_lightbox.scanner import TableEntry
 
 
 def _write_csv(path: Path, header: str, rows: list[str]) -> Path:
@@ -281,7 +281,7 @@ def test_render_distinct_modules(tmp_path):
 # hypotheses table and the legacy *_stats.csv are present.
 # --------------------------------------------------------------------------- #
 def test_graph_metric_matches_native_and_legacy():
-    from source_lightbox.render import RoiGraphMetricHeatmap
+    from neuro_lightbox.render import RoiGraphMetricHeatmap
 
     native = "hypothesis,band,spatial,conn_metric,graph_metric,stat,effect_size,q_value,significant"
     legacy = "contrast,band,conn_metric,graph_metric,roi,t,p,p_fdr"
@@ -290,7 +290,7 @@ def test_graph_metric_matches_native_and_legacy():
 
 
 def test_graph_metric_native_render_skips_global_rows(tmp_path):
-    from source_lightbox.render import RoiGraphMetricHeatmap, _records
+    from neuro_lightbox.render import RoiGraphMetricHeatmap, _records
 
     headers = "hypothesis,band,spatial,conn_metric,graph_metric,stat,q_value".split(",")
     rows = []
@@ -306,8 +306,8 @@ def test_graph_metric_native_render_skips_global_rows(tmp_path):
 def test_module_draws_one_graph_metric_set(tmp_path):
     """Native hypotheses + legacy stats both match the graph renderer; only one
     figure set is produced for the module (no duplicate heatmaps)."""
-    from source_lightbox.render import render_table_figures
-    from source_lightbox.scanner import TableEntry
+    from neuro_lightbox.render import render_table_figures
+    from neuro_lightbox.scanner import TableEntry
 
     d = tmp_path / "tables"
     d.mkdir()
@@ -329,7 +329,7 @@ def test_circos_trigger_needs_subnetwork_edges_and_edge_csv(tmp_path, monkeypatc
     """Circos are driven by the NBS module's *_subnetwork_edges.csv plus the
     roi_connectivity edge CSV in the analytics tree — the retired region-pair
     posthoc table is not required. The worker itself is stubbed."""
-    from source_lightbox.scanner import TableEntry
+    from neuro_lightbox.scanner import TableEntry
 
     tbl_dir = tmp_path / "tables"
     tbl_dir.mkdir()
@@ -351,7 +351,7 @@ def test_circos_trigger_needs_subnetwork_edges_and_edge_csv(tmp_path, monkeypatc
         p.write_bytes(b"PNG")
         return [p]
 
-    import source_lightbox.circos as circos_mod
+    import neuro_lightbox.circos as circos_mod
 
     monkeypatch.setattr(circos_mod, "circos_available", lambda py=None: True)
     monkeypatch.setattr(circos_mod, "render_circos", fake_render)

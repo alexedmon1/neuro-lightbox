@@ -1,6 +1,6 @@
 # neuro-lightbox — plan
 
-**Status: Phase 0 done (2026-10-02); see §6.** Written 2026-10-02 from a
+**Status: Phases 0–1 done (2026-10-02); see §6.** Written 2026-10-02 from a
 cuprizone (rat MRI) session, after a feasibility test built one MRI analysis
 into a source-lightbox gallery; revised the same day with the author's two
 principles (§1).
@@ -313,6 +313,15 @@ failing one. Phases S and 0 can run in parallel.
   (`neuro-lightbox`, alias `source-lightbox`), the import shim, README /
   DESIGN_NOTES / DEPLOY / FIGURE_INVENTORY, nginx/Apache examples.
 - **Accept:** golden manifests byte-identical; tests pass under both names.
+- **Done (2026-10-02).** Every golden build byte-identical. The suite passed
+  twice: unchanged, still importing `source_lightbox` (through the shim), and
+  after moving to `neuro_lightbox`. `tests/test_compat.py` keeps the old names
+  honest: `source_lightbox.X` is the same module object as `neuro_lightbox.X`
+  (so a monkeypatch through either reaches both), and `source-lightbox`,
+  `neuro-lightbox` and `python -m source_lightbox` each build the `eeg_legacy`
+  golden gallery, the old ones saying once on stderr that they are deprecated.
+  `app.js`'s header comment still says source-lightbox: it is shipped in every
+  gallery, and Phase 2 edits the file anyway.
 
 ### Phase 2 — profile interface; EEG specifics into `profiles/eeg`
 - Move everything in §3 behind the profile: band orders, the source-analytics

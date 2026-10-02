@@ -1,9 +1,9 @@
 """Brain-mosaic render worker — executed by the *source-analytics* interpreter.
 
-This file is NOT imported by source-lightbox. It is run as a subprocess with the
+This file is NOT imported by neuro-lightbox. It is run as a subprocess with the
 source-analytics venv's Python (which has source_analytics, pandas, nibabel, and
 the bundled Allen atlas), because rendering anatomy-aware ROI mosaics needs that
-whole stack. source-lightbox stays lightweight and shells out to it.
+whole stack. neuro-lightbox stays lightweight and shells out to it.
 
 Usage:  <sa-python> _brain_render_worker.py '<json-args>'
 Prints a JSON list of written PNG paths on the last stdout line.

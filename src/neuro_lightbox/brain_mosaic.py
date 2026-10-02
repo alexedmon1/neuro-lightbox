@@ -2,7 +2,7 @@
 
 Rendering ROI effect sizes on actual brain anatomy needs source-analytics
 (`source_analytics.viz.brain_roi`) plus its bundled Allen atlas and the pandas/
-nibabel stack. Rather than pull that heavy tree into source-lightbox, we shell
+nibabel stack. Rather than pull that heavy tree into neuro-lightbox, we shell
 out to the source-analytics venv's Python (see ``_brain_render_worker.py``).
 
 Brain rendering is therefore *optional*: if the source-analytics interpreter

@@ -1,7 +1,7 @@
 """Connectivity circos diagrams, delegated to source-analytics.
 
 Same pattern as :mod:`brain_mosaic`: shell out to the source-analytics venv
-(which has ``connectivity_plots`` + the Allen atlas) so source-lightbox stays
+(which has ``connectivity_plots`` + the Allen atlas) so neuro-lightbox stays
 lightweight. Optional — if the interpreter isn't found, callers skip circos.
 
 The chords are gated on the NBS subnetworks in ``<module>_subnetwork_edges.csv``

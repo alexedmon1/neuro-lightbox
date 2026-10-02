@@ -9,7 +9,8 @@ analytics-produced images (and/or *calls* analytics' figure generation), rather
 than carrying its own bespoke renderers.
 
 Evidence is cited as `file:line`. SA = source-analytics
-(`~/sandbox/source-analytics`); LB = source-lightbox (`~/sandbox/source-lightbox`).
+(`~/sandbox/source-analytics`); LB = source-lightbox, now neuro-lightbox (`~/sandbox/neuro-lightbox`;
+the citations predate the rename: `src/source_lightbox/` is now `src/neuro_lightbox/`).
 
 ---
 

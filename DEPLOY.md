@@ -3,7 +3,7 @@
 A built gallery is **fully static** — the manifest is inlined into `index.html`
 (`window.MANIFEST = …`), every asset reference is relative, and there is no
 server-side code. So the host needs **only a static web server** — no Python, no
-`uv`, no source-lightbox/source-analytics. Because all paths are relative,
+`uv`, no neuro-lightbox/source-analytics. Because all paths are relative,
 galleries host cleanly under a sub-path (`/ms1/`, `/ms2/`).
 
 Either **nginx** (§2a) or **Apache 2.4** (§2b) works — both ship a ready config

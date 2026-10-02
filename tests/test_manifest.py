@@ -4,8 +4,8 @@ from pathlib import Path
 
 import pytest
 
-from source_lightbox.manifest import build_manifest
-from source_lightbox.scanner import FigureEntry, ScanResult, TableEntry
+from neuro_lightbox.manifest import build_manifest
+from neuro_lightbox.scanner import FigureEntry, ScanResult, TableEntry
 
 
 @pytest.fixture

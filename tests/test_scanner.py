@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pytest
 
-from source_lightbox.scanner import (
+from neuro_lightbox.scanner import (
     LocalizationScanner,
     ResultsScanner,
     _slugify,

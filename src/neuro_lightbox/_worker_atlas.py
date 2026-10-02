@@ -1,13 +1,13 @@
 """Atlas and ROI-category resolution for the render workers.
 
 Runs inside the *source-analytics* interpreter: the worker scripts beside it
-import it by path, and source-lightbox itself never needs source_analytics. Only
+import it by path, and neuro-lightbox itself never needs source_analytics. Only
 the functions that look up atlas data import it, lazily.
 
 Categories, first match wins:
 
 1. explicit: a mapping, or a YAML path with a top-level ``roi_categories:``.
-   source-lightbox passes the study's own map from the study YAML, which is the
+   neuro-lightbox passes the study's own map from the study YAML, which is the
    map source-analytics analysed with.
 2. the named atlas's OWN category file (source-analytics with ``resolve_atlas``).
 3. a best-overlap guess over every category file shipped with the atlas data.

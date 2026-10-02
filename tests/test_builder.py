@@ -5,8 +5,8 @@ from pathlib import Path
 
 import pytest
 
-from source_lightbox.builder import build
-from source_lightbox.config import BuildConfig, SourceInput
+from neuro_lightbox.builder import build
+from neuro_lightbox.config import BuildConfig, SourceInput
 
 
 @pytest.fixture

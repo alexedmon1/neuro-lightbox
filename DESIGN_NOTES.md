@@ -1,4 +1,4 @@
-# source-lightbox — design notes
+# neuro-lightbox (formerly source-lightbox) — design notes
 
 Running record of the design decisions behind the gallery, so they aren't
 re-litigated. Newest sections at the bottom.
