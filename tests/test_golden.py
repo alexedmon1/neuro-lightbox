@@ -7,8 +7,8 @@ Phase 0). Each case builds a gallery through the CLI from a fixture under
 - ``manifest.json`` — every table, digest, figure entry, label and provenance
   block the app is given, one table row per line so a diff reads as rows (the
   build's own bytes are pinned by their hash in ``files.txt``);
-- ``index.html`` — the page around it (build timestamp and inlined manifest
-  normalised out);
+- ``index.html`` — the page around it (build timestamp, and the inlined manifest
+  and profile vocabulary, normalised out);
 - ``files.txt`` — every file the build wrote, with a hash for everything that is
   copied rather than drawn, and for the manifest;
 - ``sa_calls.jsonl`` — what the gallery asked the source-analytics workers to
@@ -75,7 +75,8 @@ def _versions() -> str:
 
 
 def _build(case: str, root: Path) -> dict:
-    """Build one case; return its golden artefacts as {name: text}."""
+    """Build one case; return its golden artefacts as {name: text}, and the
+    built gallery's folder under ``"_gallery"``."""
     from click.testing import CliRunner
 
     from neuro_lightbox.cli import main
@@ -97,6 +98,11 @@ def _build(case: str, root: Path) -> dict:
     html = (out / "index.html").read_text(encoding="utf-8")
     html = re.sub(r"\?v=\d+", "?v=<build_ts>", html)
     html = html.replace(manifest, "<manifest.json>")
+    # The profile's vocabulary is inlined too ("</" escaped); its bytes are
+    # pinned by data/profile.json's hash in files.txt.
+    profile = (out / "data" / "profile.json").read_text(encoding="utf-8")
+    assert profile.replace("</", "<\\/") in html, "index.html does not inline data/profile.json"
+    html = html.replace(profile.replace("</", "<\\/"), "<profile.json>")
 
     files, figures = [], []
     for p in sorted(out.rglob("*")):
@@ -120,22 +126,11 @@ def _build(case: str, root: Path) -> dict:
         "files.txt": "\n".join(files) + "\n",
         "sa_calls.jsonl": "".join(f"{c}\n" for c in sorted(calls)),
         "figures.sha256": f"# {_versions()}\n" + "\n".join(figures) + "\n",
+        "_gallery": out,
     }
 
 
-@pytest.fixture(scope="module")
-def built(tmp_path_factory):
-    cache: dict[str, dict] = {}
-
-    def get(case: str) -> dict:
-        if case not in cache:
-            cache[case] = _build(case, tmp_path_factory.mktemp(case))
-        return cache[case]
-
-    return get
-
-
-def _compare(case: str, name: str, actual: str, update: bool) -> None:
+def compare_golden(case: str, name: str, actual: str, update: bool) -> None:
     path = GOLDEN / case / name
     if update:
         path.parent.mkdir(parents=True, exist_ok=True)
@@ -157,13 +152,14 @@ def _compare(case: str, name: str, actual: str, update: bool) -> None:
 
 @pytest.mark.parametrize("case", sorted(CASES))
 @pytest.mark.parametrize("name", ["manifest.json", "index.html", "files.txt", "sa_calls.jsonl"])
-def test_gallery_matches_golden(built, request, case, name):
-    _compare(case, name, built(case)[name], request.config.getoption("--update-golden"))
+def test_gallery_matches_golden(golden_build, request, case, name):
+    compare_golden(case, name, golden_build(case)[name],
+                   request.config.getoption("--update-golden"))
 
 
 @pytest.mark.parametrize("case", sorted(CASES))
-def test_rendered_figures_match_golden(built, request, case):
-    actual = built(case)["figures.sha256"]
+def test_rendered_figures_match_golden(golden_build, request, case):
+    actual = golden_build(case)["figures.sha256"]
     update = request.config.getoption("--update-golden")
     path = GOLDEN / case / "figures.sha256"
     if not update and path.exists():
@@ -171,4 +167,4 @@ def test_rendered_figures_match_golden(built, request, case):
         if recorded != actual.splitlines()[0]:
             pytest.skip(f"figure hashes were recorded under {recorded[2:]}; this is "
                         f"{actual.splitlines()[0][2:]}")
-    _compare(case, "figures.sha256", actual, update)
+    compare_golden(case, "figures.sha256", actual, update)

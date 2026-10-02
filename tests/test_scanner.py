@@ -5,11 +5,8 @@ from pathlib import Path
 
 import pytest
 
-from neuro_lightbox.scanner import (
-    LocalizationScanner,
-    ResultsScanner,
-    _slugify,
-)
+from neuro_lightbox.profiles.eeg.inputs import LocalizationScanner
+from neuro_lightbox.scanner import ResultsScanner, _slugify
 
 
 @pytest.fixture

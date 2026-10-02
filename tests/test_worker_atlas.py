@@ -20,9 +20,9 @@ from pathlib import Path
 import pytest
 import yaml
 
-from neuro_lightbox import _worker_atlas as wa
-from neuro_lightbox import brain_mosaic, circos
-from neuro_lightbox.render import render_table_figures
+from neuro_lightbox.profiles.eeg import _worker_atlas as wa
+from neuro_lightbox.profiles.eeg import brain_mosaic, circos
+from neuro_lightbox.profiles.eeg.render import render_table_figures
 
 PKG = Path(wa.__file__).resolve().parent
 

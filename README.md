@@ -6,7 +6,8 @@ written before the rename. It is being generalised from EEG to any neuro
 study (EEG and MRI profiles): see
 [`NEURO_LIGHTBOX_PLAN.md`](NEURO_LIGHTBOX_PLAN.md).*
 
-Static gallery builder for EEG source-analysis results. It turns the output
+Static gallery builder for EEG source-analysis results (its `eeg` profile,
+below). It turns the output
 folders of [`source-localization`](../source-localization) and
 [`source-analytics`](../source-analytics) into a single self-contained website —
 figures, sortable stat tables, per-subject QC, and at-a-glance overview figures
@@ -116,6 +117,25 @@ current results with nothing to mark them as retired. Pass `--include-retired`
 
 ---
 
+## Profiles
+
+What a kind of study brings to the gallery — its inputs side, its column names
+and category axis, its renderers and digests, the words the app shows — is a
+**profile** (`src/neuro_lightbox/profiles/`). The core (scanning, the manifest,
+rendering and digest machinery, the static app) knows no domain; a test fails
+if it names one. Today there is one profile, **`eeg`** — everything this README
+describes — and it is the default, so a `study.yaml` written for source-lightbox
+builds unchanged. Select another with `profile:` in the study config or
+`--profile`; packages can add one through the `neuro_lightbox.profiles` entry
+point. (`gallery_profile:` / `paths.results_profile` are a different thing:
+source-analytics' own run profiles, read by the `eeg` profile.)
+
+The app takes the profile's vocabulary from `data/profile.json` (also inlined in
+`index.html` beside the manifest) and its page behaviour from the profile's
+script, `assets/js/eeg.js`.
+
+---
+
 ## The config the gallery reads
 
 neuro-lightbox reads a **subset** of the study config — if you already run
@@ -198,7 +218,7 @@ Low Gamma, High Gamma (unknown bands appended). Per-vertex raw tables
 (`vertex_idx`) are skipped — their `*_summary` carries the overview. A module
 whose tables match no renderer simply contributes no figure; its tables stay in
 the gallery as sortable CSVs. To add a figure type, append a renderer to
-`REGISTRY` in `src/neuro_lightbox/render.py`.
+`REGISTRY` in `src/neuro_lightbox/profiles/eeg/render.py`.
 
 > Per-subject localization figures are **not** analysis figures — they live under
 > **Localization → Subjects** (one subject at a time) and **→ QC**, separate from

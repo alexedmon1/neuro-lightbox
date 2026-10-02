@@ -1,6 +1,6 @@
 """Tests for the significance-digest generator."""
 
-from neuro_lightbox.summarize import build_significance_summary
+from neuro_lightbox.profiles.eeg.summarize import build_significance_summary
 
 
 def _tbl(filename, header, rows):

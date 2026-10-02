@@ -5,3 +5,4 @@ __pycache__/
 dist/
 build/
 .pytest_cache/
+tests/js/node_modules/

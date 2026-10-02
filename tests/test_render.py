@@ -2,7 +2,7 @@
 
 from pathlib import Path
 
-from neuro_lightbox.render import (
+from neuro_lightbox.profiles.eeg.render import (
     ClusterHeatmap,
     EffectSizeHeatmap,
     MvpaHeatmap,
@@ -281,7 +281,7 @@ def test_render_distinct_modules(tmp_path):
 # hypotheses table and the legacy *_stats.csv are present.
 # --------------------------------------------------------------------------- #
 def test_graph_metric_matches_native_and_legacy():
-    from neuro_lightbox.render import RoiGraphMetricHeatmap
+    from neuro_lightbox.profiles.eeg.render import RoiGraphMetricHeatmap
 
     native = "hypothesis,band,spatial,conn_metric,graph_metric,stat,effect_size,q_value,significant"
     legacy = "contrast,band,conn_metric,graph_metric,roi,t,p,p_fdr"
@@ -290,7 +290,7 @@ def test_graph_metric_matches_native_and_legacy():
 
 
 def test_graph_metric_native_render_skips_global_rows(tmp_path):
-    from neuro_lightbox.render import RoiGraphMetricHeatmap, _records
+    from neuro_lightbox.profiles.eeg.render import RoiGraphMetricHeatmap, _records
 
     headers = "hypothesis,band,spatial,conn_metric,graph_metric,stat,q_value".split(",")
     rows = []
@@ -306,7 +306,7 @@ def test_graph_metric_native_render_skips_global_rows(tmp_path):
 def test_module_draws_one_graph_metric_set(tmp_path):
     """Native hypotheses + legacy stats both match the graph renderer; only one
     figure set is produced for the module (no duplicate heatmaps)."""
-    from neuro_lightbox.render import render_table_figures
+    from neuro_lightbox.profiles.eeg.render import render_table_figures
     from neuro_lightbox.scanner import TableEntry
 
     d = tmp_path / "tables"
@@ -351,7 +351,7 @@ def test_circos_trigger_needs_subnetwork_edges_and_edge_csv(tmp_path, monkeypatc
         p.write_bytes(b"PNG")
         return [p]
 
-    import neuro_lightbox.circos as circos_mod
+    import neuro_lightbox.profiles.eeg.circos as circos_mod
 
     monkeypatch.setattr(circos_mod, "circos_available", lambda py=None: True)
     monkeypatch.setattr(circos_mod, "render_circos", fake_render)

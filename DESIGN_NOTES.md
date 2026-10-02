@@ -31,7 +31,8 @@ breadcrumb. Key axes: **paradigm** = analysis family (resting/vertex);
 `source-analytics` results carry tables but the `figures/` dirs are empty by
 convention. The lightbox renders figures at build time:
 
-- **One canonical overview per analysis module.** `render.py` groups tables by
+- **One canonical overview per analysis module.** `render.py` (the EEG
+  renderers: `profiles/eeg/render.py`) groups tables by
   `(source, paradigm, analysis)`, picks the highest-priority table
   (`_table_priority`: global/summary over per-unit detail), and renders one
   figure — collapsing measure/`dv` facets to a primary value. Column-driven
@@ -74,7 +75,7 @@ convention. The lightbox renders figures at build time:
 ## Summaries: generated digest, not the verbatim report
 
 `ANALYSIS_SUMMARY.md` is a full stats report, not a summary — it is **not**
-embedded. Instead `summarize.py` derives a concise "significant results by
+embedded. Instead `profiles/eeg/summarize.py` derives a concise "significant results by
 contrast" digest from the module's effect-size table (per-contrast chips with
 direction arrows, FDR q<0.05). The per-contrast category axis is band/freq_pair,
 falling back to `dv` when band is the aperiodic `NA` placeholder.

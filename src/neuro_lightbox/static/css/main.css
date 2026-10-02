@@ -426,7 +426,7 @@ main {
 }
 .fig-group > .fig-subgroup-title:first-of-type { border-top: none; }
 
-/* === Circos figures: metric sub-tabs, band rows, small thumbnails === */
+/* === Metric sub-tabs (a profile's tabbed figure layouts) === */
 .metric-tabs {
   display: flex;
   flex-wrap: wrap;
@@ -453,42 +453,7 @@ main {
 .metric-panel { display: none; }
 .metric-panel.active { display: block; }
 
-.band-block { margin: 14px 0 4px; }
-.band-title {
-  font-size: 14px;
-  font-weight: 600;
-  margin: 0 0 8px;
-  padding-bottom: 4px;
-  border-bottom: 1px solid var(--border-color);
-}
-.band-figs {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 14px;
-}
-.circos-thumb {
-  margin: 0;
-  width: 230px;
-  cursor: zoom-in;
-}
-.circos-thumb a { display: block; }
-.circos-thumb img {
-  width: 100%;
-  height: auto;
-  border: 1px solid var(--border-color);
-  border-radius: 6px;
-  background: #fff;
-  transition: box-shadow 0.15s;
-}
-.circos-thumb:hover img { box-shadow: var(--shadow); }
-.circos-thumb figcaption {
-  margin-top: 5px;
-  font-size: 12px;
-  color: var(--text-secondary);
-  text-align: center;
-}
-
-/* === Localization === */
+/* === Inputs: subjects and QC === */
 .page-lead, .qc-lead {
   color: var(--text-secondary);
   font-size: 13px;
@@ -519,7 +484,7 @@ main {
 }
 .loc-group-chip b { color: var(--text-primary); }
 
-/* What source-localization run built a pipeline. Sits between the group chips
+/* What built an input pipeline (the profile's run card). Sits between the group chips
    and the action links, so the settings that decide the numbers are read before
    the figures they produced. */
 .loc-run { display: flex; flex-wrap: wrap; gap: 4px 14px; margin-bottom: 10px;
@@ -728,7 +693,7 @@ main {
   margin-right: 6px;
 }
 
-/* What produced an analysis's tables (source-analytics provenance.json).
+/* What produced an analysis's tables (its provenance.json).
    The caveat block is open because it changes how a table is read; the
    provenance detail is collapsed because it is reference. */
 .analysis-warn {
@@ -1185,7 +1150,7 @@ main {
   margin-bottom: 16px;
 }
 
-/* === Localization Subject Selector === */
+/* === Inputs subject selector === */
 .subject-selector {
   margin-bottom: 16px;
 }

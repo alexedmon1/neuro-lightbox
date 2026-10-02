@@ -1,6 +1,6 @@
 """Tests for per-subject QC metadata (group + outlier flags)."""
 
-from neuro_lightbox.qc_meta import compute_subject_meta
+from neuro_lightbox.profiles.eeg.qc_meta import compute_subject_meta
 
 
 def _metrics():

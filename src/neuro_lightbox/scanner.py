@@ -14,7 +14,7 @@ class FigureEntry:
     """A discovered figure file."""
 
     src_path: Path
-    category: str  # "analytics" or "localization"
+    category: str  # "analytics", or the inputs category a profile names
     source_label: str
     paradigm: str = ""
     analysis: str = ""
@@ -28,9 +28,9 @@ class FigureEntry:
         if self.category == "analytics":
             return f"analytics/{label_slug}/{self.paradigm}/{self.analysis}/{self.filename}"
         elif self.subject:
-            return f"localization/{label_slug}/subjects/{self.subject}/{self.filename}"
+            return f"{self.category}/{label_slug}/subjects/{self.subject}/{self.filename}"
         else:
-            return f"localization/{label_slug}/qc/{self.filename}"
+            return f"{self.category}/{label_slug}/qc/{self.filename}"
 
     @property
     def thumb_rel_path(self) -> str:
@@ -70,9 +70,9 @@ class ScanResult:
     figures: list[FigureEntry] = field(default_factory=list)
     tables: list[TableEntry] = field(default_factory=list)
     qc_entries: list[QCEntry] = field(default_factory=list)
-    #: source_label -> what source-localization run built it. See _read_run.
+    #: input source_label -> what built that input (the profile's own record).
     runs: dict = field(default_factory=dict)
-    #: (paradigm, analysis) -> source-analytics' provenance.json for those tables.
+    #: (paradigm, analysis) -> the provenance.json beside those tables.
     provenance: dict = field(default_factory=dict)
 
 
@@ -81,133 +81,6 @@ def _slugify(text: str) -> str:
     return re.sub(r"[^a-z0-9]+", "_", text.lower()).strip("_")
 
 
-#: Settings that decide the numbers. Two subjects that differ on any of them
-#: were not measured the same way. Mirrors source-analytics' RunManifest.
-_RUN_FIELDS = ("atlas", "bem", "source_space", "sampling", "inverse", "orientation")
-
-
-def _read_run(data_dir: Path) -> dict | None:
-    """The resolved config source-localization 0.4.2+ leaves beside its outputs.
-
-    Returns None when absent — a run from before that, whose outputs cannot say
-    what built them. The gallery shows "not recorded" rather than guessing.
-    """
-    path = data_dir / "config_resolved.yaml"
-    if not path.exists():
-        return None
-    try:
-        import yaml
-
-        with open(path) as f:
-            snapshot = yaml.safe_load(f) or {}
-    except Exception:
-        return None
-
-    cfg = snapshot.get("config") or {}
-    src = cfg.get("source_space") or {}
-    surface = src.get("surface") or {}
-    inverse = cfg.get("inverse") or {}
-    pipeline = cfg.get("pipeline") or {}
-    method = surface.get("method")
-    return {
-        "version": snapshot.get("source_localization_version"),
-        "preset": (cfg.get("provenance") or {}).get("preset"),
-        "atlas": (cfg.get("provenance") or {}).get("atlas"),
-        "bem": pipeline.get("bem_type"),
-        "source_space": (pipeline.get("source_type") or "")
-                        + (f"/{method}" if method else ""),
-        "sampling": src.get("source_sampling") or "fixed",
-        "inverse": inverse.get("method"),
-        "orientation": inverse.get("orientation"),
-    }
-
-
-def _summarise_runs(per_subject: dict) -> dict | None:
-    """Collapse per-subject run info to one description for the source.
-
-    ``mismatched`` lists the settings the subjects disagree on. A gallery that
-    silently showed the first subject's settings for a mixed cohort would be
-    describing a study that was not run.
-    """
-    known = {k: v for k, v in per_subject.items() if v}
-    if not known:
-        return None
-    first = next(iter(known.values()))
-    mismatched = sorted(
-        field for field in _RUN_FIELDS
-        if len({v.get(field) for v in known.values()}) > 1
-    )
-    return {
-        **first,
-        "n_subjects": len(known),
-        "n_unrecorded": len(per_subject) - len(known),
-        "mismatched": mismatched,
-    }
-
-
-class LocalizationScanner:
-    """Scan a source-localization output directory."""
-
-    def __init__(self, path: Path, label: str):
-        self.path = Path(path)
-        self.label = label
-
-    def scan(self) -> ScanResult:
-        result = ScanResult()
-        per_subject: dict = {}
-
-        # Per-subject pipeline figures
-        deriv = self.path / "derivatives"
-        if deriv.exists():
-            for sub_dir in sorted(deriv.iterdir()):
-                if not sub_dir.is_dir() or not sub_dir.name.startswith("sub-"):
-                    continue
-                sub_id = sub_dir.name
-                per_subject[sub_id] = _read_run(sub_dir / "pipeline" / "data")
-                fig_dir = sub_dir / "pipeline" / "figures"
-                if fig_dir.exists():
-                    for fig in sorted(fig_dir.glob("*.png")):
-                        result.figures.append(
-                            FigureEntry(
-                                src_path=fig,
-                                category="localization",
-                                source_label=self.label,
-                                subject=sub_id,
-                                filename=fig.name,
-                            )
-                        )
-
-        # QC figures
-        qc_dir = self.path / "qc"
-        if qc_dir.exists():
-            qc_figs = qc_dir / "figures"
-            if qc_figs.exists():
-                for fig in sorted(qc_figs.glob("*.png")):
-                    result.figures.append(
-                        FigureEntry(
-                            src_path=fig,
-                            category="localization",
-                            source_label=self.label,
-                            filename=fig.name,
-                        )
-                    )
-
-            # QC metrics and report
-            qc_entry = QCEntry(source_label=self.label)
-            metrics = qc_dir / "qc_metrics.csv"
-            if metrics.exists():
-                qc_entry.metrics_path = metrics
-            report = qc_dir / "qc_report.html"
-            if report.exists():
-                qc_entry.report_path = report
-            if qc_entry.metrics_path or qc_entry.report_path:
-                result.qc_entries.append(qc_entry)
-
-        run = _summarise_runs(per_subject)
-        if run is not None:
-            result.runs[self.label] = run
-
-        return result
 
 
 # Raster figure formats the gallery copies and thumbnails (Pillow-readable).
@@ -219,12 +92,12 @@ def _is_image(path: Path) -> bool:
 
 
 def _read_provenance(analysis_dir: Path) -> dict | None:
-    """source-analytics' ``provenance.json``, or None when absent/unreadable.
+    """The analysis's ``provenance.json``, or None when absent/unreadable.
 
-    Written from source-analytics v0.8.2. Records what produced the tables in
-    this directory: the source-analytics version, the plugin that supplied the
-    analysis, the subjects, and the localization settings the cohort shares.
-    Older result trees have none, which the gallery shows as unrecorded.
+    Written by the analysis package beside its tables: what produced them (the
+    package and its version, the subjects, the settings that decide the
+    numbers). Older result trees have none, which the gallery shows as
+    unrecorded; the profile decides which parts are shown.
     """
     path = analysis_dir / "provenance.json"
     if not path.exists():
@@ -237,10 +110,12 @@ def _read_provenance(analysis_dir: Path) -> dict | None:
 
 
 class ResultsScanner:
-    """Scan a source-analytics results directory (``tables/`` + ``figures/``).
+    """Scan a results directory (``tables/`` + ``figures/``).
 
-    Point it at ``results/<profile>`` for a profile run — the layout below the
-    root is the same.
+    ``tables/<paradigm>/<analysis>/*.csv`` (with an optional ``provenance.json``
+    beside them) and ``figures/<paradigm>/<analysis>/**``. Point it at a subtree
+    of a results tree for a run written there — the layout below the root is
+    the same.
     """
 
     def __init__(self, path: Path, label: str):

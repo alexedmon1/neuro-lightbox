@@ -1,29 +1,28 @@
-/* source-lightbox SPA — vanilla JS, fully offline (no fetch needed) */
+/* neuro-lightbox SPA — vanilla JS, fully offline (no fetch needed) */
 (function () {
   "use strict";
 
   const M = window.MANIFEST;
+  // The profile's vocabulary — the words, orders and labels this gallery's data
+  // is shown in (data/profile.json) — and the page behaviour its script adds
+  // (HOOKS, filled through window.LightboxApp once this file has run).
+  const V = (window.PROFILE && window.PROFILE.vocabulary) || {};
+  const HOOKS = {};
   const PAGE_SIZE = 50;
 
   /* ── Acronym map for display formatting ── */
-  const ACRONYMS = {
-    "psd": "PSD", "pac": "PAC", "mvpa": "MVPA", "roi": "ROI", "vertex": "Vertex", "lmm": "LMM",
-    "itc": "ITC", "ersp": "ERSP", "stp": "STP", "svm": "SVM", "nbs": "NBS",
-    "assr": "ASSR", "qc": "QC", "eeg": "EEG", "ica": "ICA", "falff": "fALFF",
-    "fdr": "FDR", "aic": "AIC", "bic": "BIC", "se": "SE", "df": "df",
-    // Connectivity / coupling / directed metrics and method acronyms — keep the
-    // canonical mixed case (wPLI, dwPLI, dPLI) consistent everywhere they render.
-    "aec": "AEC", "pli": "PLI", "wpli": "wPLI", "dwpli": "dwPLI", "dpli": "dPLI",
-    "aac": "AAC", "ppc": "PPC", "dtf": "DTF", "te": "TE", "cfc": "CFC",
-    "fcd": "FCD", "auc": "AUC", "tfce": "TFCE", "fooof": "FOOOF", "mi": "MI",
-  };
+  const ACRONYMS = V.acronyms || {};
 
-  /* ── Group label map for readable contrast display ── */
-  const GROUP_LABELS = {
-    "vehicle": "Vehicle",
-    "6mgkg": "AUT00201 (6 mg/kg)",
-    "30mgkg": "AUT00206 (30 mg/kg)",
-  };
+  /* ── Group label fallbacks for readable contrast display (the study's own
+     `groups:` labels come first) ── */
+  const GROUP_LABELS = V.group_labels || {};
+
+  /* ── The inputs side (subjects / QC of what the analyses ran on), if any ── */
+  const INPUTS = V.inputs || {};
+  const INPUT_DATA = (INPUTS.key && M[INPUTS.key]) || {};
+
+  /* ── How the profile's table columns are grouped, labelled and formatted ── */
+  const TABLE = V.table || {};
 
   /* ── State ── */
   let currentSource = null;
@@ -32,7 +31,7 @@
   /* ── Init ── */
   document.addEventListener("DOMContentLoaded", function () {
     document.getElementById("gallery-title").textContent = M.title || "Gallery";
-    document.title = M.title || "Source Analysis Gallery";
+    document.title = M.title || V.default_title || "Gallery";
     buildSidebar();
     initThemeToggle();
     initSearch();
@@ -51,10 +50,10 @@
       renderOverview();
     } else if (parts[0] === "search") {
       renderSearch(decodeURIComponent(parts.slice(1).join("/")));
-    } else if (parts[0] === "localization") {
+    } else if (INPUTS.route && parts[0] === INPUTS.route) {
       if (parts[1] === "qc") renderQC(parts[2]);
       else if (parts[1] === "subjects") renderSubjects(parts[2]);
-      else renderLocalizationHome();
+      else renderInputsHome();
     } else if (parts[0] === "domain") {
       // #/domain/<source>/<paradigm>/<domain>
       renderDomain(decodeURIComponent(parts[1] || ""),
@@ -74,10 +73,10 @@
     }
   }
 
-  /* Sources that actually carry analytics data. Localization pipelines
-     (paths.localizations, e.g. ROI/Shell) are a separate namespace from the
-     analytics source(s) (paths.results) and have zero figures/tables here, so
-     they're excluded — derived from the data, no hardcoded source names. */
+  /* Sources that actually carry analytics data. The profile's input pipelines
+     are a separate namespace from the analytics source(s) (paths.results) and
+     have zero figures/tables here, so they're excluded — derived from the data,
+     no hardcoded source names. */
   function analyticsSources() {
     return M.sources.filter(function (src) {
       for (var para of Object.keys(M.paradigms)) {
@@ -106,15 +105,13 @@
      (the primary it runs *after*, consuming its output). The gallery shows one
      page per (paradigm × domain); a secondary nests right after its primary as a
      sub-tab. Domain order is fixed; unknown domains fall to the end. */
-  var DOMAIN_ORDER = ["Spectral", "Connectivity", "Directed", "Cross-frequency", "Multivariate",
-                      "Sensor-level", "Source vs Sensor", "Evoked", "Other"];
-  // "Sensor-level" is a distinct acquisition level (scalp electrodes, not source-
-  // localized ROI/vertex data), so in the nav it is promoted out of its paradigm's
-  // domain list into its own study-design heading rather than listed under ROI/vertex.
-  var SENSOR_DOMAIN = "Sensor-level";
-  // "Source vs Sensor" holds the source-vs-sensor comparison layers (PSD,
-  // Connectivity); it renders as a sub-group at the end of the Sensor-level section.
-  var COMPARISON_DOMAIN = "Source vs Sensor";
+  var DOMAINS = V.domains || {};
+  var DOMAIN_ORDER = DOMAINS.order || [];
+  // A domain the profile promotes out of its paradigm's domain list into its own
+  // study-design heading (e.g. a different acquisition level), and one shown as
+  // a sub-group at the end of that heading's section.
+  var SECTION_DOMAIN = DOMAINS.section || null;
+  var SUBSECTION_DOMAIN = DOMAINS.subsection || null;
 
   function analysisHasData(ad, src) {
     return (ad.figures[src] && ad.figures[src].length > 0) ||
@@ -137,12 +134,10 @@
 
   // Analyses in a (paradigm, domain) that have data for src — primaries first,
   // each secondary placed immediately after the primary it supplements.
-  // Canonical intra-domain analysis order: PSD (the standard analysis) leads,
-  // then the other primary measures. Names are matched by keyword; unknown
-  // analyses keep their existing (manifest) order after the ranked ones.
-  var ANALYSIS_ORDER = ["psd", "cluster", "aperiodic", "specparam", "spatial",
-                        "connectivity", "cross_freq", "directed", "graph", "nbs",
-                        "comparison", "mvpa", "evoked"];
+  // The profile's intra-domain analysis order: the standard analysis leads, then
+  // the other primary measures. Names are matched by keyword; unknown analyses
+  // keep their existing (manifest) order after the ranked ones.
+  var ANALYSIS_ORDER = V.analysis_order || [];
   function analysisRank(name) {
     var n = String(name).toLowerCase();
     for (var i = 0; i < ANALYSIS_ORDER.length; i++) {
@@ -192,14 +187,14 @@
     return (a && a.meta && a.meta.display_name) || formatName(name);
   }
 
-  // The study-design label for an analysis header/breadcrumb. Sensor-level and
-  // Source-vs-Sensor analyses aren't ROI/vertex source-space, so they read their
-  // own design label, not the paradigm label ("ROI-based") they sit in.
+  // The study-design label for an analysis header/breadcrumb. The promoted
+  // section's analyses read their own design label, not the label of the
+  // paradigm they sit in.
   function designLabel(paradigm, analysisName) {
     var ad = M.paradigms[paradigm] && M.paradigms[paradigm][analysisName];
     var d = ad && analysisDomain(ad);
-    if (d === COMPARISON_DOMAIN) return COMPARISON_DOMAIN;
-    if (d === SENSOR_DOMAIN) return SENSOR_DOMAIN;
+    if (d === SUBSECTION_DOMAIN) return SUBSECTION_DOMAIN;
+    if (d === SECTION_DOMAIN) return SECTION_DOMAIN;
     return paradigmLabel(paradigm);
   }
 
@@ -211,22 +206,22 @@
     // Overview
     html += '<a class="nav-item" href="#/overview" data-route="/overview">Overview</a>';
 
-    // Localization — section title (matching Analytics), nested per source
-    var locSources = Object.keys(M.localization);
+    // Inputs — section title (matching Analytics), nested per source
+    var locSources = Object.keys(INPUT_DATA);
     if (locSources.length > 0) {
       html += '<div class="nav-divider"></div>';
-      html += '<div class="nav-section-title">Localization</div>';
+      html += '<div class="nav-section-title">' + INPUTS.title + '</div>';
       for (var source of locSources) {
         if (locSources.length > 1) {
           html += '<div class="nav-paradigm">' + escapeHtml(source) + '</div>';
         }
-        html += navItem("/localization/subjects/" + source, "Subjects");
-        html += navItem("/localization/qc/" + source, "QC");
+        html += navItem("/" + INPUTS.route + "/subjects/" + source, "Subjects");
+        html += navItem("/" + INPUTS.route + "/qc/" + source, "QC");
       }
     }
 
     // Analytics — grouped by source, then study design (paradigm), then analysis.
-    // Only sources with analytics data appear (localization-only sources skip).
+    // Only sources with analytics data appear (input-only sources skip).
     var aSources = analyticsSources();
     if (aSources.length > 0) {
       html += '<div class="nav-divider"></div>';
@@ -242,20 +237,19 @@
         // a display group (M.paradigm_meta) so siblings nest under one header
         // (e.g. "Resting" › "ROI-based"/"Vertex-based"); otherwise the nav is flat.
         var lastGroup = null;
-        // Sensor-level sections are deferred to the END of their group so they sit
-        // after the source-localized study designs (ROI → Vertex → Sensor-level).
-        // A group's sensor analyses from EVERY paradigm are merged under ONE
-        // Sensor-level heading (so scalp + source-vs-sensor comparisons sit together).
-        var pendingSensor = "";      // Sensor-level nav items (no heading)
-        var pendingComparison = "";  // Source-vs-Sensor items (own sub-heading)
-        function flushSensor() {
-          if (pendingSensor || pendingComparison) {
-            html += '<div class="nav-study-design">' + escapeHtml(SENSOR_DOMAIN) + '</div>' + pendingSensor;
-            if (pendingComparison) {
-              html += '<div class="nav-subgroup">' + escapeHtml(COMPARISON_DOMAIN) + '</div>' +
-                '<div class="nav-subgroup-items">' + pendingComparison + '</div>';
+        // The promoted section is deferred to the END of its group so it sits after
+        // the group's own study designs. Its analyses from EVERY paradigm are merged
+        // under ONE heading, with the sub-group domain's analyses at its end.
+        var pendingSection = "";     // section nav items (no heading)
+        var pendingSub = "";         // sub-group items (own sub-heading)
+        function flushSection() {
+          if (pendingSection || pendingSub) {
+            html += '<div class="nav-study-design">' + escapeHtml(SECTION_DOMAIN) + '</div>' + pendingSection;
+            if (pendingSub) {
+              html += '<div class="nav-subgroup">' + escapeHtml(SUBSECTION_DOMAIN) + '</div>' +
+                '<div class="nav-subgroup-items">' + pendingSub + '</div>';
             }
-            pendingSensor = ""; pendingComparison = "";
+            pendingSection = ""; pendingSub = "";
           }
         }
         for (var paradigm of Object.keys(M.paradigms)) {
@@ -273,35 +267,35 @@
 
           var grp = paradigmGroup(paradigm);
           if (grp !== lastGroup) {
-            flushSensor();  // close out the previous group's sensor section first
+            flushSection();  // close out the previous group's promoted section first
             if (grp) html += '<div class="nav-paradigm-group">' + escapeHtml(grp) + '</div>';
           }
           lastGroup = grp;  // null for ungrouped → next grouped paradigm re-emits
 
           html += '<div class="nav-study-design">' + paradigmLabel(paradigm) + '</div>';
           // Group analyses by domain (one nav item per domain → domain page).
-          // Sensor-level is promoted to its own study-design heading (deferred to the
-          // group end), so it is not listed as a domain under this paradigm's label.
+          // The promoted domains get their own study-design heading (deferred to the
+          // group end), so they are not listed as domains under this paradigm's label.
           var analyticBase = "/analytics/" + encodeURIComponent(src) + "/" + encodeURIComponent(paradigm) + "/";
           var pdomains = domainsForParadigm(paradigm, src);
           pdomains.forEach(function (domain) {
-            if (domain === SENSOR_DOMAIN || domain === COMPARISON_DOMAIN) return;
+            if (domain === SECTION_DOMAIN || domain === SUBSECTION_DOMAIN) return;
             html += navItem(domainRoute(src, paradigm, domain), domain);
           });
-          // Sensor-level + Source-vs-Sensor analyses are deferred and merged across
-          // paradigms; the headings are emitted by flushSensor at the group's end.
-          if (pdomains.indexOf(SENSOR_DOMAIN) >= 0) {
-            domainAnalyses(paradigm, SENSOR_DOMAIN, src).forEach(function (o) {
-              pendingSensor += navItem(analyticBase + encodeURIComponent(o.name), analysisLabel(paradigm, o.name));
+          // The promoted domains' analyses are deferred and merged across
+          // paradigms; the headings are emitted by flushSection at the group's end.
+          if (pdomains.indexOf(SECTION_DOMAIN) >= 0) {
+            domainAnalyses(paradigm, SECTION_DOMAIN, src).forEach(function (o) {
+              pendingSection += navItem(analyticBase + encodeURIComponent(o.name), analysisLabel(paradigm, o.name));
             });
           }
-          if (pdomains.indexOf(COMPARISON_DOMAIN) >= 0) {
-            domainAnalyses(paradigm, COMPARISON_DOMAIN, src).forEach(function (o) {
-              pendingComparison += navItem(analyticBase + encodeURIComponent(o.name), analysisLabel(paradigm, o.name));
+          if (pdomains.indexOf(SUBSECTION_DOMAIN) >= 0) {
+            domainAnalyses(paradigm, SUBSECTION_DOMAIN, src).forEach(function (o) {
+              pendingSub += navItem(analyticBase + encodeURIComponent(o.name), analysisLabel(paradigm, o.name));
             });
           }
         }
-        flushSensor();  // emit the final group's sensor section
+        flushSection();  // emit the final group's promoted section
       }
     }
 
@@ -434,68 +428,12 @@
   }
 
   /* ── What produced these tables ──
-     source-analytics writes provenance.json beside each analysis's tables
-     (v0.8.2+). The Monte Carlo parcel caveats show open, because a parcel the
-     montage cannot separate from its neighbour produces an ordinary-looking
-     table row and there is otherwise nothing to distinguish it. The rest is
-     reference and stays collapsed. Absent for an older results tree, in which
-     case nothing is shown rather than a guess. */
+     The analysis's provenance.json, as the profile shows it: nothing when the
+     profile has no strip for it, or when an older results tree has no record
+     (rather than a guess). */
   function provenanceHtml(prov) {
-    if (!prov) return "";
-    var loc = prov.localization || {};
-    var html = "";
-
-    var caveats = prov.parcel_caveats || {};
-    var names = Object.keys(caveats).sort();
-    if (names.length) {
-      html += '<div class="analysis-warn"><b>' + names.length
-        + (names.length === 1 ? " parcel carries" : " parcels carry")
-        + ' a Monte Carlo caveat</b> — '
-        + (names.length === 1 ? "its individual value is" : "their individual values are")
-        + ' not interpretable on ' + (names.length === 1 ? "its" : "their") + ' own:<ul>';
-      for (var n of names) {
-        html += "<li><b>" + escapeHtml(n) + "</b> — " + escapeHtml(caveats[n]) + "</li>";
-      }
-      html += "</ul></div>";
-    }
-
-    var bits = [];
-    if (loc.description) bits.push(["localization", loc.description]);
-    else {
-      if (loc.atlas) bits.push(["atlas", loc.atlas]);
-      if (loc.inverse_method) bits.push(["inverse", loc.inverse_method]);
-      if (loc.source_sampling) {
-        bits.push(["sampling", loc.source_sampling === "monte_carlo" ? "Monte Carlo" : "fixed grid"]);
-      }
-    }
-    if (loc.version) bits.push(["source-localization", loc.version]);
-    if (prov.source_analytics) bits.push(["source-analytics", prov.source_analytics]);
-    if (prov.plugin) bits.push(["plugin", prov.plugin]);
-    if (prov.n_subjects != null) {
-      var groups = prov.groups || {};
-      var gnames = Object.keys(groups).sort();
-      var detail = gnames.length
-        ? " (" + gnames.map(function (g) { return formatGroup(g) + " " + groups[g]; }).join(", ") + ")"
-        : "";
-      bits.push(["subjects", prov.n_subjects + detail]);
-    }
-    if (loc.n_unrecorded) {
-      bits.push(["not recorded", loc.n_unrecorded + " subject(s) localized before "
-        + "source-localization 0.4.2"]);
-    }
-    if (prov.written) bits.push(["run", String(prov.written).replace("T", " ").slice(0, 16)]);
-    if (!bits.length) return html;
-
-    var lead = loc.description
-      || [loc.atlas, loc.inverse_method].filter(Boolean).join(", ")
-      || "recorded";
-    html += '<details class="analysis-prov"><summary>What produced this — '
-      + escapeHtml(lead) + "</summary><dl>";
-    for (var b of bits) {
-      html += "<dt>" + escapeHtml(b[0]) + "</dt><dd>" + escapeHtml(String(b[1])) + "</dd>";
-    }
-    html += "</dl></details>";
-    return html;
+    if (!prov || !HOOKS.provenanceHtml) return "";
+    return HOOKS.provenanceHtml(prov);
   }
 
   function renderAnalysisContent(paradigm, analysis, data, source, allSources) {
@@ -523,22 +461,23 @@
       figPanel = renderComparisonGrid(data, sourcesWithFigs);
       figCount = sourcesWithFigs.reduce(function (n, s) { return n + data.figures[s].length; }, 0);
     } else if (figs.length > 0) {
-      // Circos sets get a metric-tab / band-row layout of small click-to-enlarge
-      // plots; larger sets are split into collapsible groups by an adaptive axis;
-      // small sets get full-width titled rows.
-      var circos = figs.filter(function (f) { return f.filename.indexOf("circos__") === 0; });
-      if (circos.length) {
-        // Chord diagrams get the metric-tab layout; any other figure of the
-        // module (e.g. the NBS component heatmap) is shown above them as rows.
-        var rest = figs.filter(function (f) { return f.filename.indexOf("circos__") !== 0; });
-        figPanel = (rest.length ? renderFigureRows(rest) : "") + renderCircosFigures(circos);
+      // A profile may lay out a set of its own figures (e.g. tabbed small
+      // multiples); larger sets are split into collapsible groups by an adaptive
+      // axis; small sets get full-width titled rows.
+      var special = HOOKS.figurePanel ? HOOKS.figurePanel(figs) : null;
+      if (special) {
+        figPanel = special;
       } else {
-        // Two-level layouts, tried in order: connectivity metric-first, then
-        // power/spectral measure-first (Absolute / Relative / Delta-referenced →
-        // figure type). Fall back to single-axis groups, then flat rows.
+        // Two-level layouts, tried in the profile's order (e.g. metric-first,
+        // then measure-first → figure type). Fall back to single-axis groups,
+        // then flat rows.
         var vocab = _contrastVocab();
-        var nested = figs.length > 8 ? chooseNestedConnectivityGrouping(figs, vocab) : null;
-        if (!nested && figs.length > 8) nested = chooseMeasureFirstGrouping(figs, vocab);
+        var nested = null;
+        if (figs.length > 8) {
+          for (var ni = 0; ni < NESTED_LAYOUTS.length && !nested; ni++) {
+            nested = chooseNestedGrouping(figs, vocab, NESTED_LAYOUTS[ni]);
+          }
+        }
         if (nested) {
           figPanel = renderNestedMetricFigures(nested);
         } else {
@@ -580,8 +519,9 @@
     if (figPanel) tabs.push({ id: "figures", label: "Figures", count: figCount, html: figPanel });
     if (tablePanel) tabs.push({ id: "tables", label: "Tables", count: tables.length, html: tablePanel });
 
-    // Connectivity-family analyses get a collapsible metric-definitions glossary.
-    var glossaryPanel = isConnectivityFamily(analysis) ? renderMetricGlossary() : "";
+    // The profile's glossaries (e.g. metric definitions), on the analyses they
+    // apply to.
+    var glossaryPanel = glossaryHtml(analysis);
 
     var html = aboutPanel + provenanceHtml(data.provenance) + glossaryPanel;
     if (tabs.length === 0) {
@@ -611,12 +551,12 @@
       setContent('<div class="empty-state"><p>Nothing in this domain.</p></div>');
       return;
     }
-    // Sensor-level is its own study design (scalp, not ROI/vertex), so it isn't
-    // sub-labelled "ROI-based"; show its group (e.g. "Resting") instead.
-    var isSensor = (domain === SENSOR_DOMAIN);
-    var domainSub = isSensor ? (paradigmGroup(paradigm) || "") : paradigmLabel(paradigm);
-    setBreadcrumb(analyticsCrumbs(src, isSensor ? [domain] : [paradigmLabel(paradigm), domain]));
-    // Reconstruction toggle (Shell / Cartesian …) when more than one analytics
+    // The promoted section is its own study design, so it isn't sub-labelled
+    // with the paradigm it sits in; show its group (e.g. "Resting") instead.
+    var isSection = (domain === SECTION_DOMAIN);
+    var domainSub = isSection ? (paradigmGroup(paradigm) || "") : paradigmLabel(paradigm);
+    setBreadcrumb(analyticsCrumbs(src, isSection ? [domain] : [paradigmLabel(paradigm), domain]));
+    // Source toggle (e.g. two reconstructions) when more than one analytics
     // source has data in this domain — the same control as the analysis page.
     var domainSources = M.sources.filter(function (s) {
       return ordered.some(function (o) { return analysisHasData(M.paradigms[paradigm][o.name], s); });
@@ -701,8 +641,8 @@
     });
   }
 
-  /* ── Localization Pages ── */
-  /* Treatment-group helpers (shared by the localization pages) */
+  /* ── Inputs pages (subjects / QC) ── */
+  /* Treatment-group helpers (shared by the inputs pages) */
   // Group ids -> readable labels + listing order come from the study YAML
   // (`groups:` / `group_order:`) via the manifest; unknown ids fall back to
   // underscore-to-space formatting in alphabetical order.
@@ -728,52 +668,19 @@
     return m && m.outliers && m.outliers.length ? m.outliers : null;
   }
 
-  /* ── What source-localization run built a pipeline ──
-     Two galleries can look identical and report different measurements, so the
-     settings that decide the numbers are shown rather than left in a YAML file.
-     Monte Carlo is called out because it is ROI-only by construction. */
-  function runProvenanceHtml(run) {
-    if (!run) return '<div class="loc-run loc-run-unknown">Run settings not recorded '
-      + '(localized before source-localization 0.4.2)</div>';
-    var bits = [];
-    if (run.atlas) bits.push(["atlas", run.atlas]);
-    if (run.bem) bits.push(["head model", run.bem]);
-    if (run.source_space) bits.push(["sources", run.source_space]);
-    if (run.inverse) bits.push(["inverse", run.inverse + (run.orientation ? " (" + run.orientation + ")" : "")]);
-    bits.push(["sampling", run.sampling === "monte_carlo" ? "Monte Carlo" : "fixed grid"]);
-
-    var html = '<div class="loc-run">';
-    for (var b of bits) {
-      html += '<span class="loc-run-item"><span class="loc-run-key">' + escapeHtml(b[0])
-        + '</span> ' + escapeHtml(String(b[1])) + '</span>';
-    }
-    html += '</div>';
-    if (run.sampling === "monte_carlo") {
-      html += '<div class="loc-note">Monte Carlo sampling: the ROI operator is averaged '
-        + 'over many source draws, so this pipeline has parcel time series only — no '
-        + 'vertex-level output exists for it.</div>';
-    }
-    if (run.mismatched && run.mismatched.length) {
-      html += '<div class="loc-warn">Subjects disagree on: '
-        + escapeHtml(run.mismatched.join(", "))
-        + '. These were not all localized the same way, so pooling them compares '
-        + 'different measurements.</div>';
-    }
-    if (run.n_unrecorded) {
-      html += '<div class="loc-warn">' + run.n_unrecorded + ' subject(s) recorded no run '
-        + 'settings, so they cannot be checked against the rest.</div>';
-    }
-    return html;
+  /* What built an input pipeline, as the profile shows it. */
+  function inputRunHtml(run) {
+    return HOOKS.inputRunHtml ? HOOKS.inputRunHtml(run) : "";
   }
 
-  function renderLocalizationHome() {
-    setBreadcrumb(["Localization"]);
+  function renderInputsHome() {
+    setBreadcrumb([INPUTS.title]);
     clearSourceSelector();
-    var html = '<h2 class="section-header">Localization</h2>';
-    html += '<p class="page-lead">Source-reconstruction pipelines and per-subject QC.</p>';
+    var html = '<h2 class="section-header">' + INPUTS.title + '</h2>';
+    html += '<p class="page-lead">' + INPUTS.lead + '</p>';
     html += '<div class="loc-cards">';
-    for (var source of Object.keys(M.localization)) {
-      var loc = M.localization[source];
+    for (var source of Object.keys(INPUT_DATA)) {
+      var loc = INPUT_DATA[source];
       var nSub = Object.keys(loc.subjects || {}).length;
       var nOut = loc.n_outliers || 0;
       var enc = encodeURIComponent(source);
@@ -786,10 +693,10 @@
         html += '<span class="loc-group-chip">' + escapeHtml(formatGroup(gb.group)) + ' <b>' + gb.subjects.length + '</b></span>';
       }
       html += '</div>';
-      html += runProvenanceHtml(loc.run);
+      html += inputRunHtml(loc.run);
       html += '<div class="loc-links">';
-      html += '<a class="btn-link" href="#/localization/subjects/' + enc + '">Browse subjects</a>';
-      html += '<a class="btn-link" href="#/localization/qc/' + enc + '">QC dashboard</a>';
+      html += '<a class="btn-link" href="#/' + INPUTS.route + '/subjects/' + enc + '">Browse subjects</a>';
+      html += '<a class="btn-link" href="#/' + INPUTS.route + '/qc/' + enc + '">QC dashboard</a>';
       html += '</div></div>';
     }
     html += '</div>';
@@ -798,17 +705,18 @@
 
   function renderQC(sourceEnc) {
     var source = decodeURIComponent(sourceEnc || "");
-    var loc = M.localization[source];
+    var loc = INPUT_DATA[source];
     if (!loc) { setContent('<div class="empty-state">Source not found</div>'); return; }
 
-    setBreadcrumb(["Localization", source, "QC"]);
+    setBreadcrumb([INPUTS.title, source, "QC"]);
     clearSourceSelector();
 
     var nSub = Object.keys(loc.subjects || {}).length;
     var nOut = loc.n_outliers || 0;
     var html = '<h2 class="section-header">QC — ' + escapeHtml(source) + '</h2>';
     html += '<p class="qc-lead">' + nSub + ' subjects &middot; <span class="' + (nOut ? "loc-flag" : "") + '">' +
-      nOut + ' flagged as outlier' + (nOut === 1 ? "" : "s") + '</span> (z &gt; 2 on key metrics).</p>';
+      nOut + ' flagged as outlier' + (nOut === 1 ? "" : "s") + '</span>' +
+      (INPUTS.outlier_rule ? ' (' + INPUTS.outlier_rule + ')' : '') + '.</p>';
 
     var figsPanel = (loc.qc_figures && loc.qc_figures.length) ? renderFigureRows(loc.qc_figures) : "";
     var metricsPanel = (loc.qc_metrics && loc.qc_metrics.length) ? renderQCMetricsTable(loc.qc_metrics, loc.subject_meta) : "";
@@ -867,10 +775,10 @@
 
   function renderSubjects(sourceEnc) {
     var source = decodeURIComponent(sourceEnc || "");
-    var loc = M.localization[source];
+    var loc = INPUT_DATA[source];
     if (!loc) { setContent('<div class="empty-state">Source not found</div>'); return; }
 
-    setBreadcrumb(["Localization", source, "Subjects"]);
+    setBreadcrumb([INPUTS.title, source, "Subjects"]);
     clearSourceSelector();
 
     var subjectKeys = Object.keys(loc.subjects || {});
@@ -985,11 +893,11 @@
         }
       }
     }
-    for (var locSrc of Object.keys(M.localization || {})) {
-      var loc = M.localization[locSrc];
+    for (var locSrc of Object.keys(INPUT_DATA)) {
+      var loc = INPUT_DATA[locSrc];
       var encSrc = encodeURIComponent(locSrc);
-      if (hit(locSrc) || hit("localization") || hit("qc")) {
-        links.push({ kind: "Localization", label: locSrc + " — QC dashboard", href: "#/localization/qc/" + encSrc, sub: "" });
+      if (hit(locSrc) || (INPUTS.search_words || []).some(function (w) { return hit(w); })) {
+        links.push({ kind: INPUTS.title, label: locSrc + " — QC dashboard", href: "#/" + INPUTS.route + "/qc/" + encSrc, sub: "" });
       }
       var subjMeta = loc.subject_meta || {};
       for (var subj of Object.keys(loc.subjects || {})) {
@@ -997,7 +905,7 @@
         var outl = (sm.outliers || []).join(", ");
         if (hit(subj) || hit(sm.group) || hit(formatGroup(sm.group)) || (outl && hit("outlier")) || hit(outl)) {
           links.push({ kind: "Subject", label: subj + (sm.group ? " · " + formatGroup(sm.group) : ""),
-                       href: "#/localization/subjects/" + encSrc,
+                       href: "#/" + INPUTS.route + "/subjects/" + encSrc,
                        sub: outl ? "outlier: " + outl : locSrc });
         }
       }
@@ -1047,28 +955,6 @@
     return html;
   }
 
-  // The facet that distinguishes one figure in a module from the next — band
-  // (Delta…), aperiodic measure (exponent/offset), or power type. Surfaced up
-  // front so a reader can tell figures apart at a glance instead of hunting the
-  // end of the title. Bands come from BAND_ORDER (defined below; available at
-  // call time).
-  function _figureFacet(name) {
-    // Prefer the band as the lead facet, but mask "Delta Ref" (delta-referenced
-    // power) first so it can't false-match the "Delta" band; fall back to a
-    // Delta-ref facet only when the figure carries no band (e.g. psd_by_region).
-    var dref = /(^|\s)delta\s*ref(\s|$)/i;
-    var hasDref = dref.test(name);
-    var probe = hasDref ? name.replace(dref, "   ") : name;
-    var measures = ["Exponent", "Offset", "Relative", "Absolute"];
-    var facets = BAND_ORDER.concat(measures);  // bands first — prefer the band
-    for (var i = 0; i < facets.length; i++) {
-      var re = new RegExp("(^|\\s)" + facets[i].replace(/ /g, "\\s") + "(\\s|$)", "i");
-      if (re.test(probe)) return { facet: facets[i], re: re };
-    }
-    if (hasDref) return { facet: "Delta-ref", re: dref };
-    return null;
-  }
-
   function formatFigureTitle(filename) {
     var name = (filename || "").replace(/\.(png|jpe?g|svg|pdf)$/i, "");
     name = name.replace(/^\d+[_-]/, "");   // strip a leading "01_"
@@ -1081,9 +967,10 @@
       return w.charAt(0).toUpperCase() + w.slice(1);
     });
     name = name.replace(/\bZscore\b/i, "Z-Score");
-    // Lead with the distinguishing facet (band / aperiodic measure) when present,
-    // dropping the redundant "Effect Size" prefix every analysis figure carries.
-    var hit = _figureFacet(name);
+    // Lead with the distinguishing facet the profile recognises (e.g. its
+    // category) when present, dropping the redundant "Effect Size" prefix every
+    // analysis figure carries.
+    var hit = HOOKS.figureFacet ? HOOKS.figureFacet(name) : null;
     if (hit) {
       var rest = name.replace(hit.re, " ").replace(/\s+/g, " ")
         .replace(/^Effect Size\s*/i, "").trim();
@@ -1098,23 +985,15 @@
      A module can emit 200+ figures; a flat wall is unreadable. We group them by
      the single axis that best organizes THAT module, chosen adaptively from the
      filenames so it works for any study without hardcoding:
-       kind (figure-type prefix) → contrast → connectivity/coupling metric → band.
+       kind (figure-type prefix) → contrast → the profile's token axes in order.
      Rendered as collapsible sections so the page opens as a handful of headers. */
-  var GROUP_VOCAB = {
-    // longest-first within each list so "imag_coherence" beats "coherence",
-    // "high_gamma" beats "gamma", "partial_correlation" beats "partial_corr".
-    conn_metric: ["imag_coherence", "partial_correlation", "partial_corr",
-                  "coherence", "dwpli", "wpli", "dpli", "pli", "aec"],
-    coupling_metric: ["pac", "aac", "ppc"],
-    // both "_" and " " gamma variants — filenames built from display band names
-    // ("High Gamma") use spaces, source-space maps ("high_gamma") use underscores.
-    band: ["low_gamma", "high_gamma", "low gamma", "high gamma", "peak_alpha",
-           "spectral_slope", "delta", "theta", "alpha", "beta", "gamma", "epsilon"],
-    power: ["delta_ref", "absolute", "relative"],
-    flow: ["inflow", "outflow", "netflow"],
-    measure: ["summary", "exponent", "offset"],
-    group_name: ["ko_ld_iv_icv", "ko_hd_icv", "ko_hd_iv", "ko_veh", "wt_veh"],
-  };
+  var FIGURES = V.figures || {};
+  // Filename tokens by name (e.g. metric, category), longest-first within each.
+  var GROUP_VOCAB = FIGURES.tokens || {};
+  var KIND_TOKENS = FIGURES.kind_tokens || [];  // removed to find a figure's kind
+  var FIGURE_AXES = FIGURES.axes || [];          // single-axis groupings, in order
+  var NESTED_LAYOUTS = FIGURES.nested || [];     // two-level layouts, in order
+  var CATEGORY_ORDER = (V.categories && V.categories.order) || [];
   function _escapeRe(s) { return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"); }
   function _contrastVocab() {
     // Longest-first so "hd_icv_rescue" is matched before any shorter substring.
@@ -1147,17 +1026,16 @@
     return (fig.filename || "").replace(/\.(png|jpe?g|svg|pdf)$/i, "").toLowerCase();
   }
   // Figure "kind" = the descriptive words left after removing every variable
-  // token (contrast / band / metric / power / flow / group / measure), wherever
-  // they sit. "fcd" from "fcd_alpha_aec"; "peak_presence" from "alpha_peak_presence";
-  // "region_significance_heatmap" from "region_significance_heatmap_disease_effect_relative".
+  // token (contrast, and each of the profile's token lists), wherever they sit:
+  // e.g. "region_significance_heatmap" from
+  // "region_significance_heatmap_disease_effect_relative".
   var _kindVocabCache = null, _kindVocabKey = null;
   function _kindVocab(contrasts) {
     var key = contrasts.join("|");
     if (_kindVocabKey === key) return _kindVocabCache;
-    var all = contrasts
-      .concat(GROUP_VOCAB.conn_metric, GROUP_VOCAB.coupling_metric, GROUP_VOCAB.band,
-              GROUP_VOCAB.power, GROUP_VOCAB.flow, GROUP_VOCAB.measure, GROUP_VOCAB.group_name);
-    // Longest-first so "imag_coherence" is removed before "coherence" can strand "imag".
+    var all = contrasts.slice();
+    KIND_TOKENS.forEach(function (name) { all = all.concat(GROUP_VOCAB[name] || []); });
+    // Longest-first so a long token is removed before a shorter one inside it.
     all = all.filter(function (v, i) { return all.indexOf(v) === i; })
              .sort(function (a, b) { return b.length - a.length; })
              .map(function (v) { return new RegExp("(^|[_\\-\\s])" + _escapeRe(v) + "(?=$|[_\\-\\s])", "g"); });
@@ -1171,9 +1049,9 @@
     return s || base;
   }
   function _kindLabel(kind) { return formatName(kind.replace(/_+/g, " ").trim()); }
-  function _bandOrderKey(base) {
-    for (var i = 0; i < BAND_ORDER.length; i++) {
-      if (_tokenHit(base, BAND_ORDER[i].toLowerCase().replace(/ /g, "_")) !== -1) return i;
+  function _categoryOrderKey(base) {
+    for (var i = 0; i < CATEGORY_ORDER.length; i++) {
+      if (_tokenHit(base, CATEGORY_ORDER[i].toLowerCase().replace(/ /g, "_")) !== -1) return i;
     }
     return 99;
   }
@@ -1199,14 +1077,15 @@
         return k.order.map(function (v) { return { key: v, label: _kindLabel(v), figs: k.map[v] }; });
       }
     }
-    // contrast / metric / band: qualify at ≥2 values covering ≥60% of figures.
+    // contrast, then the profile's axes: qualify at ≥2 values covering ≥60% of figures.
     var axes = [
       { valueOf: function (b) { return _axisValue(b, contrasts); },
         label: function (v) { return (M.contrast_labels && M.contrast_labels[v]) || formatName(v); } },
-      { valueOf: function (b) { return _axisValue(b, GROUP_VOCAB.conn_metric); }, label: metricLabel },
-      { valueOf: function (b) { return _axisValue(b, GROUP_VOCAB.coupling_metric); }, label: metricLabel },
-      { valueOf: function (b) { return _axisValue(b, GROUP_VOCAB.band); }, label: formatName },
-    ];
+    ].concat(FIGURE_AXES.map(function (ax) {
+      var values = GROUP_VOCAB[ax.tokens] || [];
+      return { valueOf: function (b) { return _axisValue(b, values); },
+               label: ax.label === "metric" ? metricLabel : formatName };
+    }));
     for (var ai = 0; ai < axes.length; ai++) {
       var g = build(axes[ai].valueOf);
       var matched = N - (g.map.__other__ ? g.map.__other__.length : 0);
@@ -1230,7 +1109,7 @@
       var open = "";  // all figure groups start collapsed (nothing shown until clicked)
       var sorted = g.figs.slice().sort(function (a, b) {
         var ba = _figBase(a), bb = _figBase(b);
-        return (_bandOrderKey(ba) - _bandOrderKey(bb)) || ba.localeCompare(bb);
+        return (_categoryOrderKey(ba) - _categoryOrderKey(bb)) || ba.localeCompare(bb);
       });
       html += '<details class="fig-group"' + open + '>';
       html += '<summary class="fig-group-summary">' + escapeHtml(g.label) +
@@ -1241,70 +1120,22 @@
     html += "</div>";
     return html;
   }
-  // Connectivity-matrix modules (e.g. roi_connectivity): organize figures by
-  // metric (AEC, Coherence, …) FIRST, then by figure type (Circos / Heatmap /
-  // Matrix), then band. Returns [{metric,label,kinds:[{kind,label,figs}]}] or
-  // null when the set isn't metric×figure-type shaped.
-  function chooseNestedConnectivityGrouping(figs, contrasts) {
-    function metricOf(b) { return _axisValue(b, GROUP_VOCAB.conn_metric); }
-    var nMetric = figs.filter(function (f) { return metricOf(_figBase(f)); }).length;
-    if (nMetric < 0.5 * figs.length) return null;      // not a metric-keyed set
-    var byMetric = {}, morder = [], kinds = {};
-    figs.forEach(function (f) {
-      var base = _figBase(f);
-      var m = metricOf(base) || "__other__";
-      var kind = _figKind(base, contrasts) || "figures";
-      kinds[kind] = true;
-      if (!byMetric[m]) { byMetric[m] = {}; morder.push(m); }
-      (byMetric[m][kind] = byMetric[m][kind] || []).push(f);
-    });
-    var distinctMetrics = morder.filter(function (m) { return m !== "__other__"; }).length;
-    if (distinctMetrics < 2 || Object.keys(kinds).length < 2) return null;
-    morder.sort(function (a, b) {
-      if (a === "__other__") return 1;
-      if (b === "__other__") return -1;
-      var ia = METRIC_ORDER.indexOf(a), ib = METRIC_ORDER.indexOf(b);
-      if (ia === -1) ia = 99;
-      if (ib === -1) ib = 99;
-      return ia - ib || a.localeCompare(b);
-    });
-    function bandSort(a, b) {
-      var ba = _figBase(a), bb = _figBase(b);
-      return (_bandOrderKey(ba) - _bandOrderKey(bb)) || ba.localeCompare(bb);
-    }
-    return morder.map(function (m) {
-      var kmap = byMetric[m];
-      return {
-        metric: m,
-        label: m === "__other__" ? "Other" : metricLabel(m),
-        kinds: Object.keys(kmap).sort().map(function (k) {
-          return { kind: k, label: _kindLabel(k), figs: kmap[k].slice().sort(bandSort) };
-        }),
-      };
-    });
-  }
-  // Power / spectral modules (roi_psd, electrode_psd, aperiodic): organize figures
-  // by MEASURE first (Absolute / Relative / Delta-referenced power; aperiodic
-  // Exponent / Offset), then by figure type (Band power / PSD by region /
-  // Effect-size mosaic / Significance heatmap …), then band. Same two-level shape
-  // as the connectivity grouping, reusing renderNestedMetricFigures. Returns
-  // [{metric,label,kinds:[{kind,label,figs}]}] or null when not measure-shaped.
-  var MEASURE_ORDER = ["absolute", "relative", "delta_ref", "exponent", "offset"];
-  var MEASURE_LABELS = {
-    absolute: "Absolute power", relative: "Relative power",
-    delta_ref: "Delta-referenced power",
-    exponent: "Aperiodic exponent", offset: "Aperiodic offset",
-  };
-  function measureLabel(m) { return MEASURE_LABELS[m] || formatName(m); }
-  function chooseMeasureFirstGrouping(figs, contrasts) {
-    var vocab = GROUP_VOCAB.power.concat(GROUP_VOCAB.measure);
-    function measureOf(b) { return _axisValue(b, vocab); }
-    if (figs.filter(function (f) { return measureOf(_figBase(f)); }).length < 0.5 * figs.length)
-      return null;                                     // not a measure-keyed set
+  // Two-level layouts, each from the profile (e.g. connectivity metric → figure
+  // type → category, or power measure → figure type → category): the first
+  // axis's token lists, its order and its labels. Returns
+  // [{metric,label,kinds:[{kind,label,figs}]}] or null when the set isn't
+  // shaped that way.
+  function chooseNestedGrouping(figs, contrasts, spec) {
+    var vocab = [];
+    (spec.tokens || []).forEach(function (name) { vocab = vocab.concat(GROUP_VOCAB[name] || []); });
+    var order = spec.order || [], labels = spec.labels || {};
+    function axisOf(b) { return _axisValue(b, vocab); }
+    if (figs.filter(function (f) { return axisOf(_figBase(f)); }).length < 0.5 * figs.length)
+      return null;                                     // not keyed on this axis
     var byM = {}, morder = [], kinds = {};
     figs.forEach(function (f) {
       var base = _figBase(f);
-      var m = measureOf(base) || "__other__";
+      var m = axisOf(base) || "__other__";
       var kind = _figKind(base, contrasts) || "figures";
       kinds[kind] = true;
       if (!byM[m]) { byM[m] = {}; morder.push(m); }
@@ -1315,22 +1146,22 @@
     morder.sort(function (a, b) {
       if (a === "__other__") return 1;
       if (b === "__other__") return -1;
-      var ia = MEASURE_ORDER.indexOf(a), ib = MEASURE_ORDER.indexOf(b);
+      var ia = order.indexOf(a), ib = order.indexOf(b);
       if (ia === -1) ia = 99;
       if (ib === -1) ib = 99;
       return ia - ib || a.localeCompare(b);
     });
-    function bandSort(a, b) {
+    function categorySort(a, b) {
       var ba = _figBase(a), bb = _figBase(b);
-      return (_bandOrderKey(ba) - _bandOrderKey(bb)) || ba.localeCompare(bb);
+      return (_categoryOrderKey(ba) - _categoryOrderKey(bb)) || ba.localeCompare(bb);
     }
     return morder.map(function (m) {
       var kmap = byM[m];
       return {
         metric: m,
-        label: m === "__other__" ? "Other" : measureLabel(m),
+        label: m === "__other__" ? "Other" : (labels[m] || formatName(m)),
         kinds: Object.keys(kmap).sort().map(function (k) {
-          return { kind: k, label: _kindLabel(k), figs: kmap[k].slice().sort(bandSort) };
+          return { kind: k, label: _kindLabel(k), figs: kmap[k].slice().sort(categorySort) };
         }),
       };
     });
@@ -1382,129 +1213,27 @@
     return html;
   }
 
-  /* ── Circos figures: metric tabs → band rows → small click-to-enlarge plots ── */
-  var BAND_ORDER = ["Delta", "Theta", "Alpha", "Beta", "Low Gamma", "High Gamma", "Epsilon"];
-  var METRIC_ORDER = ["imag_coherence", "dwpli", "pli", "aec", "coherence"];
-  var METRIC_LABELS = {
-    imag_coherence: "Imag. coherence", coherence: "Coherence",
-    dwpli: "dwPLI", wpli: "wPLI", pli: "PLI", dpli: "dPLI", aec: "AEC",
-    partial_corr: "Partial corr.", partial_correlation: "Partial corr.",
-    pac: "PAC", aac: "AAC", ppc: "PPC",
-  };
-  var CONTRAST_UPPER = { hd: "HD", icv: "ICV", iv: "IV", ld: "LD", wt: "WT", veh: "Veh" };
+  /* ── Metric labels: the profile's display forms ── */
+  var METRIC_LABELS = V.metric_labels || {};
 
   function metricLabel(m) { return METRIC_LABELS[m] || formatName(m); }
 
-  /* ── Connectivity metric glossary ─────────────────────────────────────────
-     Definitions of the same-frequency functional-connectivity metrics, shown on
-     connectivity-family analysis pages. Sourced from CONNECTIVITY_METHODS.md
-     (source-analytics) — each carries its primary reference. */
-  var METRIC_DEFS = [
-    { key: "coherence", name: "Coherence (magnitude-squared)",
-      def: "Squared cross-spectrum normalized by both auto-spectra, |S<sub>xy</sub>|² / (S<sub>xx</sub>·S<sub>yy</sub>); range 0–1. Total linear coupling at a frequency — but maximally sensitive to zero-lag volume conduction.",
-      cite: "Carter 1987; classical" },
-    { key: "imag_coherence", name: "Imaginary coherence",
-      def: "Imaginary part of coherency, ℑ(S<sub>ij</sub>) / √(S<sub>ii</sub>·S<sub>jj</sub>). Volume-conduction coupling is purely real, so a non-zero imaginary part reflects genuine time-lagged interaction.",
-      cite: "Nolte et al. 2004" },
-    { key: "pli", name: "Phase Lag Index (PLI)",
-      def: "Consistency of the sign of the phase difference, |⟨sign(ℑ)⟩|; range 0–1. Ignores zero-lag (volume-conduction) coupling by construction.",
-      cite: "Stam et al. 2007" },
-    { key: "wpli", name: "Weighted PLI (wPLI)",
-      def: "PLI weighted by the magnitude of the imaginary cross-spectrum, |E{ℑ}| / E{|ℑ|}. Less sensitive to noise and to small perturbations near zero phase lag.",
-      cite: "Vinck et al. 2011, Eq. 8" },
-    { key: "dwpli", name: "Debiased weighted PLI² (dwPLI)",
-      def: "wPLI² with the sample-size bias removed (self-term diagonal excluded). May take small negative values where true connectivity is ~0 — expected, not an error.",
-      cite: "Vinck et al. 2011, Eqs. 31–32" },
-    { key: "dpli", name: "Directed PLI (dPLI)",
-      def: "Directional PLI: mean Heaviside of the phase difference; range 0–1. dPLI > 0.5 ⇒ region i phase-leads j; dPLI<sub>ij</sub>+dPLI<sub>ji</sub>=1.",
-      cite: "Stam & van Straaten 2012" },
-    { key: "aec", name: "Orthogonalized amplitude-envelope correlation (AEC)",
-      def: "Pearson correlation of band-power envelopes after pairwise orthogonalization removes the zero-lag shared signal (both directions averaged). Captures amplitude co-modulation of genuinely distinct sources.",
-      cite: "Hipp et al. 2012" },
-    { key: "partial_corr", name: "Partial correlation",
-      def: "Correlation between two regions with all others regressed out, from the (shrinkage-regularized) inverse covariance: −p<sub>ij</sub> / √(p<sub>ii</sub>·p<sub>jj</sub>). Separates direct from indirect connections.",
-      cite: "Marrelec et al. 2006" },
-  ];
-  // Analyses that use these same-frequency FC metrics (→ show the glossary).
-  function isConnectivityFamily(analysis) {
-    return /(_connectivity|_nbs|_graph|fcd_comparison)$/.test(analysis || "");
-  }
-  function renderMetricGlossary() {
-    var html = '<details class="metric-glossary">';
-    html += '<summary class="metric-glossary-summary">Connectivity metric definitions</summary>';
-    html += '<dl class="metric-glossary-list">';
-    METRIC_DEFS.forEach(function (m) {
-      html += '<dt>' + escapeHtml(m.name) + '</dt>';
-      html += '<dd>' + m.def +
-        ' <span class="metric-cite">' + escapeHtml(m.cite) + '</span></dd>';
-    });
-    html += '</dl></details>';
-    return html;
-  }
-
-  function circosContrastLabel(name) {
-    if (M && M.contrast_labels && M.contrast_labels[name]) return M.contrast_labels[name];
-    return name.split("_").map(function (t) {
-      var l = t.toLowerCase();
-      if (CONTRAST_UPPER[l]) return CONTRAST_UPPER[l];
-      if (l === "vs") return "vs";
-      return t.charAt(0).toUpperCase() + t.slice(1);
-    }).join(" ");
-  }
-
-  function parseCircos(filename) {
-    var base = (filename || "").replace(/\.png$/i, "");
-    if (base.indexOf("circos__") !== 0) return null;
-    var parts = base.slice("circos__".length).split("__");
-    if (parts.length < 3) return null;
-    return { metric: parts[0], band: parts[1], contrast: parts.slice(2).join("__") };
-  }
-
-  function orderBands(bands) {
-    return bands.slice().sort(function (a, b) {
-      var ia = BAND_ORDER.indexOf(formatName(a)); if (ia < 0) ia = 99;
-      var ib = BAND_ORDER.indexOf(formatName(b)); if (ib < 0) ib = 99;
-      return ia - ib || a.localeCompare(b);
-    });
-  }
-
-  function renderCircosFigures(figs) {
-    var byMetric = {};
-    figs.forEach(function (f) {
-      var p = parseCircos(f.filename);
-      if (!p) return;
-      byMetric[p.metric] = byMetric[p.metric] || {};
-      (byMetric[p.metric][p.band] = byMetric[p.metric][p.band] || []).push({ fig: f, contrast: p.contrast });
-    });
-    var metrics = Object.keys(byMetric);
-    if (!metrics.length) return renderFigureRows(figs);
-    metrics.sort(function (a, b) {
-      var ia = METRIC_ORDER.indexOf(a); if (ia < 0) ia = 99;
-      var ib = METRIC_ORDER.indexOf(b); if (ib < 0) ib = 99;
-      return ia - ib || a.localeCompare(b);
-    });
-
-    var html = '<div class="metric-tabs" role="tablist">';
-    metrics.forEach(function (m, i) {
-      html += '<button class="metric-tab' + (i === 0 ? " active" : "") + '" data-mtab="' +
-        escapeHtml(m) + '">' + escapeHtml(metricLabel(m)) + "</button>";
-    });
-    html += "</div>";
-
-    metrics.forEach(function (m, i) {
-      html += '<div class="metric-panel' + (i === 0 ? " active" : "") + '" data-mpanel="' + escapeHtml(m) + '">';
-      orderBands(Object.keys(byMetric[m])).forEach(function (band) {
-        html += '<div class="band-block"><h4 class="band-title">' + escapeHtml(formatName(band)) + "</h4>";
-        html += '<div class="band-figs">';
-        byMetric[m][band].forEach(function (it) {
-          html += '<figure class="circos-thumb">' +
-            '<a class="glightbox" href="' + it.fig.path + '" data-gallery="gallery">' +
-            '<img src="' + it.fig.thumb + '" loading="lazy" alt="' + escapeHtml(it.fig.filename) + '"></a>' +
-            '<figcaption>' + escapeHtml(circosContrastLabel(it.contrast)) + "</figcaption></figure>";
-        });
-        html += "</div></div>";
+  /* ── Glossaries: definitions the profile attaches to the analyses they
+     apply to (``applies_to`` is a pattern on the analysis name). ── */
+  var GLOSSARIES = V.glossaries || [];
+  function glossaryHtml(analysis) {
+    var html = "";
+    GLOSSARIES.forEach(function (g) {
+      if (!new RegExp(g.applies_to).test(analysis || "")) return;
+      html += '<details class="metric-glossary">';
+      html += '<summary class="metric-glossary-summary">' + g.title + '</summary>';
+      html += '<dl class="metric-glossary-list">';
+      (g.entries || []).forEach(function (m) {
+        html += '<dt>' + escapeHtml(m.name) + '</dt>';
+        html += '<dd>' + m.def +
+          ' <span class="metric-cite">' + escapeHtml(m.cite) + '</span></dd>';
       });
-      html += "</div>";
+      html += '</dl></details>';
     });
     return html;
   }
@@ -1703,7 +1432,7 @@
   /**
    * Find columns to use for grouping, in priority order.
    * Returns array of {idx, label, formatter} objects.
-   * Supports up to 3 levels: contrast → measure/band → metric.
+   * Supports up to 3 levels: contrast → the profile's grouping columns, in order.
    * Only includes a column if it actually creates multi-row groups
    * within the context of already-chosen parent grouping columns.
    */
@@ -1752,32 +1481,23 @@
       return totalGroups < totalRows;
     }
 
-    // Primary: hypothesis / contrast (or "key" for NBS tables). The native
-    // hypothesis schema names the column `hypothesis`; legacy tables `contrast`.
-    var contrastIdx = lowerHeaders.indexOf("hypothesis");
-    if (contrastIdx < 0) contrastIdx = lowerHeaders.indexOf("contrast");
-    if (contrastIdx < 0) contrastIdx = lowerHeaders.indexOf("key");
+    // Primary: the first of the profile's primary columns present (e.g. the
+    // contrast, or a key column).
+    var primary = TABLE.primary_group || [];
+    var contrastIdx = -1, primarySpec = null;
+    for (var pi = 0; pi < primary.length && contrastIdx < 0; pi++) {
+      contrastIdx = lowerHeaders.indexOf(primary[pi].column);
+      primarySpec = primary[pi];
+    }
     if (contrastIdx >= 0 && columnAddsGrouping(contrastIdx)) {
-      groups.push({
-        idx: contrastIdx,
-        label: contrastIdx === lowerHeaders.indexOf("key") ? "Key" : "Contrast",
-        formatter: contrastIdx === lowerHeaders.indexOf("key") ? function (v) { return formatName(v); } : formatContrast,
-      });
+      groups.push({ idx: contrastIdx, label: primarySpec.label, formatter: cellFormatter(primarySpec.format) });
       usedIndices.push(contrastIdx);
     }
 
     // Ordered list of all possible secondary/tertiary groupings
-    var candidates = [
-      { names: ["measure_type", "type", "power_type"], label: "Measure Type", formatter: formatMeasureName },
-      { names: ["dv", "measure"], label: "Measure", formatter: formatMeasureName },
-      { names: ["kind"], label: "Test", formatter: function (v) { return formatName(v); } },
-      { names: ["freq_pair"], label: "Frequency Pair", formatter: function (v) { return formatName(v); } },
-      { names: ["parameter"], label: "Parameter", formatter: function (v) { return formatName(v); } },
-      { names: ["band"], label: "Band", formatter: function (v) { return formatName(v); } },
-      { names: ["conn_metric"], label: "Connectivity", formatter: function (v) { return formatName(v); } },
-      { names: ["metric"], label: "Metric", formatter: function (v) { return formatName(v); } },
-      { names: ["graph_metric"], label: "Graph Metric", formatter: function (v) { return formatName(v); } },
-    ];
+    var candidates = (TABLE.group_candidates || []).map(function (c) {
+      return { names: c.columns, label: c.label, formatter: cellFormatter(c.format) };
+    });
 
     // Add up to 2 more grouping levels from candidates
     for (var cand of candidates) {
@@ -1804,11 +1524,7 @@
     var hide = new Array(headers.length).fill(false);
 
     // Always hide these diagnostic/redundant columns
-    var alwaysHide = [
-      "converged", "singular", "convergence",
-      "aic_spatial", "bic_spatial", "aic_nonspatial", "bic_nonspatial", "aic_improvement",
-      "sig_label",
-    ];
+    var alwaysHide = TABLE.hidden_columns || [];
 
     for (var i = 0; i < lowerHeaders.length; i++) {
       if (alwaysHide.indexOf(lowerHeaders[i]) >= 0) {
@@ -1827,62 +1543,7 @@
     var h = header.replace(/^"|"$/g, "");
 
     // Special header renames
-    var renames = {
-      "group_f": "Group F",
-      "group_p": "Group p",
-      "roi_f": "ROI F",
-      "roi_p": "ROI p",
-      "interaction_f": "Interaction F",
-      "interaction_p": "Interaction p",
-      "group_q": "Group q (FDR)",
-      "group_significant": "Group Sig.",
-      "interaction_q": "Interaction q (FDR)",
-      "interaction_significant": "Interact. Sig.",
-      "n_a": "N (A)",
-      "n_b": "N (B)",
-      "n_rois": "N ROIs",
-      "n_regions": "N Regions",
-      "group_a": "Group A",
-      "group_b": "Group B",
-      "measure_type": "Type",
-      "dv": "Measure",
-      "t_ratio": "t",
-      "t_value": "t",
-      "p_value": "p",
-      "q_value": "q (FDR)",
-      "hedges_g": "Hedges' g",
-      "hypothesis": "Contrast",
-      "spatial": "ROI / unit",
-      "stat": "Statistic",
-      "effect_size": "Effect size",
-      "effect_size_type": "Effect type",
-      "estimate_lcl": "Estimate (LCL)",
-      "estimate_ucl": "Estimate (UCL)",
-      "std_error": "SE",
-      "estimated_range_mm": "Range (mm)",
-      "mean_t": "Mean |t|",
-      "max_abs_t": "Max |t|",
-      "mean_hedges_g": "Mean |g|",
-      "max_abs_hedges_g": "Max |g|",
-      "n_nominal_sig": "N sig. (uncorr.)",
-      "n_vertices": "N Vertices",
-      "cluster_stat": "Cluster Stat",
-      "peak_t": "Peak t",
-      "p_corrected": "p (corrected)",
-      "cluster_id": "Cluster",
-      "vertex_idx": "Vertex",
-      "conn_metric": "Connectivity",
-      "graph_metric": "Graph Metric",
-      "p_fdr": "p (FDR)",
-      "emmean_a": "EMM (A)",
-      "emmean_b": "EMM (B)",
-      "mean_a": "Mean (A)",
-      "mean_b": "Mean (B)",
-      "sd_a": "SD (A)",
-      "sd_b": "SD (B)",
-      "t_stat": "t",
-      "observed_diff": "Diff",
-    };
+    var renames = TABLE.header_labels || {};
 
     var lower = h.toLowerCase();
     if (renames[lower]) return renames[lower];
@@ -1902,37 +1563,15 @@
     var str = String(value).replace(/^"|"$/g, ""); // strip quotes
     var headerLower = header.toLowerCase().replace(/^"|"$/g, "");
 
-    // Format contrast names: "30mgkg_vs_Vehicle" → "AUT00206 (30 mg/kg) vs Vehicle"
-    // (`hypothesis` is the native name of the same column).
-    if (headerLower === "contrast" || headerLower === "hypothesis") {
-      return escapeHtml(formatContrast(str));
-    }
-
-    // Format group names
-    if (headerLower === "group_a" || headerLower === "group_b" || headerLower === "group") {
-      return escapeHtml(formatGroupName(str));
-    }
-
-    // Format measure names (e.g. "itc_40hz" → "ITC 40 Hz")
-    if (headerLower === "measure" || headerLower === "dv" || headerLower === "measure_type") {
-      return escapeHtml(formatMeasureName(str));
-    }
-
-    // Format band names
-    if (headerLower === "band") {
-      return escapeHtml(formatName(str));
-    }
-
-    // Format metric names
-    if (headerLower === "metric" || headerLower === "graph_metric" || headerLower === "conn_metric") {
-      return escapeHtml(formatName(str));
-    }
-
-    // Boolean display
-    if (headerLower === "significant" || headerLower === "group_significant" || headerLower === "interaction_significant") {
+    // Columns the profile formats by kind: contrast, group or measure names,
+    // other names, and TRUE / FALSE flags.
+    var kind = (TABLE.cell_formats || {})[headerLower];
+    if (kind === "flag") {
       var upper = str.toUpperCase();
       if (upper === "TRUE") return '<strong style="color:#4CAF50">Yes</strong>';
       if (upper === "FALSE") return '<span style="color:var(--text-muted)">No</span>';
+    } else if (kind) {
+      return escapeHtml(cellFormatter(kind)(str));
     }
 
     // Numeric formatting
@@ -1944,9 +1583,17 @@
     return escapeHtml(str);
   }
 
+  /** The formatter for a column kind in the profile's table vocabulary. */
+  function cellFormatter(kind) {
+    if (kind === "contrast") return formatContrast;
+    if (kind === "group") return formatGroupName;
+    if (kind === "measure") return formatMeasureName;
+    return function (v) { return formatName(v); };
+  }
+
   /**
-   * Format a contrast string for display.
-   * "30mgkg_vs_Vehicle" → "AUT00206 (30 mg/kg) vs Vehicle"
+   * Format a contrast string for display: the study's label, else
+   * "<group>_vs_<group>" with each group's label.
    */
   function formatContrast(str) {
     if (M && M.contrast_labels && M.contrast_labels[str]) return M.contrast_labels[str];
@@ -1985,40 +1632,20 @@
    * Format a number based on context (header name).
    */
   function formatNumber(num, headerLower) {
-    // p-values: show 3-4 significant digits, scientific notation for very small
-    if (headerLower.match(/^p$|^p_|_p$|p_value|p_corrected|q_value|group_q|interaction_q|p_fdr/)) {
-      if (num < 0.001) return num.toExponential(2);
-      return num.toFixed(4);
-    }
-
-    // F-statistics, t-statistics
-    if (headerLower.match(/^f$|_f$|group_f|roi_f|interaction_f|^t$|^stat$|t_ratio|t_value|t_stat|peak_t|peak_stat|mean_stat|mean_t|max_abs_t|cluster_stat/)) {
-      return num.toFixed(3);
-    }
-
-    // Effect sizes (hedges_g, etc.)
-    if (headerLower.match(/hedges_g|mean_hedges_g|max_abs_hedges_g|cohen|^effect_size$/)) {
-      return num.toFixed(3);
-    }
-
-    // Estimates, means, SEs, coefficients
-    if (headerLower.match(/estimate|coefficient|std_error|^se$|emmean|^mean|^sd/)) {
-      return num.toFixed(4);
-    }
-
-    // Degrees of freedom
-    if (headerLower.match(/^df$/)) {
-      return Math.abs(num - Math.round(num)) < 0.01 ? num.toFixed(0) : num.toFixed(1);
-    }
-
-    // AIC/BIC
-    if (headerLower.match(/^aic|^bic/)) {
-      return num.toFixed(1);
-    }
-
-    // Integers (counts)
-    if (headerLower.match(/^n$|^n_|n_edges|n_vertices|n_rois|n_regions|n_nominal|n_sig|cluster_id|vertex_idx|n_permutations/)) {
-      return Math.abs(num - Math.round(num)) < 0.01 ? num.toFixed(0) : num.toFixed(2);
+    // The profile's rules, first match wins: p-values (3-4 significant digits,
+    // scientific notation for very small), statistics and effect sizes (3
+    // decimals), estimates (4), degrees of freedom and counts (whole when whole),
+    // information criteria (1).
+    var rules = TABLE.number_formats || [];
+    for (var ri = 0; ri < rules.length; ri++) {
+      if (!headerLower.match(new RegExp(rules[ri].match))) continue;
+      var f = rules[ri].format;
+      if (f === "p") return num < 0.001 ? num.toExponential(2) : num.toFixed(4);
+      if (f === "fixed1") return num.toFixed(1);
+      if (f === "fixed3") return num.toFixed(3);
+      if (f === "fixed4") return num.toFixed(4);
+      if (f === "df") return Math.abs(num - Math.round(num)) < 0.01 ? num.toFixed(0) : num.toFixed(1);
+      if (f === "count") return Math.abs(num - Math.round(num)) < 0.01 ? num.toFixed(0) : num.toFixed(2);
     }
 
     // Default: 4 significant figures
@@ -2125,4 +1752,17 @@
     if (!str) return "";
     return String(str).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
   }
+
+  /* ── What a profile's script may use, and where it registers its hooks:
+     provenanceHtml(prov), inputRunHtml(run), figureFacet(title) and
+     figurePanel(figs) — each optional. ── */
+  window.LightboxApp = {
+    hooks: HOOKS,
+    vocabulary: V,
+    escapeHtml: escapeHtml,
+    formatName: formatName,
+    formatGroup: formatGroup,
+    metricLabel: metricLabel,
+    renderFigureRows: renderFigureRows,
+  };
 })();

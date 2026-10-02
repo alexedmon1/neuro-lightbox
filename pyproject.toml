@@ -30,4 +30,4 @@ source-lightbox = "neuro_lightbox.cli:deprecated_main"
 where = ["src"]
 
 [tool.setuptools.package-data]
-neuro_lightbox = ["templates/*.j2", "static/**/*"]
+neuro_lightbox = ["templates/*.j2", "static/**/*", "profiles/*/static/*"]

@@ -59,8 +59,8 @@ def test_study_atlas_and_inline_categories_reach_the_build(tmp_path, monkeypatch
     cats = {"Deep Subcortical": ["Thalamus", "Cerebellum"], "Motor": ["Motor_L", "Motor_R"]}
     config = _config_from_study(tmp_path, monkeypatch,
                                 {"pipeline": {"atlas": "allen26"}, "roi_categories": cats})
-    assert config.atlas == "allen26"
-    assert config.roi_categories == cats
+    assert config.options.atlas == "allen26"
+    assert config.options.roi_categories == cats
 
 
 def test_a_profile_build_uses_the_profile_categories(tmp_path, monkeypatch):
@@ -70,7 +70,7 @@ def test_a_profile_build_uses_the_profile_categories(tmp_path, monkeypatch):
         "gallery_profile": "external",
         "external": {"roi_categories": {"Motor": ["Motor_L", "Motor_R"]}},
     })
-    assert config.roi_categories == {"Motor": ["Motor_L", "Motor_R"]}
+    assert config.options.roi_categories == {"Motor": ["Motor_L", "Motor_R"]}
 
 
 def test_an_explicit_categories_path_still_wins(tmp_path, monkeypatch):
@@ -80,4 +80,4 @@ def test_an_explicit_categories_path_still_wins(tmp_path, monkeypatch):
         "paths": {"gallery": str(tmp_path / "gallery"), "roi_categories": str(path)},
         "roi_categories": {"Other": ["Thalamus"]},
     })
-    assert config.roi_categories == str(path)
+    assert config.options.roi_categories == str(path)

@@ -8,15 +8,13 @@ from pathlib import Path
 import pytest
 import yaml
 
-from neuro_lightbox.config import RETIRED_ANALYSES
-from neuro_lightbox.scanner import (
-    FigureEntry,
+from neuro_lightbox.profiles.eeg.inputs import (
     LocalizationScanner,
-    ScanResult,
-    TableEntry,
     _read_run,
     _summarise_runs,
 )
+from neuro_lightbox.profiles.eeg.source_analytics import RETIRED_ANALYSES
+from neuro_lightbox.scanner import FigureEntry, ScanResult, TableEntry
 
 
 def _snapshot(sampling="fixed", atlas="allen32", inverse="sLORETA", bem="ellipsoid"):
@@ -185,12 +183,14 @@ class TestBuildEndToEnd:
     def _build(self, study, **over):
         from neuro_lightbox.builder import build
         from neuro_lightbox.config import BuildConfig, SourceInput
+        from neuro_lightbox.profiles.eeg import EegOptions
 
         loc, res, out = study
         cfg = BuildConfig(
-            localizations=[SourceInput(path=loc, label="Surface MC")],
             results=[SourceInput(path=res, label="Resting")],
-            output_dir=out, render_figures=False, brain_render=False, **over)
+            output_dir=out, render_figures=False,
+            options=EegOptions(localizations=[SourceInput(path=loc, label="Surface MC")],
+                               brain_render=False, **over))
         build(cfg, verbose=False)
         import json
         return json.loads((out / "manifest.json").read_text()) if (
@@ -291,7 +291,7 @@ class TestAnalyticsProvenance:
         assert [t.filename for t in res.tables] == ["roi_psd_hypotheses.csv"]
 
     def test_trim_keeps_what_is_displayed(self):
-        from neuro_lightbox.manifest import _trim_provenance
+        from neuro_lightbox.profiles.eeg.source_analytics import trim_provenance as _trim_provenance
 
         t = _trim_provenance(self.RECORD)
         assert t["source_analytics"] == "v0.8.2"
@@ -303,26 +303,26 @@ class TestAnalyticsProvenance:
 
     def test_trim_drops_what_is_not_displayed(self):
         """The manifest is inlined into index.html, once per analysis."""
-        from neuro_lightbox.manifest import _trim_provenance
+        from neuro_lightbox.profiles.eeg.source_analytics import trim_provenance as _trim_provenance
 
         blob = json.dumps(_trim_provenance(self.RECORD))
         assert "sub-901" not in blob, "subject ids are provenance, not display"
         assert "steps" not in blob
 
     def test_trim_names_only_the_plugin_that_provided_the_analysis(self):
-        from neuro_lightbox.manifest import _trim_provenance
+        from neuro_lightbox.profiles.eeg.source_analytics import trim_provenance as _trim_provenance
 
         assert _trim_provenance(self.RECORD)["plugin"] == "vertex 0.1.0"
 
     def test_trim_omits_plugin_when_the_analysis_is_built_in(self):
-        from neuro_lightbox.manifest import _trim_provenance
+        from neuro_lightbox.profiles.eeg.source_analytics import trim_provenance as _trim_provenance
 
         rec = json.loads(json.dumps(self.RECORD))
         rec["plugins"] = {"other": {"version": "2.0"}}
         assert "plugin" not in _trim_provenance(rec)
 
     def test_trim_omits_caveats_for_a_fixed_grid_run(self):
-        from neuro_lightbox.manifest import _trim_provenance
+        from neuro_lightbox.profiles.eeg.source_analytics import trim_provenance as _trim_provenance
 
         rec = json.loads(json.dumps(self.RECORD))
         del rec["parcel_caveats"]
@@ -335,9 +335,11 @@ class TestAnalyticsProvenance:
         res = self._results(tmp_path / "results", self.RECORD)
         self._results(tmp_path / "results", None, analysis="roi_aperiodic")
         out = tmp_path / "g"
-        build(BuildConfig(localizations=[], results=[SourceInput(path=res, label="R")],
-                          output_dir=out, render_figures=False, brain_render=False,
-                          thumb_workers=1), verbose=False)
+        from neuro_lightbox.profiles.eeg import EegOptions
+
+        build(BuildConfig(results=[SourceInput(path=res, label="R")],
+                          output_dir=out, render_figures=False, thumb_workers=1,
+                          options=EegOptions(brain_render=False)), verbose=False)
         man = _inline_manifest(out)
         block = man["paradigms"]["resting"]
         assert block["roi_psd"]["provenance"]["localization"]["atlas"] == "allen26"

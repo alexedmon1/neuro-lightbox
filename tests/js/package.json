@@ -1,0 +1,8 @@
+{
+  "name": "neuro-lightbox-app-tests",
+  "private": true,
+  "description": "Renders built galleries in jsdom for tests/test_app_dom.py.",
+  "devDependencies": {
+    "jsdom": "^24.1.3"
+  }
+}

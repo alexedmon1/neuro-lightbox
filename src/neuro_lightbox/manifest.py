@@ -5,7 +5,7 @@ from __future__ import annotations
 import csv
 from pathlib import Path
 
-from .scanner import ScanResult, _slugify, qc_csv_to_json
+from .scanner import ScanResult
 
 
 def _read_csv(path: Path) -> dict:
@@ -22,40 +22,6 @@ def _read_csv(path: Path) -> dict:
     return {"headers": headers, "rows": rows}
 
 
-def _trim_provenance(record: dict) -> dict:
-    """The parts of source-analytics' provenance.json the gallery shows.
-
-    The file also carries the full subject-id list and the lifecycle steps, which
-    are provenance rather than something a reader of a figure acts on. Keeping
-    the manifest to what is displayed matters because it is inlined into
-    index.html, once per analysis.
-    """
-    loc = record.get("localization") or {}
-    plugins = {name: info for name, info in (record.get("plugins") or {}).items()
-               if isinstance(info, dict) and info.get("provides_this_analysis")}
-    out = {
-        "written": record.get("written"),
-        "source_analytics": (record.get("source_analytics") or {}).get("version"),
-        "n_subjects": (record.get("subjects") or {}).get("n"),
-        "groups": (record.get("subjects") or {}).get("groups") or {},
-        "localization": {
-            "description": loc.get("description"),
-            "version": loc.get("version"),
-            "atlas": loc.get("atlas"),
-            "source_sampling": loc.get("source_sampling"),
-            "inverse_method": loc.get("inverse_method"),
-            "n_unrecorded": loc.get("n_unrecorded") or 0,
-        },
-    }
-    if plugins:
-        out["plugin"] = ", ".join(
-            f"{name} {info.get('version') or '?'}" for name, info in sorted(plugins.items()))
-    caveats = record.get("parcel_caveats") or {}
-    if caveats:
-        out["parcel_caveats"] = caveats
-    return out
-
-
 def build_manifest(scan: ScanResult, title: str, max_table_rows: int = 500,
                    contrast_labels: dict | None = None,
                    contrast_groups: dict | None = None,
@@ -63,7 +29,8 @@ def build_manifest(scan: ScanResult, title: str, max_table_rows: int = 500,
                    analysis_meta: dict | None = None,
                    paradigm_display: dict | None = None,
                    group_labels: dict | None = None,
-                   group_order: list | None = None) -> dict:
+                   group_order: list | None = None,
+                   profile=None) -> dict:
     """Build the manifest dictionary from aggregated scan results.
 
     Tables are embedded as parsed CSV data (row-capped; the full CSV is copied
@@ -73,15 +40,21 @@ def build_manifest(scan: ScanResult, title: str, max_table_rows: int = 500,
     ``group_labels`` / ``group_order`` (from the study YAML) drive how treatment
     groups are named and ordered in the UI.
 
-    ``analysis_meta`` (read from source-analytics) attaches a ``meta`` block —
-    ``domain`` and ``supplements`` — to each analysis so the gallery can group
-    by domain and nest each secondary under the primary it supplements.
+    ``analysis_meta`` (from the profile) attaches a ``meta`` block — ``domain``
+    and ``supplements`` — to each analysis so the gallery can group by domain
+    and nest each secondary under the primary it supplements.
 
     ``contrast_meta`` (read from the study YAML) carries each contrast's
     hypothesis-testing metadata — ``role``, ``test``, ``gate_on`` — keyed by
     contrast name. The digest badges each contrast with its role
     (confirmatory / exploratory) and notes what a gated contrast depends on.
+
+    ``profile`` (default: the default profile) writes the digests, trims each
+    analysis's provenance, and fills its inputs block.
     """
+    from .profiles import get_profile
+
+    profile = profile or get_profile()
     analysis_meta = analysis_meta or {}
     manifest = {
         "title": title,
@@ -96,9 +69,11 @@ def build_manifest(scan: ScanResult, title: str, max_table_rows: int = 500,
         # Treatment-group display names + order (study YAML groups: / group_order:).
         "group_labels": group_labels or {},
         "group_order": list(group_order or []),
-        "localization": {},
-        "sources": [],
     }
+    # The profile's inputs side (subjects / QC of what the analyses ran on).
+    if profile.inputs_key:
+        manifest[profile.inputs_key] = {}
+    manifest["sources"] = []
 
     # Collect unique source labels
     source_labels = set()
@@ -170,14 +145,12 @@ def build_manifest(scan: ScanResult, title: str, max_table_rows: int = 500,
         entry["tables"][source].append(tbl_entry)
 
     # Summaries — a concise 'significant results by contrast' digest derived from
-    # each module's effect-size table, NOT the verbose ANALYSIS_SUMMARY.md verbatim.
-    from .summarize import build_descriptive_matrix_summary, build_significance_summary
-
+    # each module's tables by the profile, NOT a verbose report verbatim.
+    #
     # The digest must run on FULL tables, not the row-capped copies embedded for
-    # display — otherwise a large per-unit posthoc table (e.g. roi_psd_posthoc_roi,
-    # ordered by contrast) is truncated and only the first contrast's ROIs survive.
+    # display — otherwise a large per-unit posthoc table (ordered by contrast) is
+    # truncated and only the first contrast's units survive.
     full_tables_by_module: dict[tuple, list[dict]] = {}
-    region_pair_full: dict[tuple, dict] = {}
     for tbl in scan.tables:
         try:
             data = _read_csv(tbl.src_path)
@@ -185,28 +158,23 @@ def build_manifest(scan: ScanResult, title: str, max_table_rows: int = 500,
             continue
         full_tables_by_module.setdefault((tbl.paradigm, tbl.analysis), []).append(
             {"filename": tbl.filename, "headers": data["headers"], "rows": data["rows"]})
-        if "region_pair" in tbl.filename:
-            region_pair_full[(tbl.paradigm, tbl.analysis)] = data
 
     n_summaries = 0
     for paradigm, analyses in manifest["paradigms"].items():
         for analysis, entry in analyses.items():
             module_tables = full_tables_by_module.get((paradigm, analysis))
+            full = bool(module_tables)
             if not module_tables:  # fall back to embedded copies if a read failed
                 module_tables = [t for src in entry["tables"].values() for t in src]
-            summary_html = build_significance_summary(
-                module_tables, contrast_labels=contrast_labels, contrast_groups=contrast_groups,
-                contrast_meta=contrast_meta,
-                region_pair_table=region_pair_full.get((paradigm, analysis)))
-            # Descriptive-only matrix modules (e.g. roi_connectivity, whose
-            # per-edge stats were retired) have no stat tables → no significance
-            # digest. Fall back to a descriptive metric/band digest built from the
-            # module's figure filenames, pointing to its inferential siblings.
+            summary_html = profile.digest(module_tables, full, contrast_labels,
+                                          contrast_groups, contrast_meta)
+            # A module with no inferential tables gets the profile's descriptive
+            # digest, built from its figure filenames, if it has one.
             if summary_html is None:
                 fig_names = [f["filename"]
                              for src in entry["figures"].values() for f in src]
-                summary_html = build_descriptive_matrix_summary(
-                    analysis, fig_names, contrast_labels=contrast_labels)
+                summary_html = profile.descriptive_digest(
+                    analysis, fig_names, contrast_labels)
             entry["summary"] = summary_html
             if summary_html:
                 n_summaries += 1
@@ -221,66 +189,16 @@ def build_manifest(scan: ScanResult, title: str, max_table_rows: int = 500,
                 "display_name": m.get("display_name"),
             }
 
-            # What produced these tables (source-analytics v0.8.2+). Trimmed to
-            # what a reader acts on: the versions, the cohort, the localization
-            # settings, and any Monte Carlo caveat. Absent for an older run,
-            # which the gallery shows as unrecorded rather than inventing.
+            # What produced these tables (the provenance.json beside them),
+            # trimmed by the profile to what a reader acts on. Absent for an
+            # older run, which the gallery shows as unrecorded rather than
+            # inventing.
             record = (getattr(scan, "provenance", None) or {}).get((paradigm, analysis))
             if record:
-                entry["provenance"] = _trim_provenance(record)
+                entry["provenance"] = profile.trim_provenance(record)
 
-    # Localization entries grouped by source
-    for fig in scan.figures:
-        if fig.category != "localization":
-            continue
-        source = fig.source_label
-        if source not in manifest["localization"]:
-            manifest["localization"][source] = {"subjects": {}, "qc_figures": []}
-
-        entry = manifest["localization"][source]
-        if fig.subject:
-            if fig.subject not in entry["subjects"]:
-                entry["subjects"][fig.subject] = []
-            entry["subjects"][fig.subject].append(
-                {
-                    "path": f"figures/{fig.gallery_rel_path}",
-                    "thumb": f"figures/{fig.thumb_rel_path}",
-                    "filename": fig.filename,
-                }
-            )
-        else:
-            entry["qc_figures"].append(
-                {
-                    "path": f"figures/{fig.gallery_rel_path}",
-                    "thumb": f"figures/{fig.thumb_rel_path}",
-                    "filename": fig.filename,
-                }
-            )
-
-    # QC entries — embed metrics inline + per-subject group/outlier metadata
-    from .qc_meta import compute_subject_meta
-
-    for qc in scan.qc_entries:
-        source = qc.source_label
-        if source not in manifest["localization"]:
-            manifest["localization"][source] = {"subjects": {}, "qc_figures": []}
-        if qc.metrics_path:
-            metrics = qc_csv_to_json(qc.metrics_path)
-            manifest["localization"][source]["qc_metrics"] = metrics
-            subject_keys = list(manifest["localization"][source].get("subjects", {}).keys())
-            meta = compute_subject_meta(metrics, subject_keys)
-            manifest["localization"][source]["subject_meta"] = meta
-            manifest["localization"][source]["n_outliers"] = sum(1 for m in meta.values() if m["outliers"])
-        if qc.report_path:
-            manifest["localization"][source]["qc_report"] = f"qc/{_slugify(source)}/qc_report.html"
-
-    # What source-localization run built each pipeline. The gallery shows the
-    # atlas, geometry, inverse and sampling mode, because two galleries that
-    # look identical can be reporting different measurements.
-    for source, run in (getattr(scan, "runs", None) or {}).items():
-        if source not in manifest["localization"]:
-            manifest["localization"][source] = {"subjects": {}, "qc_figures": []}
-        manifest["localization"][source]["run"] = run
+    if profile.inputs_key:
+        profile.add_inputs(manifest[profile.inputs_key], scan)
 
     # Compute stats
     manifest["stats"] = {

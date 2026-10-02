@@ -33,9 +33,8 @@ def test_the_old_modules_are_the_new_modules():
     import neuro_lightbox
 
     assert source_lightbox.__version__ == neuro_lightbox.__version__
-    for name in source_lightbox._MODULES:
-        old = sys.modules[f"source_lightbox.{name}"]
-        assert old is sys.modules[f"neuro_lightbox.{name}"], name
+    for name, target in source_lightbox._MODULES.items():
+        assert sys.modules[f"source_lightbox.{name}"] is sys.modules[target], name
 
 
 def _build_with(command: list[str], tmp_path):

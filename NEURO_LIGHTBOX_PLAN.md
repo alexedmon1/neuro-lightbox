@@ -1,6 +1,6 @@
 # neuro-lightbox — plan
 
-**Status: Phases 0–1 done (2026-10-02); see §6.** Written 2026-10-02 from a
+**Status: Phases 0–2 done (2026-10-02); see §6.** Written 2026-10-02 from a
 cuprizone (rat MRI) session, after a feasibility test built one MRI analysis
 into a source-lightbox gallery; revised the same day with the author's two
 principles (§1).
@@ -330,6 +330,45 @@ failing one. Phases S and 0 can run in parallel.
   the EEG digest builders, and the app's vocabulary (served from the manifest).
 - **Accept:** EEG golden manifests identical; a **core-purity test** fails if the
   core mentions bands, Allen, source-analytics, localization, DUET, or any study.
+- **Done (2026-10-02).** `neuro_lightbox/profiles/` holds the interface (a
+  `Profile` base class whose hooks all have neutral defaults, the registry, the
+  `neuro_lightbox.profiles` entry point) and `profiles/eeg/` everything in §3:
+  its CLI options and study keys (`cli.py`), localization inputs and QC
+  (`inputs.py`, `qc_meta.py`), renderers, band order and table ranking
+  (`render.py`), digest builders (`summarize.py`), analysis metadata, provenance
+  trimming and retired analyses (`source_analytics.py`), the mosaic / circos
+  helpers and workers, and the app's vocabulary (`vocabulary.py`) and page
+  behaviour (`static/eeg.js`, `eeg.css`: provenance strip, localization run
+  card, band-first figure titles, circos tabs). The core kept the pipeline, the
+  drawing primitives and the digest framework. `profile:` in study.yaml or
+  `--profile` selects a profile; absent means `eeg`.
+  - **Every EEG golden manifest is byte-identical**, and so are the worker calls
+    and the rendered figures. A new check, `tests/test_app_dom.py`, renders every
+    page of each golden gallery in jsdom (every route, table, domain pill and
+    subject) and pins a hash per page: recorded before `app.js` was touched, and
+    unchanged after. The intended differences are three new files
+    (`data/profile.json`, `assets/js/eeg.js`, `assets/css/eeg.css`), new hashes
+    for `app.js` and `main.css`, and three lines in `index.html`.
+  - **Where the vocabulary is served — a deviation from this section's
+    wording.** It sits *beside* the manifest (`data/profile.json`, inlined as
+    `window.PROFILE`), not inside it: inside, every EEG manifest would change,
+    against the acceptance check above, and the manifest is a contract other
+    readers rely on (the lab website reads `title`, `stats` and `sources` from
+    it, §6 Phase 0).
+  - **Core purity:** `tests/test_core_purity.py` scans the package outside
+    `profiles/<name>/` — Python, `app.js`, `main.css`, the template, comments
+    included. A profile that knows nothing builds a working gallery
+    (`tests/test_profiles.py`), and the app runs on its empty vocabulary.
+  - **Found on the way, for Phase 3:** the app carried study-specific names —
+    one study's dose labels (`GROUP_LABELS`), another's group ids and
+    abbreviations (`GROUP_VOCAB.group_name`, `CONTRAST_UPPER`). They moved into
+    the EEG profile unchanged, so no gallery changed, and are marked there; the
+    study's own `groups:` (already in the manifest) should replace them.
+    `app.js` also held a raw NUL byte as a masking character; `eeg.js` writes it
+    as `\u0000`.
+  - The `source_lightbox` shim maps each old module name to its new home;
+    names that moved out of a module the core kept (e.g. the renderers in
+    `render`) are imported from `neuro_lightbox.profiles.eeg`.
 
 ### Phase 3 — contract-correct core (improves EEG galleries too)
 1. **Correction stated from the data, never defaulted.** Read from `p_kind` /
@@ -360,9 +399,15 @@ failing one. Phases S and 0 can run in parallel.
 11. **Grouping without a domain interpreter** — from `analysis.json` or config,
     never an "Other" dump (item 6).
 12. **Generic provenance strip** (§4), "not recorded" when absent (item 5).
+    Since Phase 2 the app shows a strip only through a profile hook
+    (`provenanceHtml`); this is the core default it lacks.
 13. **Escape every name** that reaches HTML (region, contrast and measure names
     can contain `<` and `&`).
 14. Units from the column dictionaries.
+15. **The study's own groups replace the inherited study-specific vocabulary**
+    (Phase 2 finding): drop `group_labels`, `figures.tokens.group_name` and
+    `CONTRAST_UPPER` from the EEG profile, deriving group tokens and labels from
+    the manifest's `group_labels` / `group_order`.
 - Keep what works: tiers, role badges, gating notes, column-driven renderers,
   sortable tables, static build, deploy.
 - **Accept:** contract tests on both fixtures — every contrast appears in the
