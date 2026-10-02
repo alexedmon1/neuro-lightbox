@@ -1,0 +1,55 @@
+# Golden-build fixture: the cuprizone H1c feasibility export (plan §2),
+# copied by tests/fixtures/make_fixtures.py; numbers are synthetic.
+name: cuprizone — H1c feasibility (source-lightbox)
+paths:
+  results: ./results
+  gallery: ./gallery
+contrasts:
+- name: change_group__p60_to_p90
+  label: 'Cuprizone vs control: change, p60→p90'
+  group: Group difference in change
+  role: exploratory
+- name: change_group__p60_to_p120
+  label: 'Cuprizone vs control: change, p60→p120'
+  group: Group difference in change
+  role: confirmatory
+- name: change_group__p90_to_p120
+  label: 'Cuprizone vs control: change, p90→p120'
+  group: Group difference in change
+  role: exploratory
+- name: change_cuprizone__p60_to_p90
+  label: 'Cuprizone: change, p60→p90'
+  group: Within-group change
+  role: exploratory
+- name: change_cuprizone__p60_to_p120
+  label: 'Cuprizone: change, p60→p120'
+  group: Within-group change
+  role: exploratory
+- name: change_cuprizone__p90_to_p120
+  label: 'Cuprizone: change, p90→p120'
+  group: Within-group change
+  role: exploratory
+- name: change_control__p60_to_p90
+  label: 'Control: change, p60→p90'
+  group: Within-group change
+  role: exploratory
+- name: change_control__p60_to_p120
+  label: 'Control: change, p60→p120'
+  group: Within-group change
+  role: exploratory
+- name: change_control__p90_to_p120
+  label: 'Control: change, p90→p120'
+  group: Within-group change
+  role: exploratory
+- name: cross__p60
+  label: Cuprizone vs control, p60
+  group: Cross-sectional (diagnostic)
+  role: exploratory
+- name: cross__p90
+  label: Cuprizone vs control, p90
+  group: Cross-sectional (diagnostic)
+  role: exploratory
+- name: cross__p120
+  label: Cuprizone vs control, p120
+  group: Cross-sectional (diagnostic)
+  role: exploratory

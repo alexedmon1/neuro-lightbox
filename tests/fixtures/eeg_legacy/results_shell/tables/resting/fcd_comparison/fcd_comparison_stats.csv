@@ -1,0 +1,5 @@
+contrast,band,metric,corr_mean_r,corr_cv_r,source_mean_g,source_mean_ci_lo,source_mean_ci_hi,sensor_mean_g,sensor_mean_ci_lo,sensor_mean_ci_hi,source_cv_g,source_cv_ci_lo,source_cv_ci_hi,sensor_cv_g,sensor_cv_ci_lo,sensor_cv_ci_hi
+disease_effect,Alpha,fcd,0.4,0.25,1.6102,1.1102,2.1102,1.07347,0.573468,1.57347,-0.805101,-1.3051,-0.305101,0.644081,0.144081,1.14408
+disease_effect,Low Gamma,fcd,0.5,0.3,-0.448315,-0.948315,0.0516847,-0.298877,-0.798877,0.201123,0.224158,-0.275842,0.724158,-0.179326,-0.679326,0.320674
+hd_icv_rescue,Alpha,fcd,0.6,0.35,-1.50349,-2.00349,-1.00349,-1.00233,-1.50233,-0.502329,0.751747,0.251747,1.25175,-0.601397,-1.1014,-0.101397
+hd_icv_rescue,Low Gamma,fcd,0.7,0.4,0.392528,-0.107472,0.892528,0.261685,-0.238315,0.761685,-0.196264,-0.696264,0.303736,0.157011,-0.342989,0.657011

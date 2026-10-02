@@ -1,0 +1,265 @@
+{
+  "title": "Legacy outputs (fixture)",
+  "paradigms": {
+    "resting": {
+      "vertex_cluster": {
+        "figures": {
+          "Shell": [
+            {
+              "path": "figures/analytics/shell/resting/vertex_cluster/cluster_map_disease_effect.png",
+              "thumb": "figures/thumbs/analytics/shell/resting/vertex_cluster/cluster_map_disease_effect.jpg",
+              "filename": "cluster_map_disease_effect.png"
+            },
+            {
+              "path": "figures/analytics/shell/resting/vertex_cluster/effect_size_summary__summary_relative.png",
+              "thumb": "figures/thumbs/analytics/shell/resting/vertex_cluster/effect_size_summary__summary_relative.jpg",
+              "filename": "effect_size_summary__summary_relative.png"
+            }
+          ],
+          "Cartesian": [
+            {
+              "path": "figures/analytics/cartesian/resting/vertex_cluster/cluster_map_disease_effect.png",
+              "thumb": "figures/thumbs/analytics/cartesian/resting/vertex_cluster/cluster_map_disease_effect.jpg",
+              "filename": "cluster_map_disease_effect.png"
+            },
+            {
+              "path": "figures/analytics/cartesian/resting/vertex_cluster/cluster_results__cluster_relative.png",
+              "thumb": "figures/thumbs/analytics/cartesian/resting/vertex_cluster/cluster_results__cluster_relative.jpg",
+              "filename": "cluster_results__cluster_relative.png"
+            }
+          ]
+        },
+        "tables": {
+          "Shell": [
+            {
+              "filename": "cluster_results.csv",
+              "csv": "tables/resting/vertex_cluster/cluster_results.csv",
+              "headers": ["contrast", "band", "metric", "cluster_id", "n_vertices", "peak_t", "cluster_stat", "p_corrected"],
+              "rows": [
+                ["disease_effect", "Alpha", "relative", "1", "50", "-3.13218", "-25.0574", "0.00137428"],
+                ["disease_effect", "Low Gamma", "relative", "2", "60", "0.871159", "6.96927", "0.423711"],
+                ["hd_icv_rescue", "Alpha", "relative", "3", "70", "-3.2163", "-25.7304", "0.00137428"],
+                ["hd_icv_rescue", "Low Gamma", "relative", "4", "80", "-0.700309", "-5.60247", "0.423711"]
+              ]
+            },
+            {
+              "filename": "effect_size_summary.csv",
+              "csv": "tables/resting/vertex_cluster/effect_size_summary.csv",
+              "headers": ["contrast", "band", "metric", "max_abs_hedges_g", "n_nominal_sig", "n_vertices"],
+              "rows": [
+                ["disease_effect", "Alpha", "relative", "1.6242", "7", "1200"],
+                ["disease_effect", "Low Gamma", "relative", "0.287694", "14", "1200"],
+                ["hd_icv_rescue", "Alpha", "relative", "1.5826", "21", "1200"],
+                ["hd_icv_rescue", "Low Gamma", "relative", "0.396616", "28", "1200"]
+              ]
+            },
+            {
+              "filename": "voxelwise_stats.csv",
+              "csv": "tables/resting/vertex_cluster/voxelwise_stats.csv",
+              "headers": ["contrast", "band", "vertex_idx", "hedges_g", "t", "p", "p_fdr"],
+              "rows": [
+                ["disease_effect", "Alpha", "1", "-1.07163", "-3.21489", "0.00137428", "0.00412283"],
+                ["disease_effect", "Low Gamma", "2", "-0.278422", "-0.835266", "0.423711", "1"],
+                ["hd_icv_rescue", "Alpha", "3", "-1.09147", "-3.27441", "0.00137428", "0.00412283"],
+                ["hd_icv_rescue", "Low Gamma", "4", "0.211391", "0.634173", "0.423711", "1"]
+              ]
+            }
+          ],
+          "Cartesian": [
+            {
+              "filename": "cluster_results.csv",
+              "csv": "tables/resting/vertex_cluster/cluster_results.csv",
+              "headers": ["contrast", "band", "metric", "cluster_id", "n_vertices", "peak_t", "cluster_stat", "p_corrected"],
+              "rows": [
+                ["disease_effect", "Alpha", "relative", "1", "50", "3.19644", "25.5715", "0.00137428"],
+                ["disease_effect", "Low Gamma", "relative", "2", "60", "-0.765805", "-6.12644", "0.423711"],
+                ["hd_icv_rescue", "Alpha", "relative", "3", "70", "3.22657", "25.8125", "0.00137428"],
+                ["hd_icv_rescue", "Low Gamma", "relative", "4", "80", "0.825413", "6.6033", "0.423711"]
+              ]
+            },
+            {
+              "filename": "voxelwise_stats.csv",
+              "csv": "tables/resting/vertex_cluster/voxelwise_stats.csv",
+              "headers": ["contrast", "band", "vertex_idx", "hedges_g", "t", "p", "p_fdr"],
+              "rows": [
+                ["disease_effect", "Alpha", "1", "-1.10462", "-3.31386", "0.00137428", "0.00412283"],
+                ["disease_effect", "Low Gamma", "2", "-0.240593", "-0.721778", "0.423711", "1"],
+                ["hd_icv_rescue", "Alpha", "3", "1.05138", "3.15413", "0.00137428", "0.00412283"],
+                ["hd_icv_rescue", "Low Gamma", "4", "0.293444", "0.880331", "0.423711", "1"]
+              ]
+            }
+          ]
+        },
+        "summary": "<div class=\"sig-summary\"><p class=\"sig-lead\">2 significant clusters across 2 of 2 comparisons (cluster-corrected p &lt; 0.05). <span class=\"sig-key\">&#9650;/&#9660; = the first-listed group of each pair is higher/lower</span>.</p><h4 class=\"sig-group\">Disease effect</h4><ul class=\"sig-list\"><li><span class=\"sig-contrast\">KO vs WT</span><span class=\"sig-role sig-role-confirmatory\">confirmatory</span> <span class=\"sig-item\"><span class=\"arrow down\">&#9660;</span> <strong>Alpha relative</strong> <span class=\"sig-pairs\">50 vertices</span> <span class=\"g\">p=0.001</span></span></li></ul><h4 class=\"sig-group\">Treatment rescue</h4><ul class=\"sig-list\"><li><span class=\"sig-contrast\">HD-ICV rescue</span><span class=\"sig-role sig-role-exploratory\">exploratory</span><span class=\"sig-gate\" title=\"Only interpreted if the gating contrast is significant\">gated on KO vs WT</span> <span class=\"sig-item\"><span class=\"arrow down\">&#9660;</span> <strong>Alpha relative</strong> <span class=\"sig-pairs\">70 vertices</span> <span class=\"g\">p=0.001</span></span></li></ul></div>",
+        "meta": {
+          "domain": "Other",
+          "supplements": null,
+          "description": null,
+          "about": null,
+          "display_name": null
+        },
+        "provenance": {
+          "written": "2026-09-18T14:01:36-04:00",
+          "source_analytics": "0.8.2",
+          "n_subjects": 6,
+          "groups": {
+            "KO_HD_ICV": 2,
+            "KO_VEH": 2,
+            "WT_VEH": 2
+          },
+          "localization": {
+            "description": "ellipsoid_shell, allen26, fixed placement",
+            "version": "0.5.1",
+            "atlas": "allen26",
+            "source_sampling": "fixed",
+            "inverse_method": "sLORETA",
+            "n_unrecorded": 0
+          },
+          "plugin": "vertex 0.1.0"
+        }
+      },
+      "roi_psd": {
+        "figures": {
+          "Shell": [
+            {
+              "path": "figures/analytics/shell/resting/roi_psd/roi_psd_posthoc_roi__hd_icv_rescue.png",
+              "thumb": "figures/thumbs/analytics/shell/resting/roi_psd/roi_psd_posthoc_roi__hd_icv_rescue.jpg",
+              "filename": "roi_psd_posthoc_roi__hd_icv_rescue.png"
+            }
+          ]
+        },
+        "tables": {
+          "Shell": [
+            {
+              "filename": "roi_psd_posthoc_roi.csv",
+              "csv": "tables/resting/roi_psd/roi_psd_posthoc_roi.csv",
+              "headers": ["contrast", "roi", "band", "power_type", "hedges_g", "p_fdr", "significant", "group_a", "group_b"],
+              "rows": [
+                ["disease_effect", "Motor_L", "Alpha", "relative", "-1.5989", "0.00137428", "TRUE", "KO_VEH", "WT_VEH"],
+                ["disease_effect", "Motor_R", "Alpha", "relative", "-1.7989", "0.00274855", "TRUE", "KO_VEH", "WT_VEH"],
+                ["disease_effect", "Auditory_L", "Alpha", "relative", "-1.9989", "0.00412283", "TRUE", "KO_VEH", "WT_VEH"],
+                ["disease_effect", "Auditory_R", "Alpha", "relative", "-2.1989", "0.0054971", "TRUE", "KO_VEH", "WT_VEH"],
+                ["disease_effect", "Motor_L", "Low Gamma", "relative", "0.399026", "0.423711", "FALSE", "KO_VEH", "WT_VEH"],
+                ["disease_effect", "Motor_R", "Low Gamma", "relative", "0.199026", "0.847422", "FALSE", "KO_VEH", "WT_VEH"],
+                ["disease_effect", "Auditory_L", "Low Gamma", "relative", "-0.000973978", "1", "FALSE", "KO_VEH", "WT_VEH"],
+                ["disease_effect", "Auditory_R", "Low Gamma", "relative", "-0.200974", "1", "FALSE", "KO_VEH", "WT_VEH"],
+                ["hd_icv_rescue", "Motor_L", "Alpha", "relative", "1.64163", "0.00137428", "TRUE", "KO_VEH", "WT_VEH"],
+                ["hd_icv_rescue", "Motor_R", "Alpha", "relative", "1.44163", "0.00274855", "TRUE", "KO_VEH", "WT_VEH"],
+                ["hd_icv_rescue", "Auditory_L", "Alpha", "relative", "1.24163", "0.00412283", "TRUE", "KO_VEH", "WT_VEH"],
+                ["hd_icv_rescue", "Auditory_R", "Alpha", "relative", "1.04163", "0.0054971", "TRUE", "KO_VEH", "WT_VEH"],
+                ["hd_icv_rescue", "Motor_L", "Low Gamma", "relative", "0.393611", "0.423711", "FALSE", "KO_VEH", "WT_VEH"],
+                ["hd_icv_rescue", "Motor_R", "Low Gamma", "relative", "0.193611", "0.847422", "FALSE", "KO_VEH", "WT_VEH"],
+                ["hd_icv_rescue", "Auditory_L", "Low Gamma", "relative", "-0.00638939", "1", "FALSE", "KO_VEH", "WT_VEH"],
+                ["hd_icv_rescue", "Auditory_R", "Low Gamma", "relative", "-0.206389", "1", "FALSE", "KO_VEH", "WT_VEH"]
+              ]
+            }
+          ]
+        },
+        "summary": "<div class=\"sig-summary\"><p class=\"sig-lead\"><span class=\"sig-top\">Strongest: <span class=\"sig-contrast\">KO vs WT</span><span class=\"sig-role sig-role-confirmatory\">confirmatory</span> <strong>Alpha relative</strong> Auditory_R <span class=\"arrow down\">&#9660;</span><span class=\"g\">g=2.20</span> <span class=\"sig-q\">q=.005</span>.</span> 8 ROI-level effects reach FDR q &lt; 0.05 across 2 of 2 comparisons. <span class=\"sig-key\">effect size (Hedges g) + direction lead, q secondary; whole-brain effect + the ROIs that differ; &#9650;/&#9660; = the first-listed group is higher/lower</span>.</p><h4 class=\"sig-group\">Disease effect</h4><ul class=\"sig-list\"><li><span class=\"sig-contrast\">KO vs WT</span><span class=\"sig-role sig-role-confirmatory\">confirmatory</span> <span class=\"sig-item has-region\"><strong>Alpha relative</strong> <span class=\"sig-pairs\">4 ROIs</span><span class=\"sig-region\"><span class=\"arrow down\">&#9660;</span>&nbsp;Auditory_R <span class=\"g\">g=2.20</span> <span class=\"sig-q\">q=.005</span>, <span class=\"arrow down\">&#9660;</span>&nbsp;Auditory_L <span class=\"g\">g=2.00</span> <span class=\"sig-q\">q=.004</span>, <span class=\"arrow down\">&#9660;</span>&nbsp;Motor_R <span class=\"g\">g=1.80</span> <span class=\"sig-q\">q=.003</span>, <span class=\"arrow down\">&#9660;</span>&nbsp;Motor_L <span class=\"g\">g=1.60</span> <span class=\"sig-q\">q=.001</span></span></span></li></ul><h4 class=\"sig-group\">Treatment rescue</h4><ul class=\"sig-list\"><li><span class=\"sig-contrast\">HD-ICV rescue</span><span class=\"sig-role sig-role-exploratory\">exploratory</span><span class=\"sig-gate\" title=\"Only interpreted if the gating contrast is significant\">gated on KO vs WT</span> <span class=\"sig-item has-region\"><strong>Alpha relative</strong> <span class=\"sig-pairs\">4 ROIs</span><span class=\"sig-region\"><span class=\"arrow up\">&#9650;</span>&nbsp;Motor_L <span class=\"g\">g=1.64</span> <span class=\"sig-q\">q=.001</span>, <span class=\"arrow up\">&#9650;</span>&nbsp;Motor_R <span class=\"g\">g=1.44</span> <span class=\"sig-q\">q=.003</span>, <span class=\"arrow up\">&#9650;</span>&nbsp;Auditory_L <span class=\"g\">g=1.24</span> <span class=\"sig-q\">q=.004</span>, <span class=\"arrow up\">&#9650;</span>&nbsp;Auditory_R <span class=\"g\">g=1.04</span> <span class=\"sig-q\">q=.005</span></span></span></li></ul></div>",
+        "meta": {
+          "domain": "Other",
+          "supplements": null,
+          "description": null,
+          "about": null,
+          "display_name": null
+        }
+      },
+      "fcd_comparison": {
+        "figures": {},
+        "tables": {
+          "Shell": [
+            {
+              "filename": "fcd_comparison_stats.csv",
+              "csv": "tables/resting/fcd_comparison/fcd_comparison_stats.csv",
+              "headers": ["contrast", "band", "metric", "corr_mean_r", "corr_cv_r", "source_mean_g", "source_mean_ci_lo", "source_mean_ci_hi", "sensor_mean_g", "sensor_mean_ci_lo", "sensor_mean_ci_hi", "source_cv_g", "source_cv_ci_lo", "source_cv_ci_hi", "sensor_cv_g", "sensor_cv_ci_lo", "sensor_cv_ci_hi"],
+              "rows": [
+                ["disease_effect", "Alpha", "fcd", "0.4", "0.25", "1.6102", "1.1102", "2.1102", "1.07347", "0.573468", "1.57347", "-0.805101", "-1.3051", "-0.305101", "0.644081", "0.144081", "1.14408"],
+                ["disease_effect", "Low Gamma", "fcd", "0.5", "0.3", "-0.448315", "-0.948315", "0.0516847", "-0.298877", "-0.798877", "0.201123", "0.224158", "-0.275842", "0.724158", "-0.179326", "-0.679326", "0.320674"],
+                ["hd_icv_rescue", "Alpha", "fcd", "0.6", "0.35", "-1.50349", "-2.00349", "-1.00349", "-1.00233", "-1.50233", "-0.502329", "0.751747", "0.251747", "1.25175", "-0.601397", "-1.1014", "-0.101397"],
+                ["hd_icv_rescue", "Low Gamma", "fcd", "0.7", "0.4", "0.392528", "-0.107472", "0.892528", "0.261685", "-0.238315", "0.761685", "-0.196264", "-0.696264", "0.303736", "0.157011", "-0.342989", "0.657011"]
+              ]
+            }
+          ]
+        },
+        "summary": "<div class=\"sig-summary\"><p class=\"sig-lead\">2 band/metric FCD measures significant at source and/or sensor across 2 of 2 comparisons (95% CI excludes 0). <span class=\"sig-key\">source–sensor concordance: mean-FCD r = 0.40–0.70; spatial-CV r = 0.25–0.40</span>.</p><h4 class=\"sig-group\">Disease effect</h4><ul class=\"sig-list\"><li><span class=\"sig-contrast\">KO vs WT</span><span class=\"sig-role sig-role-confirmatory\">confirmatory</span> <span class=\"sig-item has-region\"><strong>Alpha fcd</strong><span class=\"sig-region\">mean FCD: <span class=\"arrow up\">&#9650;</span> source <span class=\"g\">g=1.61</span> · <span class=\"arrow up\">&#9650;</span> sensor <span class=\"g\">g=1.07</span> ; spatial CV: <span class=\"arrow down\">&#9660;</span> source <span class=\"g\">g=0.81</span> · <span class=\"arrow up\">&#9650;</span> sensor <span class=\"g\">g=0.64</span></span></span></li></ul><h4 class=\"sig-group\">Treatment rescue</h4><ul class=\"sig-list\"><li><span class=\"sig-contrast\">HD-ICV rescue</span><span class=\"sig-role sig-role-exploratory\">exploratory</span><span class=\"sig-gate\" title=\"Only interpreted if the gating contrast is significant\">gated on KO vs WT</span> <span class=\"sig-item has-region\"><strong>Alpha fcd</strong><span class=\"sig-region\">mean FCD: <span class=\"arrow down\">&#9660;</span> source <span class=\"g\">g=1.50</span> · <span class=\"arrow down\">&#9660;</span> sensor <span class=\"g\">g=1.00</span> ; spatial CV: <span class=\"arrow up\">&#9650;</span> source <span class=\"g\">g=0.75</span> · <span class=\"arrow down\">&#9660;</span> sensor <span class=\"g\">g=0.60</span></span></span></li></ul></div>",
+        "meta": {
+          "domain": "Other",
+          "supplements": null,
+          "description": null,
+          "about": null,
+          "display_name": null
+        }
+      },
+      "vertex_graph": {
+        "figures": {},
+        "tables": {
+          "Shell": [
+            {
+              "filename": "vertex_graph_stats.csv",
+              "csv": "tables/resting/vertex_graph/vertex_graph_stats.csv",
+              "headers": ["contrast", "band", "conn_metric", "graph_metric", "roi", "hedges_g", "effect_size_type", "t", "p", "p_fdr", "significant"],
+              "rows": [
+                ["disease_effect", "Alpha", "imag_coherence", "global_efficiency", "", "1.62238", "hedges_g", "3.04476", "0.00137428", "0.00274855", "TRUE"],
+                ["disease_effect", "Alpha", "imag_coherence", "modularity", "", "1.62238", "hedges_g", "3.04476", "0.00137428", "0.00274855", "TRUE"],
+                ["disease_effect", "Alpha", "imag_coherence", "small_worldness", "", "1.62238", "hedges_g", "3.04476", "0.00137428", "0.00274855", "TRUE"],
+                ["disease_effect", "Low Gamma", "imag_coherence", "global_efficiency", "", "0.558772", "hedges_g", "0.717544", "0.423711", "0.847422", "FALSE"],
+                ["disease_effect", "Low Gamma", "imag_coherence", "modularity", "", "0.558772", "hedges_g", "0.717544", "0.423711", "0.847422", "FALSE"],
+                ["disease_effect", "Low Gamma", "imag_coherence", "small_worldness", "", "0.558772", "hedges_g", "0.717544", "0.423711", "0.847422", "FALSE"],
+                ["hd_icv_rescue", "Alpha", "imag_coherence", "global_efficiency", "", "-1.26918", "hedges_g", "-3.13837", "0.00137428", "0.00274855", "TRUE"],
+                ["hd_icv_rescue", "Alpha", "imag_coherence", "modularity", "", "-1.26918", "hedges_g", "-3.13837", "0.00137428", "0.00274855", "TRUE"],
+                ["hd_icv_rescue", "Alpha", "imag_coherence", "small_worldness", "", "-1.26918", "hedges_g", "-3.13837", "0.00137428", "0.00274855", "TRUE"],
+                ["hd_icv_rescue", "Low Gamma", "imag_coherence", "global_efficiency", "", "0.765637", "hedges_g", "0.731275", "0.423711", "0.847422", "FALSE"],
+                ["hd_icv_rescue", "Low Gamma", "imag_coherence", "modularity", "", "0.765637", "hedges_g", "0.731275", "0.423711", "0.847422", "FALSE"],
+                ["hd_icv_rescue", "Low Gamma", "imag_coherence", "small_worldness", "", "0.765637", "hedges_g", "0.731275", "0.423711", "0.847422", "FALSE"]
+              ]
+            }
+          ]
+        },
+        "summary": "<div class=\"sig-summary\"><p class=\"sig-lead\">6 significant graph-metric findings across 2 of 2 comparisons (FDR q &lt; 0.05). <span class=\"sig-key\">grouped by graph parameter; bands and connectivity metric listed; &#9650;/&#9660; = the first-listed group is higher/lower</span>.</p><h4 class=\"sig-group\">Disease effect</h4><ul class=\"sig-list\"><li><span class=\"sig-contrast\">KO vs WT</span><span class=\"sig-role sig-role-confirmatory\">confirmatory</span> <span class=\"sig-item\"><span class=\"arrow up\">&#9650;</span> <strong>global efficiency</strong> <span class=\"sig-facet\">Alpha</span> <span class=\"sig-pairs\">Imag. coherence</span> <span class=\"g\">g&le;1.62</span></span><span class=\"sig-item\"><span class=\"arrow up\">&#9650;</span> <strong>modularity</strong> <span class=\"sig-facet\">Alpha</span> <span class=\"sig-pairs\">Imag. coherence</span> <span class=\"g\">g&le;1.62</span></span><span class=\"sig-item\"><span class=\"arrow up\">&#9650;</span> <strong>small-worldness</strong> <span class=\"sig-facet\">Alpha</span> <span class=\"sig-pairs\">Imag. coherence</span> <span class=\"g\">g&le;1.62</span></span></li></ul><h4 class=\"sig-group\">Treatment rescue</h4><ul class=\"sig-list\"><li><span class=\"sig-contrast\">HD-ICV rescue</span><span class=\"sig-role sig-role-exploratory\">exploratory</span><span class=\"sig-gate\" title=\"Only interpreted if the gating contrast is significant\">gated on KO vs WT</span> <span class=\"sig-item\"><span class=\"arrow down\">&#9660;</span> <strong>global efficiency</strong> <span class=\"sig-facet\">Alpha</span> <span class=\"sig-pairs\">Imag. coherence</span> <span class=\"g\">g&le;1.27</span></span><span class=\"sig-item\"><span class=\"arrow down\">&#9660;</span> <strong>modularity</strong> <span class=\"sig-facet\">Alpha</span> <span class=\"sig-pairs\">Imag. coherence</span> <span class=\"g\">g&le;1.27</span></span><span class=\"sig-item\"><span class=\"arrow down\">&#9660;</span> <strong>small-worldness</strong> <span class=\"sig-facet\">Alpha</span> <span class=\"sig-pairs\">Imag. coherence</span> <span class=\"g\">g&le;1.27</span></span></li></ul></div>",
+        "meta": {
+          "domain": "Other",
+          "supplements": null,
+          "description": null,
+          "about": null,
+          "display_name": null
+        }
+      }
+    }
+  },
+  "paradigm_meta": {
+    "resting": {
+      "group": "Resting",
+      "label": "Legacy vertex"
+    }
+  },
+  "contrast_meta": {
+    "disease_effect": {
+      "role": "confirmatory",
+      "test": "difference",
+      "gate_on": []
+    },
+    "hd_icv_rescue": {
+      "role": "exploratory",
+      "test": "difference",
+      "gate_on": ["disease_effect"]
+    }
+  },
+  "contrast_labels": {
+    "disease_effect": "KO vs WT",
+    "hd_icv_rescue": "HD-ICV rescue"
+  },
+  "group_labels": {
+    "WT_VEH": "WT Vehicle",
+    "KO_VEH": "KO Vehicle",
+    "KO_HD_ICV": "KO High-Dose ICV"
+  },
+  "group_order": ["WT_VEH", "KO_VEH", "KO_HD_ICV"],
+  "localization": {},
+  "sources": ["Cartesian", "Shell"],
+  "stats": {
+    "total_figures": 5,
+    "total_tables": 8,
+    "total_summaries": 4,
+    "paradigm_count": 1
+  }
+}

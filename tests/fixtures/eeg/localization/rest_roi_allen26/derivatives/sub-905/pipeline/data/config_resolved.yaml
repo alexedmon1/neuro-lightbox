@@ -1,0 +1,12 @@
+source_localization_version: 0.5.1
+config:
+  pipeline:
+    bem_type: ellipsoid
+    source_type: roi_based
+  source_space: {}
+  inverse:
+    method: sLORETA
+    orientation: fixed
+  provenance:
+    preset: ellipsoid_roi_based
+    atlas: allen26

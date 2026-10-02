@@ -1,0 +1,57 @@
+{
+  "schema": 1,
+  "written": "2026-09-18T14:01:36-04:00",
+  "analysis": "roi_psd",
+  "paradigm": "shell_mc",
+  "profile": null,
+  "study_config": "study.yaml",
+  "source_analytics": {
+    "version": "0.8.2",
+    "git_describe": "v0.8.2"
+  },
+  "steps": [
+    "aggregate",
+    "process",
+    "setup"
+  ],
+  "subjects": {
+    "n": 6,
+    "groups": {
+      "KO_HD_ICV": 2,
+      "KO_VEH": 2,
+      "WT_VEH": 2
+    },
+    "ids": [
+      "sub-901",
+      "sub-902",
+      "sub-903",
+      "sub-904",
+      "sub-905",
+      "sub-906"
+    ]
+  },
+  "localization": {
+    "n_with_manifest": 6,
+    "n_unrecorded": 0,
+    "description": "ellipsoid_shell, allen26, Monte Carlo (K=100)",
+    "version": "0.5.1",
+    "preset": "ellipsoid_cartesian",
+    "atlas": "allen26",
+    "bem_type": "ellipsoid",
+    "source_type": "volume",
+    "surface_method": null,
+    "spacing_mm": null,
+    "source_sampling": "monte_carlo",
+    "inverse_method": "sLORETA",
+    "orientation": "fixed"
+  },
+  "plugins": {
+    "vertex": {
+      "version": "0.1.0"
+    }
+  },
+  "parcel_caveats": {
+    "Thalamus": "sampled in 31% of draws",
+    "Hippocampus_Ant_L": "not separable from Hippocampus_Ant_R"
+  }
+}

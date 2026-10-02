@@ -1,0 +1,11 @@
+contrast,accuracy_gain,balanced_accuracy_gain,auc_gain
+disease_effect,0.082672,0.0609653,0.114555
+dose_icv,0.13587,0.164345,0.128403
+dose_iv,-0.0277296,0.0141263,-0.0509137
+hd_icv_normalization,-0.0108311,-0.0188857,-0.0194358
+hd_icv_rescue,-0.00692832,-0.0261336,-0.0556051
+hd_iv_normalization,0.0166529,0.0120744,0.00850117
+hd_iv_rescue,-0.065619,-0.0540803,-0.0508103
+ld_normalization,0.092647,0.0535892,0.0848933
+ld_rescue,-0.000469898,-0.00910481,0.0262176
+route_comparison,-0.0546688,-0.0156511,-0.0438039

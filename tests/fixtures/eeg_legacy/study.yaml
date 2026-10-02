@@ -1,0 +1,38 @@
+# Golden-build fixture: legacy and retired output shapes, written by
+# tests/fixtures/make_fixtures.py from nothing (no study data).
+name: Legacy outputs (fixture)
+include_retired: true
+exclude_analyses: []
+groups:
+- name: WT_VEH
+  label: WT Vehicle
+- name: KO_VEH
+  label: KO Vehicle
+- name: KO_HD_ICV
+  label: KO High-Dose ICV
+contrasts:
+- name: disease_effect
+  label: KO vs WT
+  group: Disease effect
+  group_a: KO_VEH
+  group_b: WT_VEH
+  role: confirmatory
+- name: hd_icv_rescue
+  label: HD-ICV rescue
+  group: Treatment rescue
+  group_a: KO_HD_ICV
+  group_b: KO_VEH
+  role: exploratory
+  gate_on: disease_effect
+paradigms:
+  resting:
+    display:
+      group: Resting
+      label: Legacy vertex
+paths:
+  results:
+  - path: ./results_shell
+    label: Shell
+  - path: ./results_cartesian
+    label: Cartesian
+  gallery: ./gallery

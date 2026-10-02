@@ -1,0 +1,61 @@
+key,component,n_edges,p_corrected,n_edges_increase,n_edges_decrease,direction
+disease_effect_Delta_imag_coherence,1,10,0.0316588,6,4,mixed
+disease_effect_Delta_dwpli,1,10,1,6,4,mixed
+disease_effect_Delta_pli,1,12,1,8,4,mixed
+disease_effect_Delta_aec,1,4,0.186832,3,1,mixed
+disease_effect_Delta_coherence,1,5,0.0298693,3,2,mixed
+disease_effect_Theta_imag_coherence,1,10,1,9,1,mixed
+disease_effect_Theta_dwpli,1,5,1,1,4,mixed
+disease_effect_Theta_pli,1,5,0.141916,1,4,mixed
+disease_effect_Theta_aec,1,5,1,2,3,mixed
+disease_effect_Theta_coherence,1,9,0.138749,9,0,increase
+disease_effect_Alpha_imag_coherence,1,16,1,15,1,mixed
+disease_effect_Alpha_dwpli,1,4,0.971294,0,4,decrease
+disease_effect_Alpha_pli,1,9,1,0,9,decrease
+disease_effect_Alpha_aec,1,17,0.287402,17,0,increase
+disease_effect_Alpha_coherence,1,11,1,9,2,mixed
+disease_effect_Beta_imag_coherence,1,16,1,14,2,mixed
+disease_effect_Beta_dwpli,1,7,1,0,7,decrease
+disease_effect_Beta_pli,1,8,0.0363113,8,0,increase
+disease_effect_Beta_aec,1,4,1,2,2,mixed
+disease_effect_Beta_coherence,1,11,0.155155,2,9,mixed
+disease_effect_Low Gamma_imag_coherence,1,11,0.0248476,8,3,mixed
+disease_effect_Low Gamma_dwpli,1,9,0.0847236,7,2,mixed
+disease_effect_Low Gamma_pli,1,6,1,3,3,mixed
+disease_effect_Low Gamma_aec,1,6,1,1,5,mixed
+disease_effect_Low Gamma_coherence,1,7,0.508517,3,4,mixed
+disease_effect_High Gamma_pli,1,17,1,8,9,mixed
+disease_effect_High Gamma_aec,1,13,0.010362,12,1,mixed
+disease_effect_High Gamma_coherence,1,14,0.815065,9,5,mixed
+disease_effect_Epsilon_imag_coherence,1,20,0.938879,12,8,mixed
+disease_effect_Epsilon_aec,1,6,0.0536697,6,0,increase
+disease_effect_Epsilon_coherence,1,5,0.420441,3,2,mixed
+hd_icv_rescue_Delta_imag_coherence,1,9,1,2,7,mixed
+hd_icv_rescue_Delta_dwpli,1,5,1,2,3,mixed
+hd_icv_rescue_Delta_pli,1,11,0.00591582,1,10,mixed
+hd_icv_rescue_Delta_aec,1,11,0.211507,7,4,mixed
+hd_icv_rescue_Delta_coherence,1,15,1,0,15,decrease
+hd_icv_rescue_Theta_imag_coherence,1,12,1,3,9,mixed
+hd_icv_rescue_Theta_dwpli,1,27,1,0,27,decrease
+hd_icv_rescue_Theta_pli,1,14,0.00768791,4,10,mixed
+hd_icv_rescue_Theta_aec,1,10,0.097614,1,9,mixed
+hd_icv_rescue_Theta_coherence,1,4,0.00621451,3,1,mixed
+hd_icv_rescue_Alpha_imag_coherence,1,9,0.418917,6,3,mixed
+hd_icv_rescue_Alpha_dwpli,1,13,0.805741,8,5,mixed
+hd_icv_rescue_Alpha_pli,1,4,1,4,0,increase
+hd_icv_rescue_Alpha_aec,1,4,0.954516,1,3,mixed
+hd_icv_rescue_Alpha_coherence,1,11,0.883607,2,9,mixed
+hd_icv_rescue_Beta_imag_coherence,1,12,0.719538,9,3,mixed
+hd_icv_rescue_Beta_dwpli,1,4,1,4,0,increase
+hd_icv_rescue_Beta_pli,1,10,0.882149,8,2,mixed
+hd_icv_rescue_Beta_aec,1,15,0.346234,5,10,mixed
+hd_icv_rescue_Beta_coherence,1,3,1,0,3,decrease
+hd_icv_rescue_Low Gamma_imag_coherence,1,3,1,2,1,mixed
+hd_icv_rescue_Low Gamma_dwpli,1,6,0.703786,3,3,mixed
+hd_icv_rescue_Low Gamma_pli,1,18,0.811497,6,12,mixed
+hd_icv_rescue_Low Gamma_aec,1,10,1,4,6,mixed
+hd_icv_rescue_Low Gamma_coherence,1,4,0.0990091,2,2,mixed
+hd_icv_rescue_High Gamma_imag_coherence,1,14,0.427877,3,11,mixed
+hd_icv_rescue_High Gamma_dwpli,1,5,0.00127693,3,2,mixed
+hd_icv_rescue_High Gamma_pli,1,13,0.422052,13,0,increase
+hd_icv_rescue_High Gamma_aec,1,4,1,0,4,decrease

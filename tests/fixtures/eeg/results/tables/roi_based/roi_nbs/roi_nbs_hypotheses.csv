@@ -1,0 +1,61 @@
+hypothesis,kind,role,label,test,band,dv,n_perms,threshold,component_id,n_edges,mass,peak_stat,component_p,significant,stat_type,n_edges_increase,n_edges_decrease,mean_stat,direction,n_equivalent,frac_equivalent
+group_omnibus,omnibus,phenotype,Omnibus (all groups),,Delta,imag_coherence,5000,2.5,1,18,3.67012,8.86989,1,False,F,,,,,,
+group_omnibus,omnibus,phenotype,Omnibus (all groups),,Delta,imag_coherence,5000,2.5,2,17,4.48881,2.58504,1,False,F,,,,,,
+group_omnibus,omnibus,phenotype,Omnibus (all groups),,Delta,dwpli,5000,2.5,1,10,2.77503,2.77327,0.00407508,True,F,,,,,,
+group_omnibus,omnibus,phenotype,Omnibus (all groups),,Delta,pli,5000,2.5,1,10,2.93761,3.87784,1,False,F,,,,,,
+group_omnibus,omnibus,phenotype,Omnibus (all groups),,Delta,pli,5000,2.5,2,7,7.28031,2.52204,1,False,F,,,,,,
+group_omnibus,omnibus,phenotype,Omnibus (all groups),,Delta,aec,5000,2.5,1,5,2.8417,2.51043,1,False,F,,,,,,
+disease_effect,contrast,phenotype,Disease effect (KO vs WT),,Delta,imag_coherence,5000,2.5,1,21,2.78409,2.53098,1,False,t,13,8,-0.444222,mixed,,
+disease_effect,contrast,phenotype,Disease effect (KO vs WT),,Delta,dwpli,5000,2.5,1,24,4.17039,2.82066,1,False,t,19,5,1.01821,mixed,,
+disease_effect,contrast,phenotype,Disease effect (KO vs WT),,Delta,pli,5000,2.5,1,11,5.20817,1.49118,0.608026,False,t,7,4,-1.3978,mixed,,
+disease_effect,contrast,phenotype,Disease effect (KO vs WT),,Delta,pli,5000,2.5,2,7,2.53823,2.53513,0.861639,False,t,3,4,-2.0257,mixed,,
+disease_effect,contrast,phenotype,Disease effect (KO vs WT),,Delta,aec,5000,2.5,1,8,2.32956,3.05135,0.227389,False,t,1,7,-2.70911,mixed,,
+disease_effect,contrast,phenotype,Disease effect (KO vs WT),,Delta,coherence,5000,2.5,1,8,4.0576,1.85825,0.079904,False,t,1,7,1.45192,mixed,,
+hd_icv_rescue,contrast,rescue,HD-ICV rescue (vs KO veh),,Delta,imag_coherence,5000,2.5,1,4,3.77509,3.25372,1,False,t,2,2,-0.344949,mixed,,
+hd_icv_rescue,contrast,rescue,HD-ICV rescue (vs KO veh),,Delta,imag_coherence,5000,2.5,2,9,4.52493,2.61094,0.400789,False,t,6,3,-1.49846,mixed,,
+hd_icv_rescue,contrast,rescue,HD-ICV rescue (vs KO veh),,Delta,dwpli,5000,2.5,1,4,3.65983,2.79971,0.0464086,True,t,0,4,4.02553,decrease,,
+hd_icv_rescue,contrast,rescue,HD-ICV rescue (vs KO veh),,Delta,pli,5000,2.5,1,16,3.29114,3.40004,1,False,t,2,14,-1.04773,mixed,,
+hd_icv_rescue,contrast,rescue,HD-ICV rescue (vs KO veh),,Delta,aec,5000,2.5,1,6,2.45589,3.45909,0.271723,False,t,0,6,-2.30581,decrease,,
+hd_icv_rescue,contrast,rescue,HD-ICV rescue (vs KO veh),,Delta,aec,5000,2.5,2,5,4.69662,3.90318,0.335357,False,t,4,1,1.74813,mixed,,
+hd_iv_rescue,contrast,rescue,HD-IV rescue (vs KO veh),,Delta,imag_coherence,5000,2.5,1,7,4.86615,2.06828,1,False,t,7,0,0.795434,increase,,
+hd_iv_rescue,contrast,rescue,HD-IV rescue (vs KO veh),,Delta,dwpli,5000,2.5,0,13,,,,False,t,0,13,,,,
+hd_iv_rescue,contrast,rescue,HD-IV rescue (vs KO veh),,Delta,pli,5000,2.5,0,6,,,,False,t,6,0,,,,
+hd_iv_rescue,contrast,rescue,HD-IV rescue (vs KO veh),,Delta,aec,5000,2.5,0,9,,,,False,t,7,2,,,,
+hd_iv_rescue,contrast,rescue,HD-IV rescue (vs KO veh),,Delta,coherence,5000,2.5,1,8,4.85791,3.5282,0.704918,False,t,1,7,-2.24086,mixed,,
+hd_iv_rescue,contrast,rescue,HD-IV rescue (vs KO veh),,Delta,coherence,5000,2.5,2,4,3.68156,2.51969,0.88174,False,t,4,0,-0.455765,increase,,
+ld_rescue,contrast,rescue,LD-IV+ICV rescue (vs KO veh),,Delta,imag_coherence,5000,2.5,1,7,2.96478,3.29817,1,False,t,7,0,-0.402151,increase,,
+ld_rescue,contrast,rescue,LD-IV+ICV rescue (vs KO veh),,Delta,imag_coherence,5000,2.5,2,22,3.41093,1.32301,0.0404531,True,t,22,0,-4.54952,increase,,
+ld_rescue,contrast,rescue,LD-IV+ICV rescue (vs KO veh),,Delta,imag_coherence,5000,2.5,3,5,4.20413,3.80198,0.402095,False,t,3,2,-0.947199,mixed,,
+ld_rescue,contrast,rescue,LD-IV+ICV rescue (vs KO veh),,Delta,dwpli,5000,2.5,1,12,4.58361,3.31762,0.0194297,True,t,4,8,-3.79124,mixed,,
+ld_rescue,contrast,rescue,LD-IV+ICV rescue (vs KO veh),,Delta,dwpli,5000,2.5,2,5,6.88262,6.07372,1,False,t,3,2,0.204584,mixed,,
+ld_rescue,contrast,rescue,LD-IV+ICV rescue (vs KO veh),,Delta,dwpli,5000,2.5,3,8,5.69637,3.73467,0.364786,False,t,2,6,2.6353,mixed,,
+hd_icv_normalization,equivalence,normalization,HD-ICV normalization to WT,,Delta,imag_coherence,5000,2.5,0,6,,,,False,tost,,,,,16,0.181514
+hd_icv_normalization,equivalence,normalization,HD-ICV normalization to WT,,Delta,dwpli,5000,2.5,0,14,,,,False,tost,,,,,10,0.0840863
+hd_icv_normalization,equivalence,normalization,HD-ICV normalization to WT,,Delta,pli,5000,2.5,0,12,,,,False,tost,,,,,6,0.315473
+hd_icv_normalization,equivalence,normalization,HD-ICV normalization to WT,,Delta,aec,5000,2.5,0,4,,,,False,tost,,,,,3,0.197022
+hd_icv_normalization,equivalence,normalization,HD-ICV normalization to WT,,Delta,coherence,5000,2.5,0,5,,,,False,tost,,,,,5,0.237993
+hd_iv_normalization,equivalence,normalization,HD-IV normalization to WT,,Delta,imag_coherence,5000,2.5,0,5,,,,False,tost,,,,,11,0.191697
+hd_iv_normalization,equivalence,normalization,HD-IV normalization to WT,,Delta,dwpli,5000,2.5,0,9,,,,False,tost,,,,,21,0.165814
+hd_iv_normalization,equivalence,normalization,HD-IV normalization to WT,,Delta,pli,5000,2.5,0,6,,,,False,tost,,,,,17,0.439148
+hd_iv_normalization,equivalence,normalization,HD-IV normalization to WT,,Delta,aec,5000,2.5,0,6,,,,False,tost,,,,,27,0.366552
+hd_iv_normalization,equivalence,normalization,HD-IV normalization to WT,,Delta,coherence,5000,2.5,0,5,,,,False,tost,,,,,6,0.107638
+ld_normalization,equivalence,normalization,LD-IV+ICV normalization to WT,,Delta,imag_coherence,5000,2.5,0,10,,,,False,tost,,,,,9,0.423902
+ld_normalization,equivalence,normalization,LD-IV+ICV normalization to WT,,Delta,dwpli,5000,2.5,0,8,,,,False,tost,,,,,9,0.313328
+ld_normalization,equivalence,normalization,LD-IV+ICV normalization to WT,,Delta,pli,5000,2.5,0,4,,,,False,tost,,,,,27,0.360604
+ld_normalization,equivalence,normalization,LD-IV+ICV normalization to WT,,Delta,aec,5000,2.5,0,5,,,,False,tost,,,,,15,0.37784
+ld_normalization,equivalence,normalization,LD-IV+ICV normalization to WT,,Delta,coherence,5000,2.5,0,6,,,,False,tost,,,,,13,0.245522
+route_comparison,contrast,exploratory,Route: HD-ICV vs HD-IV,,Delta,imag_coherence,5000,2.5,1,9,3.09719,2.03315,0.296131,False,t,7,2,-2.65463,mixed,,
+route_comparison,contrast,exploratory,Route: HD-ICV vs HD-IV,,Delta,imag_coherence,5000,2.5,2,5,5.2219,2.72282,0.399791,False,t,1,4,2.60743,mixed,,
+route_comparison,contrast,exploratory,Route: HD-ICV vs HD-IV,,Delta,imag_coherence,5000,2.5,3,3,4.25525,3.65733,0.0504631,False,t,1,2,4.28855,mixed,,
+route_comparison,contrast,exploratory,Route: HD-ICV vs HD-IV,,Delta,dwpli,5000,2.5,1,7,3.51774,2.0326,1,False,t,0,7,-0.0989926,decrease,,
+route_comparison,contrast,exploratory,Route: HD-ICV vs HD-IV,,Delta,pli,5000,2.5,1,9,4.39258,3.11977,0.783194,False,t,1,8,-2.17636,mixed,,
+dose_icv,contrast,exploratory,Dose: HD-ICV vs LD-IV+ICV,,Delta,imag_coherence,5000,2.5,1,6,4.32695,1.90933,1,False,t,6,0,0.127945,increase,,
+dose_icv,contrast,exploratory,Dose: HD-ICV vs LD-IV+ICV,,Delta,imag_coherence,5000,2.5,2,8,3.05827,2.66726,0.0809959,False,t,1,7,-2.4762,mixed,,
+dose_icv,contrast,exploratory,Dose: HD-ICV vs LD-IV+ICV,,Delta,dwpli,5000,2.5,1,5,2.55595,3.6322,0.183807,False,t,3,2,2.94462,mixed,,
+dose_icv,contrast,exploratory,Dose: HD-ICV vs LD-IV+ICV,,Delta,pli,5000,2.5,1,10,4.83709,3.19889,0.660652,False,t,7,3,3.24038,mixed,,
+dose_icv,contrast,exploratory,Dose: HD-ICV vs LD-IV+ICV,,Delta,pli,5000,2.5,2,18,4.35124,4.00369,0.0600402,False,t,9,9,3.71902,mixed,,
+dose_iv,contrast,exploratory,Dose: HD-IV vs LD-IV+ICV,,Delta,imag_coherence,5000,2.5,1,7,5.97464,1.29995,0.321521,False,t,4,3,2.49865,mixed,,
+dose_iv,contrast,exploratory,Dose: HD-IV vs LD-IV+ICV,,Delta,imag_coherence,5000,2.5,2,3,2.92522,3.41805,5.16152e-05,True,t,1,2,-6.79388,mixed,,
+dose_iv,contrast,exploratory,Dose: HD-IV vs LD-IV+ICV,,Delta,dwpli,5000,2.5,1,5,2.49206,3.66696,0.443816,False,t,3,2,-3.35405,mixed,,
+dose_iv,contrast,exploratory,Dose: HD-IV vs LD-IV+ICV,,Delta,pli,5000,2.5,1,6,3.20628,3.11685,0.00402042,True,t,2,4,-5.95016,mixed,,
+dose_iv,contrast,exploratory,Dose: HD-IV vs LD-IV+ICV,,Delta,pli,5000,2.5,2,3,3.07372,2.19173,1,False,t,3,0,-0.595704,increase,,

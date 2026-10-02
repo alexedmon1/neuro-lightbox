@@ -1,0 +1,6 @@
+# Frozen builds and the fixtures they are built from: generated, but their
+# diffs are the review record of a change, so they stay diffable.
+tests/golden/** linguist-generated=true
+tests/fixtures/eeg/** linguist-generated=true
+tests/fixtures/mri_h1c/** linguist-generated=true
+tests/fixtures/eeg_legacy/** linguist-generated=true

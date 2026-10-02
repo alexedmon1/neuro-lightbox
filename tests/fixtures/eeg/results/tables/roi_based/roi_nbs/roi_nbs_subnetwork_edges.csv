@@ -1,0 +1,61 @@
+hypothesis,band,dv,component_id,component_p,significant,node_i,node_j,roi_i,roi_j,stat
+disease_effect,Delta,coherence,1,0.266126,False,2,16,Auditory_L,Motor_L,2.92609
+disease_effect,Delta,coherence,3,0.0474155,True,9,17,Hippocampus_Ant_L,Motor_R,4.58096
+disease_effect,Theta,pli,1,1,False,2,3,Auditory_L,Auditory_R,1.02249
+disease_effect,Theta,coherence,1,0.00113677,True,9,17,Hippocampus_Ant_L,Motor_R,4.61045
+disease_effect,Alpha,aec,1,0.0469208,True,2,3,Auditory_L,Auditory_R,-6.0336
+disease_effect,Alpha,coherence,2,0.43144,False,2,16,Auditory_L,Motor_L,2.64992
+disease_effect,Beta,imag_coherence,1,1,False,2,3,Auditory_L,Auditory_R,-0.144178
+disease_effect,Beta,imag_coherence,1,1,False,2,9,Auditory_L,Hippocampus_Ant_L,0.398221
+disease_effect,Beta,imag_coherence,1,1,False,3,16,Auditory_R,Motor_L,-0.313753
+disease_effect,Beta,pli,1,1,False,16,3,Motor_L,Auditory_R,-0.136034
+disease_effect,Beta,aec,1,1,False,2,3,Auditory_L,Auditory_R,0.966977
+hd_icv_rescue,Delta,aec,1,1,False,3,9,Auditory_R,Hippocampus_Ant_L,-0.877536
+hd_icv_rescue,Theta,coherence,2,0.457125,False,2,16,Auditory_L,Motor_L,2.82036
+hd_icv_rescue,Alpha,dwpli,1,0.0348268,True,23,3,Thalamus,Auditory_R,-3.79108
+hd_icv_rescue,Alpha,dwpli,1,1,False,23,9,Thalamus,Hippocampus_Ant_L,-0.450158
+hd_icv_rescue,Alpha,aec,1,0.0212496,True,3,16,Auditory_R,Motor_L,4.3349
+hd_icv_rescue,Alpha,aec,1,0.000121704,True,3,17,Auditory_R,Motor_R,-7.34525
+hd_icv_rescue,Alpha,aec,1,1,False,3,23,Auditory_R,Thalamus,-0.300273
+hd_icv_rescue,Alpha,aec,1,0.53715,False,17,23,Motor_R,Thalamus,-3.58202
+hd_icv_rescue,Alpha,aec,1,1,False,17,9,Motor_R,Hippocampus_Ant_L,1.5649
+hd_icv_rescue,Low Gamma,aec,1,1,False,9,16,Hippocampus_Ant_L,Motor_L,-0.810909
+hd_iv_rescue,Low Gamma,imag_coherence,1,0.878766,False,23,9,Thalamus,Hippocampus_Ant_L,-1.36313
+hd_iv_rescue,Low Gamma,pli,1,1,False,23,3,Thalamus,Auditory_R,-0.00106354
+hd_iv_rescue,Low Gamma,pli,1,0.0356397,True,23,9,Thalamus,Hippocampus_Ant_L,4.66024
+hd_iv_rescue,High Gamma,pli,1,1,False,23,9,Thalamus,Hippocampus_Ant_L,0.543416
+hd_iv_rescue,Epsilon,pli,1,0.00313794,True,23,9,Thalamus,Hippocampus_Ant_L,6.4927
+ld_rescue,Delta,dwpli,2,0.208789,False,9,16,Hippocampus_Ant_L,Motor_L,2.45039
+ld_rescue,Delta,aec,1,1,False,9,16,Hippocampus_Ant_L,Motor_L,-1.79753
+ld_rescue,Delta,aec,1,1,False,9,23,Hippocampus_Ant_L,Thalamus,1.25022
+ld_rescue,Delta,aec,1,0.00510411,True,16,3,Motor_L,Auditory_R,-5.67881
+ld_rescue,Theta,dwpli,3,1,False,16,17,Motor_L,Motor_R,-1.23629
+ld_rescue,Theta,pli,2,0.317064,False,16,17,Motor_L,Motor_R,-3.2019
+ld_rescue,Theta,aec,1,0.00119932,True,3,9,Auditory_R,Hippocampus_Ant_L,-4.70249
+ld_rescue,Theta,aec,1,0.420858,False,3,17,Auditory_R,Motor_R,-2.1558
+ld_rescue,Low Gamma,dwpli,1,0.0452218,True,9,23,Hippocampus_Ant_L,Thalamus,-2.44137
+ld_rescue,High Gamma,imag_coherence,2,1,False,2,3,Auditory_L,Auditory_R,-1.72215
+route_comparison,Delta,imag_coherence,3,1,False,16,23,Motor_L,Thalamus,0.757299
+route_comparison,Delta,pli,2,1,False,16,23,Motor_L,Thalamus,0.475021
+route_comparison,Delta,aec,1,1,False,17,2,Motor_R,Auditory_L,0.956821
+route_comparison,Delta,coherence,2,1,False,16,23,Motor_L,Thalamus,1.06816
+route_comparison,Theta,coherence,3,1,False,16,23,Motor_L,Thalamus,-0.617876
+route_comparison,Alpha,aec,1,0.0639759,False,17,3,Motor_R,Auditory_R,-3.82938
+dose_icv,Theta,dwpli,1,0.659475,False,16,23,Motor_L,Thalamus,-1.49413
+dose_icv,Alpha,imag_coherence,1,0.920824,False,9,3,Hippocampus_Ant_L,Auditory_R,2.80623
+dose_icv,Alpha,dwpli,1,0.0162571,True,23,9,Thalamus,Hippocampus_Ant_L,4.58994
+dose_icv,Alpha,aec,1,0.00198262,True,3,9,Auditory_R,Hippocampus_Ant_L,-5.23012
+dose_icv,Alpha,aec,1,1,False,3,16,Auditory_R,Motor_L,-0.796604
+dose_icv,Alpha,aec,1,0.122525,False,9,16,Hippocampus_Ant_L,Motor_L,-3.98709
+dose_icv,Alpha,aec,1,0.501741,False,23,17,Thalamus,Motor_R,2.43874
+dose_icv,Low Gamma,aec,1,1,False,3,16,Auditory_R,Motor_L,0.129972
+dose_icv,Low Gamma,aec,1,1,False,3,23,Auditory_R,Thalamus,-0.095452
+dose_icv,Low Gamma,aec,1,1,False,16,9,Motor_L,Hippocampus_Ant_L,-0.384074
+dose_iv,Delta,imag_coherence,1,0.658479,False,3,23,Auditory_R,Thalamus,-3.60877
+dose_iv,Delta,imag_coherence,1,1,False,23,17,Thalamus,Motor_R,0.390147
+dose_iv,Delta,pli,3,1,False,17,23,Motor_R,Thalamus,0.753597
+dose_iv,Delta,aec,1,0.100729,False,17,9,Motor_R,Hippocampus_Ant_L,-3.06597
+dose_iv,Delta,coherence,2,1,False,3,16,Auditory_R,Motor_L,0.187199
+dose_iv,Theta,aec,1,1,False,3,17,Auditory_R,Motor_R,-0.405045
+dose_iv,Alpha,imag_coherence,1,1,False,9,3,Hippocampus_Ant_L,Auditory_R,0.557063
+dose_iv,Low Gamma,imag_coherence,2,0.055146,False,17,23,Motor_R,Thalamus,-4.33031

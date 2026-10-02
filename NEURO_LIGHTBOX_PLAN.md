@@ -1,13 +1,19 @@
 # neuro-lightbox — plan
 
-**Status: plan only. Nothing here is implemented.** Written 2026-10-02 from a
+**Status: Phase 0 done (2026-10-02); see §6.** Written 2026-10-02 from a
 cuprizone (rat MRI) session, after a feasibility test built one MRI analysis
 into a source-lightbox gallery; revised the same day with the author's two
-principles (§1). To be worked in its own session.
+principles (§1).
 
 **Decision (author, 2026-10-02):** rename source-lightbox to **neuro-lightbox**
-and generalise it **in this one repository** (option 1), with a **profile
+and generalise it **in one repository** (option 1), with a **profile
 interface** inside it (option 3) so EEG and MRI are profiles of one core.
+**Revised the same day:** the one repository is a new one,
+`alexedmon1/neuro-lightbox`, carrying source-lightbox's full history;
+source-lightbox is left as it is (frozen, archived later) rather than renamed,
+so its URL does not redirect and its PR and issues stay with it. This is not
+the fork rejected below: no work continues in source-lightbox, so there is
+nothing to drift or merge.
 Considered and not chosen:
 
 - *Core + two thin packages* (`lightbox-core`, `source-lightbox`, an MRI
@@ -211,8 +217,12 @@ two copies to drift.
 - **Package `neuro_lightbox`, CLI `neuro-lightbox`.** For a deprecation window:
   a `source-lightbox` console script (prints a one-line deprecation note) and a
   `source_lightbox` import shim (re-exports, `DeprecationWarning`). Existing
-  `study.yaml` files keep working unchanged. Rename the GitHub repository (it
-  redirects the old URL). Version continues: first neuro-lightbox release 0.2.0.
+  `study.yaml` files keep working unchanged. The repository is
+  `alexedmon1/neuro-lightbox`, with source-lightbox's history; source-lightbox
+  stays frozen at its last commit, so scripts that run
+  `uv run --project ~/sandbox/source-lightbox source-lightbox …` keep working
+  until they are pointed here. Version continues: first neuro-lightbox release
+  0.2.0.
 - **Core (no domain vocabulary):** reading spec-conformant results trees (§4);
   the manifest; the static app; the renderer registry; the digest framework; the
   provenance strip; the "inputs/QC" section frame; `build` / `serve` / `info`;
@@ -271,6 +281,32 @@ failing one. Phases S and 0 can run in parallel.
   `manifest.json`. Every later phase diffs against these; an EEG gallery changes
   only where a change is intended.
 - Find out who else uses source-lightbox (sets the deprecation window).
+- **Done (2026-10-02).** `tests/test_golden.py` builds four galleries through
+  the CLI and compares each with `tests/golden/<case>/`: the manifest (one table
+  row per line, its exact bytes pinned by hash), the page, every output file
+  (hashes for everything copied), the calls to the source-analytics workers, and
+  the rendered figures (under the recording matplotlib / numpy / Pillow). Cases:
+  `eeg` (FORGE treatment, with a stand-in source-analytics interpreter that
+  serves v0.8.2's analysis metadata and answers the mosaic / circos workers),
+  `eeg_no_sa` (the same tree with no interpreter), `eeg_legacy` (retired vertex
+  modules, legacy column names, plugin provenance, two compared results trees)
+  and `mri_h1c` (the §2 export; its golden build reproduces §2's defects, as it
+  should until Phase 3). Together they reach all seven renderers and every
+  digest builder. Both studies are unpublished and the repository is public, so
+  the fixtures keep the trees' structure and replace every measured value with a
+  synthetic one (`tests/fixtures/README.md`). `--update-golden` accepts an
+  intended change; the diff of `tests/golden/` is its record.
+- **Who uses source-lightbox (2026-10-02):** nobody outside the author's own
+  work that can be found — 0 stars, forks and watchers, 0 page views in 14 days
+  (30 clones, unattributable). Local users, all the author's: FORGE's
+  `scripts/build_gallery.sh`, `scripts/build_gallery_split.sh` and
+  `treatment/build_gallery_v2.sh` (run the CLI from `~/sandbox/source-lightbox`),
+  the cuprizone feasibility export, the lab website's publishing notes, and
+  source-analytics' README / CLAUDE.md / CHANGELOG. **The lab website reads
+  gallery manifests** (`website/public/lib/scanner.php`: `title`,
+  `stats.total_figures`, `stats.total_tables`, `stats.paradigm_count`,
+  `sources`) — those keys are a contract to keep. So the deprecation window
+  (§8, 2) can be short: the alias and shim cover a release or two.
 
 ### Phase 1 — rename (mechanical)
 - `src/source_lightbox` → `src/neuro_lightbox`; pyproject name, console scripts
@@ -373,6 +409,8 @@ failing one. Phases S and 0 can run in parallel.
 1. **Where the output specification lives**: a small standalone spec
    (recommended), source-analytics' docs adopted by neurofaune, or two copies.
 2. Other users of source-lightbox, and so the length of the deprecation window.
+   *Phase 0 found none outside the author's own scripts (§6, Phase 0); a short
+   window is enough.*
 3. Profile selection: explicit `profile:` with `eeg` as the default
    (recommended) or auto-detection from the tree.
 4. Whether the MRI profile is built in (recommended for now) or shipped from

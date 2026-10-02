@@ -1,0 +1,5 @@
+contrast,band,vertex_idx,hedges_g,t,p,p_fdr
+disease_effect,Alpha,1,-1.10462,-3.31386,0.00137428,0.00412283
+disease_effect,Low Gamma,2,-0.240593,-0.721778,0.423711,1
+hd_icv_rescue,Alpha,3,1.05138,3.15413,0.00137428,0.00412283
+hd_icv_rescue,Low Gamma,4,0.293444,0.880331,0.423711,1
