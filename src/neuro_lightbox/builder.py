@@ -78,7 +78,7 @@ def build(config: BuildConfig, verbose: bool = True) -> Path:
         rendered = render_table_figures(
             scan.tables, staging_dir, dpi=config.figure_dpi, log=_log, profile=profile,
             state=profile.render_setup(config, options, _log),
-            contrast_labels=config.contrast_labels,
+            contrast_labels=config.contrast_labels, contrast_order=config.contrasts,
         )
         scan.figures.extend(rendered)
         _log(f"  Rendered {len(rendered)} figures from {len(scan.tables)} tables")
@@ -142,6 +142,8 @@ def build(config: BuildConfig, verbose: bool = True) -> Path:
         group_labels=config.group_labels,
         group_order=config.group_order,
         profile=profile,
+        contrast_order=config.contrasts,
+        contrast_design=config.contrast_design,
     )
     manifest_json = json.dumps(manifest, indent=2)
     data_dir = out / "data"
@@ -197,17 +199,23 @@ def _render_html(out: Path, manifest_json: str, title: str = "Gallery",
     )
     template = env.get_template("index.html.j2")
     html = template.render(
-        manifest_json=manifest_json,
+        # Inlined in a <script>: neither "</" nor "<!--" may appear there as is.
+        manifest_json=_script_safe(manifest_json),
         title=title,
         build_ts=str(int(time.time())),
         home_link=home_link,
         home_label=home_label,
-        # Inlined in a <script>: "</" may not appear there as is.
-        profile_json=profile_json.replace("</", "<\\/"),
+        profile_json=_script_safe(profile_json),
         profile_scripts=list(scripts),
         profile_styles=list(styles),
     )
     (out / "index.html").write_text(html, encoding="utf-8")
+
+
+def _script_safe(text: str) -> str:
+    """JSON that can sit inside a <script> element: ``</`` and ``<!--`` escaped
+    (``<\\/``, ``\\u003c!--``), which leaves the JSON's meaning unchanged."""
+    return text.replace("</", "<\\/").replace("<!--", "\\u003c!--")
 
 
 def _copy_static(out: Path, extra=()):

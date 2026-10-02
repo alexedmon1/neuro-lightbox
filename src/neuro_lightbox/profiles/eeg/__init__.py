@@ -119,7 +119,8 @@ class EegProfile(Profile):
                 "atlas": options.atlas,
                 "python": options.brain_python,
             }
-        return render_state(brain, circos, config.contrast_labels, log)
+        return render_state(brain, circos, config.contrast_labels, log,
+                            contrast_order=config.contrasts)
 
     def render_before(self, group, dest, module, state, log):
         from .render import render_before
@@ -142,7 +143,8 @@ class EegProfile(Profile):
 
         return trim_provenance(record)
 
-    def digest(self, tables, full, contrast_labels, contrast_groups, contrast_meta):
+    def digest(self, tables, full, contrast_labels, contrast_groups, contrast_meta, *,
+               contrast_order=None, group_labels=None, contrast_design=None):
         from .summarize import build_significance_summary
 
         # Connectivity's protected post-hocs read the module's region-pair table,
@@ -154,7 +156,9 @@ class EegProfile(Profile):
                     region_pair = {"headers": t["headers"], "rows": t["rows"]}
         return build_significance_summary(
             tables, contrast_labels=contrast_labels, contrast_groups=contrast_groups,
-            contrast_meta=contrast_meta, region_pair_table=region_pair)
+            contrast_meta=contrast_meta, region_pair_table=region_pair,
+            contrast_order=contrast_order, group_labels=group_labels,
+            contrast_design=contrast_design)
 
     def descriptive_digest(self, analysis, figure_names, contrast_labels):
         # Descriptive-only matrix modules (e.g. roi_connectivity, whose per-edge

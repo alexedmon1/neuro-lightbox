@@ -88,7 +88,7 @@ def test_a_profile_that_knows_nothing_still_builds_a_gallery(plain, tmp_path):
     assert entry["tables"]["R"][0]["rows"] == [["change", "ReHo", "0.4", "0.03"]]
     assert entry["figures"] == {}, "no renderers, no figures"
     assert entry["summary"] is None
-    assert entry["meta"]["domain"] == "Other"
+    assert entry["meta"]["domain"] is None, "no metadata: no domain, and no 'Other' bucket"
     assert entry["provenance"] == {"tools": [{"name": "pkg", "version": "1"}]}
     assert json.loads((out / "data" / "profile.json").read_text()) == {
         "name": "plain", "vocabulary": {}}

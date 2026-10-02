@@ -75,10 +75,13 @@ convention. The lightbox renders figures at build time:
 ## Summaries: generated digest, not the verbatim report
 
 `ANALYSIS_SUMMARY.md` is a full stats report, not a summary — it is **not**
-embedded. Instead `profiles/eeg/summarize.py` derives a concise "significant results by
-contrast" digest from the module's effect-size table (per-contrast chips with
-direction arrows, FDR q<0.05). The per-contrast category axis is band/freq_pair,
-falling back to `dv` when band is the aperiodic `NA` placeholder.
+embedded. Instead `profiles/eeg/summarize.py` derives a concise digest of every
+comparison from the module's tables: significant results as chips (direction,
+measure, p/q), the rest with their largest effect, under the reporting contract
+of `neuro_lightbox/contract.py` (measure, correction and direction as the tables
+record them — `profiles/eeg/reading.py` — or "not recorded"). The per-contrast
+category axis is band/freq_pair, falling back to `dv` when band is the aperiodic
+`NA` placeholder.
 
 The digest is **organized into tier sections** when the YAML gives each contrast
 a `group:` (e.g. Disease effect / Treatment rescue / Normalization to WT / Route

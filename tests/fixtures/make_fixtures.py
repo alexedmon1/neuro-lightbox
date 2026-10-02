@@ -556,6 +556,8 @@ def _write_analysis_meta(path: Path) -> None:
 # legacy column names (contrast / roi / power_type / hedges_g / p_fdr), a
 # plugin's provenance, and two results trees compared side by side.
 _LEGACY_CONTRASTS = ("disease_effect", "hd_icv_rescue")
+_LEGACY_GROUPS = {"disease_effect": ("KO_VEH", "WT_VEH"),
+                  "hd_icv_rescue": ("KO_HD_ICV", "KO_VEH")}
 _LEGACY_BANDS = ("Alpha", "Low Gamma")
 
 
@@ -610,12 +612,13 @@ def make_eeg_legacy(out: Path) -> None:
     # roi_psd in the legacy column names, before the native hypothesis schema.
     rows = []
     for c, b, k, t, p in _legacy_rows("roi_psd", "roi"):
+        ga, gb = _LEGACY_GROUPS[c]
         for roi in KEEP_ROIS[:4]:
             q = min(1.0, p * (1 + KEEP_ROIS.index(roi)))
             rows.append({"contrast": c, "roi": roi, "band": b, "power_type": "relative",
                          "hedges_g": _fmt(t / 2 - 0.2 * KEEP_ROIS.index(roi)), "p_fdr": _fmt(q),
                          "significant": "TRUE" if q < 0.05 else "FALSE",
-                         "group_a": "KO_VEH", "group_b": "WT_VEH"})
+                         "group_a": ga, "group_b": gb})
     _write(tables / "roi_psd" / "roi_psd_posthoc_roi.csv", list(rows[0]), rows)
 
     study = {

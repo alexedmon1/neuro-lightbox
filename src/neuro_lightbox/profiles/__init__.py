@@ -112,8 +112,13 @@ class Profile:
         return record
 
     def digest(self, tables: list[dict], full: bool, contrast_labels, contrast_groups,
-               contrast_meta) -> str | None:
-        """An analysis's digest (HTML), from its tables, or None."""
+               contrast_meta, *, contrast_order=None, group_labels=None,
+               contrast_design=None) -> str | None:
+        """An analysis's digest (HTML), from its tables, or None. ``full`` says the
+        tables are complete rather than the gallery's row-capped copies;
+        ``contrast_order`` is the study's contrast order, ``group_labels`` names
+        its groups, ``contrast_design`` maps a contrast to the two groups it
+        compares (``{group_a, group_b}``)."""
         return None
 
     def descriptive_digest(self, analysis: str, figure_names: list[str],

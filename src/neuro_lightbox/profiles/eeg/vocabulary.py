@@ -18,10 +18,8 @@ app hard-codes none of them. Moved verbatim from source-lightbox's app.js:
 - ``table`` — how source-analytics' columns are grouped, labelled, hidden and
   formatted.
 
-Two entries are study-specific, inherited from source-lightbox, and kept so no
-gallery changes in the move: ``group_labels`` (one study's dose names) and
-``figures.tokens.group_name`` (another's group ids). A study's own ``groups:``
-labels already come first; NEURO_LIGHTBOX_PLAN.md (Phase 3) replaces both.
+Group names are the study's own (its ``groups:``, in the manifest): the app
+takes them from there, so nothing here names a study.
 """
 
 VOCABULARY: dict = {'default_title': 'Source Analysis Gallery',
@@ -61,9 +59,6 @@ VOCABULARY: dict = {'default_title': 'Source Analysis Gallery',
               'tfce': 'TFCE',
               'fooof': 'FOOOF',
               'mi': 'MI'},
- 'group_labels': {'vehicle': 'Vehicle',
-                  '6mgkg': 'AUT00201 (6 mg/kg)',
-                  '30mgkg': 'AUT00206 (30 mg/kg)'},
  'domains': {'order': ['Spectral',
                        'Connectivity',
                        'Directed',
@@ -119,19 +114,8 @@ VOCABULARY: dict = {'default_title': 'Source Analysis Gallery',
                                  'epsilon'],
                         'power': ['delta_ref', 'absolute', 'relative'],
                         'flow': ['inflow', 'outflow', 'netflow'],
-                        'measure': ['summary', 'exponent', 'offset'],
-                        'group_name': ['ko_ld_iv_icv',
-                                       'ko_hd_icv',
-                                       'ko_hd_iv',
-                                       'ko_veh',
-                                       'wt_veh']},
-             'kind_tokens': ['conn_metric',
-                             'coupling_metric',
-                             'band',
-                             'power',
-                             'flow',
-                             'measure',
-                             'group_name'],
+                        'measure': ['summary', 'exponent', 'offset']},
+             'kind_tokens': ['conn_metric', 'coupling_metric', 'band', 'power', 'flow', 'measure'],
              'axes': [{'tokens': 'conn_metric', 'label': 'metric'},
                       {'tokens': 'coupling_metric', 'label': 'metric'},
                       {'tokens': 'band', 'label': 'name'}],

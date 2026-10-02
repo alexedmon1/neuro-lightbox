@@ -30,7 +30,9 @@ def build_manifest(scan: ScanResult, title: str, max_table_rows: int = 500,
                    paradigm_display: dict | None = None,
                    group_labels: dict | None = None,
                    group_order: list | None = None,
-                   profile=None) -> dict:
+                   profile=None,
+                   contrast_order: list | None = None,
+                   contrast_design: dict | None = None) -> dict:
     """Build the manifest dictionary from aggregated scan results.
 
     Tables are embedded as parsed CSV data (row-capped; the full CSV is copied
@@ -50,7 +52,9 @@ def build_manifest(scan: ScanResult, title: str, max_table_rows: int = 500,
     (confirmatory / exploratory) and notes what a gated contrast depends on.
 
     ``profile`` (default: the default profile) writes the digests, trims each
-    analysis's provenance, and fills its inputs block.
+    analysis's provenance, and fills its inputs block. ``contrast_order`` is the
+    study's contrast order (digests, figures and tables follow it);
+    ``contrast_design`` maps a contrast to the two groups it compares.
     """
     from .profiles import get_profile
 
@@ -66,6 +70,9 @@ def build_manifest(scan: ScanResult, title: str, max_table_rows: int = 500,
         # Per-contrast readable labels: name -> label. Also serves as the
         # contrast vocabulary the frontend uses to group figures by contrast.
         "contrast_labels": contrast_labels or {},
+        # The study's contrasts, in its order: digests, heatmap rows and tables
+        # list contrasts in this order.
+        "contrast_order": list(contrast_order or []),
         # Treatment-group display names + order (study YAML groups: / group_order:).
         "group_labels": group_labels or {},
         "group_order": list(group_order or []),
@@ -167,7 +174,10 @@ def build_manifest(scan: ScanResult, title: str, max_table_rows: int = 500,
             if not module_tables:  # fall back to embedded copies if a read failed
                 module_tables = [t for src in entry["tables"].values() for t in src]
             summary_html = profile.digest(module_tables, full, contrast_labels,
-                                          contrast_groups, contrast_meta)
+                                          contrast_groups, contrast_meta,
+                                          contrast_order=contrast_order,
+                                          group_labels=group_labels,
+                                          contrast_design=contrast_design)
             # A module with no inferential tables gets the profile's descriptive
             # digest, built from its figure filenames, if it has one.
             if summary_html is None:
@@ -182,7 +192,7 @@ def build_manifest(scan: ScanResult, title: str, max_table_rows: int = 500,
             # Domain / supplements metadata (for domain-grouped nav + nesting).
             m = analysis_meta.get(analysis, {})
             entry["meta"] = {
-                "domain": m.get("domain", "Other"),
+                "domain": m.get("domain"),   # None: listed under its own name
                 "supplements": m.get("supplements"),
                 "description": m.get("description"),
                 "about": m.get("about"),

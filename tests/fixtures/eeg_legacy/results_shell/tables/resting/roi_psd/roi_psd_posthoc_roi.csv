@@ -7,11 +7,11 @@ disease_effect,Motor_L,Low Gamma,relative,0.399026,0.423711,FALSE,KO_VEH,WT_VEH
 disease_effect,Motor_R,Low Gamma,relative,0.199026,0.847422,FALSE,KO_VEH,WT_VEH
 disease_effect,Auditory_L,Low Gamma,relative,-0.000973978,1,FALSE,KO_VEH,WT_VEH
 disease_effect,Auditory_R,Low Gamma,relative,-0.200974,1,FALSE,KO_VEH,WT_VEH
-hd_icv_rescue,Motor_L,Alpha,relative,1.64163,0.00137428,TRUE,KO_VEH,WT_VEH
-hd_icv_rescue,Motor_R,Alpha,relative,1.44163,0.00274855,TRUE,KO_VEH,WT_VEH
-hd_icv_rescue,Auditory_L,Alpha,relative,1.24163,0.00412283,TRUE,KO_VEH,WT_VEH
-hd_icv_rescue,Auditory_R,Alpha,relative,1.04163,0.0054971,TRUE,KO_VEH,WT_VEH
-hd_icv_rescue,Motor_L,Low Gamma,relative,0.393611,0.423711,FALSE,KO_VEH,WT_VEH
-hd_icv_rescue,Motor_R,Low Gamma,relative,0.193611,0.847422,FALSE,KO_VEH,WT_VEH
-hd_icv_rescue,Auditory_L,Low Gamma,relative,-0.00638939,1,FALSE,KO_VEH,WT_VEH
-hd_icv_rescue,Auditory_R,Low Gamma,relative,-0.206389,1,FALSE,KO_VEH,WT_VEH
+hd_icv_rescue,Motor_L,Alpha,relative,1.64163,0.00137428,TRUE,KO_HD_ICV,KO_VEH
+hd_icv_rescue,Motor_R,Alpha,relative,1.44163,0.00274855,TRUE,KO_HD_ICV,KO_VEH
+hd_icv_rescue,Auditory_L,Alpha,relative,1.24163,0.00412283,TRUE,KO_HD_ICV,KO_VEH
+hd_icv_rescue,Auditory_R,Alpha,relative,1.04163,0.0054971,TRUE,KO_HD_ICV,KO_VEH
+hd_icv_rescue,Motor_L,Low Gamma,relative,0.393611,0.423711,FALSE,KO_HD_ICV,KO_VEH
+hd_icv_rescue,Motor_R,Low Gamma,relative,0.193611,0.847422,FALSE,KO_HD_ICV,KO_VEH
+hd_icv_rescue,Auditory_L,Low Gamma,relative,-0.00638939,1,FALSE,KO_HD_ICV,KO_VEH
+hd_icv_rescue,Auditory_R,Low Gamma,relative,-0.206389,1,FALSE,KO_HD_ICV,KO_VEH

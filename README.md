@@ -101,9 +101,34 @@ tables. The gallery reads it and shows it on the analysis page:
   and source-analytics versions, the plugin if the analysis came from one, the
   subject and group counts, and when the run happened.
 
-An older results tree has no such file, and then nothing is shown rather than a
-guess. The record's full subject-id list and lifecycle steps are dropped on the
-way in: the manifest is inlined into `index.html`, once per analysis.
+An older results tree has no such file, and then the strip says so — "What
+produced this — not recorded" — rather than guessing. The record's full
+subject-id list and lifecycle steps are dropped on the way in: the manifest is
+inlined into `index.html`, once per analysis.
+
+### Each digest reports every comparison, honestly
+
+The Summary tab lists **every comparison the study ran**, in the study config's
+order (tiers, then contrasts), whether or not it reached significance. For each:
+
+- **what ▲ means** for that test — "▲ = KO Vehicle > WT Vehicle" for a
+  two-group contrast (from the table's `group_a`/`group_b`, else the study's
+  `weights`), "omnibus test, no direction", an equivalence test's TOST outcome,
+  or that the direction is not recorded;
+- **its magnitude, with its measure** — the measure is the table's own
+  (`effect_size_type`: g, ω²ₚ, β…), and an effect whose measure the table does
+  not record reads as "effect = …", never as g; 95% CIs where the table has the
+  effect's own interval;
+- **a null result's largest effect** — "n.s. — largest: Theta Motor_L ▲ g =
+  0.31, q = .40; 54 tests" — instead of a bare "no significant effects".
+
+The lead opens with the **confirmatory** contrast's result (its `role:`), or else
+the largest effect, named as the largest of how many tests (it was selected for
+being largest). Counts follow, with their denominator and **the correction as the
+tables record it**: "FDR (BH) q < 0.05" from source-analytics' `q_value` and
+`fdr_family`; "p < 0.05, correction not recorded" for a table with only a p —
+never an assumed FDR. Heatmap colour bars name the measure plotted, titles say
+what ★ marks, and rows follow the study's order.
 
 ### The retired vertex analyses
 
@@ -257,8 +282,9 @@ Both are curated by the config (`contrasts:` / `hypotheses:`, `circos_metrics:`,
 `pipeline.atlas`, `roi_categories:`, `paths.source_analytics_python`). Override on the CLI with
 `--roi-categories`, `--brain-python`, or `--no-brain`. If the source-analytics
 interpreter is missing or cannot import, the build prints a warning and falls
-back to heatmaps (and groups every analysis under "Other", since the domain
-metadata comes from the same interpreter).
+back to heatmaps. The nav grouping (analysis domains) then comes from a copy of
+source-analytics v0.8.2's metadata bundled with the `eeg` profile; an analysis it
+does not know is listed under its own name.
 
 ---
 

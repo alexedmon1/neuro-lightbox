@@ -59,9 +59,10 @@ def read_analysis_meta(python: str | None, log=lambda *a, **k: None) -> dict:
     The gallery groups analyses by ``domain`` and nests each secondary under the
     primary it ``supplements``. The single source of truth lives in
     source-analytics, so we read it from that interpreter (same subprocess
-    pattern as the brain-mosaic / circos workers). Best-effort: an empty dict
-    means every analysis lands in the "Other" domain — so the failure is logged
-    loudly rather than swallowed.
+    pattern as the brain-mosaic / circos workers). Without that interpreter the
+    copy bundled here (source-analytics v0.8.2's, ``analysis_meta.json``) is
+    used, and the build says so: grouping should not depend on which machine
+    builds the gallery.
     """
     import subprocess
 
@@ -71,9 +72,9 @@ def read_analysis_meta(python: str | None, log=lambda *a, **k: None) -> dict:
 
     py = _resolve_sa_python(python)
     if not py.exists():
-        log(f"  WARNING: analysis metadata unavailable — no source-analytics interpreter "
-            f"at {py}; every analysis will be grouped under 'Other'")
-        return {}
+        log(f"  Analysis metadata: no source-analytics interpreter at {py}; using the "
+            f"bundled copy (source-analytics {BUNDLED_META_VERSION})")
+        return bundled_analysis_meta()
 
     code = (
         "import json; from source_analytics.core import analysis_meta; "
@@ -85,11 +86,24 @@ def read_analysis_meta(python: str | None, log=lambda *a, **k: None) -> dict:
         )
         if out.returncode == 0 and out.stdout.strip():
             return json.loads(out.stdout.strip().splitlines()[-1])
-        log("  WARNING: analysis metadata unavailable — source-analytics import failed: "
-            f"{out.stderr.strip()[-300:]}")
+        log("  WARNING: source-analytics' analysis metadata unavailable (import failed: "
+            f"{out.stderr.strip()[-300:]}); using the bundled copy "
+            f"(source-analytics {BUNDLED_META_VERSION})")
     except Exception as exc:  # noqa: BLE001
-        log(f"  WARNING: analysis metadata unavailable: {exc}")
-    return {}
+        log(f"  WARNING: source-analytics' analysis metadata unavailable ({exc}); using the "
+            f"bundled copy (source-analytics {BUNDLED_META_VERSION})")
+    return bundled_analysis_meta()
+
+
+#: The source-analytics release whose ``analysis_meta()`` is bundled.
+BUNDLED_META_VERSION = "v0.8.2"
+
+
+def bundled_analysis_meta() -> dict:
+    """source-analytics' analysis metadata as of BUNDLED_META_VERSION."""
+    from pathlib import Path
+
+    return json.loads((Path(__file__).parent / "analysis_meta.json").read_text())
 
 
 def trim_provenance(record: dict) -> dict:

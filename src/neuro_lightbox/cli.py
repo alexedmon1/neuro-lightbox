@@ -238,6 +238,8 @@ def build(
     contrast_groups = None
     # Contrast name -> {role, test, gate_on} hypothesis metadata (read from --config).
     contrast_meta = None
+    # Contrast name -> the two groups it compares (read from --config).
+    contrast_design = None
     # Per-paradigm nav display mapping (from --config): paradigm -> {group, label}.
     paradigm_display = None
     # Analyses to omit from the gallery (from --config); CLI flag takes precedence.
@@ -341,6 +343,10 @@ def build(
                 # Only emit for contrasts that declare hypothesis-testing intent.
                 if c.get("role") or c.get("test") or c.get("gate_on")
             } or None
+        contrast_design = {
+            c["name"]: {"group_a": c["group_a"], "group_b": c["group_b"]}
+            for c in study_contrasts if c.get("group_a") and c.get("group_b")
+        } or None
         # Per-paradigm nav display, co-located under each paradigm's `display:` key.
         if paradigm_display is None:
             paradigm_display = {
@@ -376,6 +382,7 @@ def build(
         contrast_labels=contrast_labels,
         contrast_groups=contrast_groups,
         contrast_meta=contrast_meta,
+        contrast_design=contrast_design,
         paradigm_display=paradigm_display,
         group_labels=group_labels,
         group_order=group_order,

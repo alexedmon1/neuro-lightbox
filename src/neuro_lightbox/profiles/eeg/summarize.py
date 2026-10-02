@@ -1,25 +1,37 @@
-"""The EEG profile's digests: significant results by contrast, from source-analytics tables.
+"""The EEG profile's digests: each comparison's result, from source-analytics tables.
 
 The verbose ``ANALYSIS_SUMMARY.md`` that source-analytics writes is a full report,
 not a summary. Instead of embedding it verbatim, we derive a short, scannable
-digest directly from a module's effect-size table: which contrasts show
-significant effects, in which bands, and in which direction.
+digest directly from a module's tables: for every comparison the study ran, what
+was found — magnitude, measure, direction, and the correction behind its
+significance — and, where nothing reached the threshold, the largest effect
+there was. Comparisons appear in the study config's order, every one of them.
 
-Column-driven and reusable: any module with a ``contrast`` × category
-(``band``/``freq_pair``/``parameter``) × effect (``hedges_g``/``coefficient``/
-``auc``/``accuracy``) table gets a digest. Per-element tables (``roi``/
-``vertex_idx``) are aggregated to one entry per (contrast, category) with a count
-and the strongest effect, so a 30k-row table still renders a few chips. NBS
-component tables (``*_nbs_results.csv``) get a dedicated sub-network digest.
-The shared framework — tier sections, in-place null items, role badges — is
-:mod:`neuro_lightbox.summarize`.
+What a table records about its numbers is read by :mod:`.reading` (effect
+measure, correction, test kind, groups); the words come from
+:mod:`neuro_lightbox.contract`, and anything a table does not record is said to
+be not recorded. Per-element tables (``roi``/``vertex_idx``) are aggregated to
+one entry per (contrast, category) with a count and the strongest effect, so a
+30k-row table still renders a few chips. NBS component tables
+(``*_nbs_results.csv``) get a dedicated sub-network digest. The shared framework
+— tier sections, role badges — is :mod:`neuro_lightbox.summarize`.
 """
 
 from __future__ import annotations
 
+from dataclasses import dataclass, field
 from html import escape
 
-from ...summarize import _fill_nulls, _null_item, _render_body, build_digest  # noqa: F401
+from ...contract import (
+    arrow,
+    correction_statement,
+    direction_text,
+    effect_text,
+    number,
+    p_text,
+)
+from ...summarize import _render_body, build_digest
+from . import reading as R
 from .render import (
     _facet_column,
     _is_sig,
@@ -31,24 +43,23 @@ from .render import (
     _unique,
 )
 
-
-# Effect columns in priority order: (column, label_fn, signed). ``signed`` effects
-# get a direction arrow (▲/▼); unsigned effects (decoding metrics) read "vs chance".
-# hedges_g stays first so modules that already produce a g-digest are unchanged.
+# Effect columns in priority order: (column, signed). ``signed`` effects get a
+# direction arrow (▲/▼); unsigned effects (decoding metrics) are read against
+# chance. A row's own effect_size_type can make an effect unsigned (omnibus).
 _EFFECT_COLS = (
-    ("hedges_g", lambda v: f"g={abs(v):.2f}", True),
-    ("effect_size", lambda v: f"g={abs(v):.2f}", True),  # native alias of hedges_g
-    ("coefficient", lambda v: f"&beta;={v:+.2f}", True),
-    ("auc", lambda v: f"AUC={v:.2f}", False),
-    ("accuracy", lambda v: f"acc={v:.2f}", False),
+    ("hedges_g", True),
+    ("effect_size", True),   # native: its measure is the row's effect_size_type
+    ("coefficient", True),
+    ("auc", False),
+    ("accuracy", False),
 )
 
 
 def _effect_column(headers: list[str]):
-    """Return (column, label_fn, signed) for the first present effect column."""
-    for col, fmt, signed in _EFFECT_COLS:
+    """Return (column, signed) for the first present effect column."""
+    for col, signed in _EFFECT_COLS:
         if col in headers:
-            return col, fmt, signed
+            return col, signed
     return None
 
 
@@ -58,7 +69,6 @@ def _element_column(headers: list[str]) -> str | None:
         if col in headers:
             return col
     return None
-
 
 def _summary_table(tables: list[dict]) -> dict | None:
     """Pick the highest-priority table suitable for an effect digest: needs a
@@ -73,7 +83,6 @@ def _summary_table(tables: list[dict]) -> dict | None:
         return None
     return max(candidates, key=lambda t: _table_priority(t["filename"]))
 
-
 def _nbs_table(tables: list[dict]) -> dict | None:
     """Pick an NBS component-results table (key/component/n_edges/p_corrected)."""
     for t in tables:
@@ -81,7 +90,6 @@ def _nbs_table(tables: list[dict]) -> dict | None:
         if "key" in h and "p_corrected" in h and "n_edges" in h:
             return t
     return None
-
 
 _GRAPH_METRIC_LABEL = {
     "global_efficiency": "global efficiency",
@@ -93,8 +101,8 @@ _GRAPH_METRIC_LABEL = {
     "transitivity": "transitivity",
     "assortativity": "assortativity",
 }
-_GRAPH_BAND_ORDER = ["Delta", "Theta", "Alpha", "Beta", "Low Gamma", "High Gamma", "Epsilon"]
 
+_GRAPH_BAND_ORDER = ["Delta", "Theta", "Alpha", "Beta", "Low Gamma", "High Gamma", "Epsilon"]
 
 def _comparison_table(tables: list[dict]) -> dict | None:
     """A source-vs-sensor comparison table (electrode_comparison): per band/dv ×
@@ -110,73 +118,11 @@ def _comparison_table(tables: list[dict]) -> dict | None:
     cands.sort(key=lambda t: ("aperiodic" in t["filename"].lower(), t["filename"]))
     return cands[0]
 
-
 def _ci_sig(rec: dict, level: str) -> bool:
     """True if the ``{level}_hedges_g`` CI excludes zero (same-sign bounds)."""
     lo = _to_float(rec.get(f"{level}_ci_lo"))
     hi = _to_float(rec.get(f"{level}_ci_hi"))
     return lo is not None and hi is not None and lo != 0 and (lo > 0) == (hi > 0)
-
-
-def _build_comparison_summary(table: dict, _label, groups: dict) -> str | None:
-    """Digest the source-vs-sensor comparison: cross-subject concordance (r) plus,
-    per contrast, the band/power measures where the group effect is significant
-    (95% CI excludes 0) at the source and/or sensor level, and which localizes it
-    more sharply."""
-    records = _to_native(_records(table["headers"], table["rows"]))
-    all_contrasts = _unique(records, "hypothesis")
-
-    rs_all = [_to_float(r.get("correlation_r")) for r in records]
-    rs_all = [x for x in rs_all if x is not None]
-    concord = ""
-    if rs_all:
-        concord = (' <span class="sig-key">source–sensor concordance r = '
-                   f'{min(rs_all):.2f}–{max(rs_all):.2f} (median {sorted(rs_all)[len(rs_all)//2]:.2f})</span>.')
-
-    def _measure(rec):
-        band = str(rec.get("band") or "").strip()
-        pt = str(rec.get("power_type") or rec.get("dv") or "").strip()
-        return f"{band} {pt}".strip() if band else (pt or "value")
-
-    sig_by_contrast: dict[str, list[dict]] = {}
-    for r in records:
-        if _ci_sig(r, "source") or _ci_sig(r, "electrode"):
-            sig_by_contrast.setdefault(r.get("hypothesis"), []).append(r)
-
-    item_by_contrast: dict[str, str] = {}
-    n_findings = 0
-    for contrast in all_contrasts:
-        rows = sig_by_contrast.get(contrast)
-        if not rows:
-            continue
-        chips = []
-        for rec in sorted(rows, key=lambda r: -abs(_to_float(r.get("source_hedges_g")) or 0.0)):
-            sg = _to_float(rec.get("source_hedges_g")) or 0.0
-            eg = _to_float(rec.get("electrode_hedges_g")) or 0.0
-            src = f'{_arrow(sg)} source <span class="g">g={abs(sg):.2f}</span>{"" if _ci_sig(rec,"source") else " (ns)"}'
-            sen = f'{_arrow(eg)} sensor <span class="g">g={abs(eg):.2f}</span>{"" if _ci_sig(rec,"electrode") else " (ns)"}'
-            sharper = ' <span class="sig-facet">source localizes sharper</span>' if abs(sg) > abs(eg) else ""
-            chips.append(
-                f'<span class="sig-item has-region"><strong>{escape(_measure(rec))}</strong> '
-                f'<span class="sig-region">{src} · {sen}{sharper}</span></span>')
-            n_findings += 1
-        item_by_contrast[contrast] = (
-            f'<li><span class="sig-contrast">{escape(str(_label(contrast)))}</span> '
-            + "".join(chips) + "</li>")
-
-    _fill_nulls(all_contrasts, item_by_contrast, _label, "No significant effect at either level")
-    body = _render_body(all_contrasts, item_by_contrast, groups)
-    html = '<div class="sig-summary">'
-    html += (
-        f'<p class="sig-lead">{n_findings} band/power measure'
-        f'{"s" if n_findings != 1 else ""} significant at source and/or sensor '
-        f"across {len(sig_by_contrast)} of {len(all_contrasts)} comparisons "
-        f"(95% CI excludes 0).{concord}</p>"
-    )
-    html += body
-    html += "</div>"
-    return html
-
 
 def _fcd_comparison_table(tables: list[dict]) -> dict | None:
     """The FCD source-vs-sensor comparison table (mean FCD + spatial CV)."""
@@ -186,71 +132,6 @@ def _fcd_comparison_table(tables: list[dict]) -> dict | None:
                 and ("contrast" in h or "hypothesis" in h)):
             return t
     return None
-
-
-def _build_fcd_comparison_summary(table: dict, _label, groups: dict) -> str | None:
-    """Digest the FCD source-vs-sensor comparison: mean-FCD & spatial-CV
-    concordance (r) plus, per contrast, the band × metric measures where the
-    group effect is significant (95% CI excludes 0) at source and/or sensor."""
-    records = _to_native(_records(table["headers"], table["rows"]))
-    all_contrasts = _unique(records, "hypothesis")
-
-    def _rng(col):
-        xs = [_to_float(r.get(col)) for r in records]
-        xs = [x for x in xs if x is not None]
-        return f"{min(xs):.2f}–{max(xs):.2f}" if xs else None
-    parts_r = []
-    if _rng("corr_mean_r"):
-        parts_r.append(f"mean-FCD r = {_rng('corr_mean_r')}")
-    if _rng("corr_cv_r"):
-        parts_r.append(f"spatial-CV r = {_rng('corr_cv_r')}")
-    concord = f' <span class="sig-key">source–sensor concordance: {"; ".join(parts_r)}</span>.' if parts_r else ""
-
-    def _measure(rec):
-        return f"{str(rec.get('band') or '').strip()} {_pretty_metric(rec.get('metric'))}".strip()
-
-    LEVELS = [("mean FCD", "source_mean", "sensor_mean"), ("spatial CV", "source_cv", "sensor_cv")]
-    sig_by_contrast: dict[str, list[dict]] = {}
-    for r in records:
-        if any(_ci_sig(r, s) or _ci_sig(r, e) for _, s, e in LEVELS):
-            sig_by_contrast.setdefault(r.get("hypothesis"), []).append(r)
-
-    item_by_contrast: dict[str, str] = {}
-    n_findings = 0
-    for contrast in all_contrasts:
-        rows = sig_by_contrast.get(contrast)
-        if not rows:
-            continue
-        chips = []
-        for rec in sorted(rows, key=lambda r: -abs(_to_float(r.get("source_mean_g")) or 0.0)):
-            parts = []
-            for lbl, src, sen in LEVELS:
-                if _ci_sig(rec, src) or _ci_sig(rec, sen):
-                    sg = _to_float(rec.get(f"{src}_g")) or 0.0
-                    eg = _to_float(rec.get(f"{sen}_g")) or 0.0
-                    parts.append(f'{lbl}: {_arrow(sg)} source <span class="g">g={abs(sg):.2f}</span>'
-                                 f' · {_arrow(eg)} sensor <span class="g">g={abs(eg):.2f}</span>')
-            chips.append(
-                f'<span class="sig-item has-region"><strong>{escape(_measure(rec))}</strong>'
-                f'<span class="sig-region">{" ; ".join(parts)}</span></span>')
-            n_findings += 1
-        item_by_contrast[contrast] = (
-            f'<li><span class="sig-contrast">{escape(str(_label(contrast)))}</span> '
-            + "".join(chips) + "</li>")
-
-    _fill_nulls(all_contrasts, item_by_contrast, _label, "No significant effect at either level")
-    body = _render_body(all_contrasts, item_by_contrast, groups)
-    html = '<div class="sig-summary">'
-    html += (
-        f'<p class="sig-lead">{n_findings} band/metric FCD measure'
-        f'{"s" if n_findings != 1 else ""} significant at source and/or sensor '
-        f"across {len(sig_by_contrast)} of {len(all_contrasts)} comparisons "
-        f"(95% CI excludes 0).{concord}</p>"
-    )
-    html += body
-    html += "</div>"
-    return html
-
 
 def _roi_posthoc_table(tables: list[dict]) -> dict | None:
     """A per-ROI / per-channel posthoc table: a populated spatial unit column
@@ -282,7 +163,6 @@ def _roi_posthoc_table(tables: list[dict]) -> dict | None:
             best, best_units = t, len(units)
     return best
 
-
 def _roi_measure_label(rec: dict) -> str:
     """'Low Gamma relative' / 'exponent' — band + dv, collapsing the NA-band case."""
     band = str(rec.get("band") or "").strip()
@@ -290,7 +170,6 @@ def _roi_measure_label(rec: dict) -> str:
     if not band or band.lower() in _DEGENERATE:
         return dv or "value"
     return f"{band} {dv}" if dv and dv.lower() not in _DEGENERATE else band
-
 
 # Canonical display for connectivity/coupling/method acronyms (matches the
 # figure labels), so digests show 'AEC', 'dwPLI', … not 'aec', 'dwpli'.
@@ -302,20 +181,17 @@ _METRIC_DISPLAY = {
     "inflow": "inflow", "outflow": "outflow", "netflow": "netflow",
 }
 
-
 def _pretty_metric(m) -> str:
     """Display form of a metric/measure token (AEC, dwPLI, …); pass others through."""
     if m is None:
         return ""
     return _METRIC_DISPLAY.get(str(m).strip().lower(), str(m))
 
-
 # Band-name suffixes (lower/underscored) as they appear in connectivity figure
 # filenames like ``circos_<metric>_<band>.png``. Multi-word bands are listed so
 # ``low_gamma`` is matched before a bare ``gamma``.
 _BAND_SUFFIXES = ("low_gamma", "high_gamma", "epsilon", "delta", "theta",
                   "alpha", "beta", "gamma")
-
 
 def build_descriptive_matrix_summary(analysis, figure_names,
                                      contrast_labels=None) -> str | None:
@@ -364,7 +240,6 @@ def build_descriptive_matrix_summary(analysis, figure_names,
     return ('<div class="sig-summary"><p class="sig-lead">' + lead + "</p>"
             '<p class="sig-note">' + note + "</p></div>")
 
-
 def _graph_table(tables: list[dict]) -> dict | None:
     """A *global* graph-theory table: keyed by a ``graph_metric`` (global
     efficiency, modularity, …) with no populated spatial unit. Summarized by
@@ -386,11 +261,9 @@ def _graph_table(tables: list[dict]) -> dict | None:
         return t
     return None
 
-
 def _order_graph_bands(bands: set[str]) -> list[str]:
     known = [b for b in _GRAPH_BAND_ORDER if b in bands]
     return known + sorted(b for b in bands if b not in _GRAPH_BAND_ORDER)
-
 
 def _cluster_table(tables: list[dict]):
     """Pick a vertex cluster-permutation table and the (p, direction) columns to
@@ -418,7 +291,6 @@ def _cluster_table(tables: list[dict]):
             return t, "cluster_p", ("peak_stat" if "peak_stat" in h else "mass")
     return None, None, None
 
-
 def _cluster_measure_label(rec: dict) -> str:
     """Readable measure for a cluster row: band plus its dependent variable, e.g.
     'Low Gamma relative', 'spectral_slope', 'exponent'. Collapses the redundant
@@ -436,9 +308,7 @@ def _cluster_measure_label(rec: dict) -> str:
         return band
     return f"{band} {_pretty_metric(meas)}"
 
-
 _DEGENERATE = {"", "na", "nan", "none"}
-
 
 def _category_column(headers: list[str], records: list[dict]) -> str | None:
     """Per-contrast category axis: ``band``/``freq_pair`` for spectral tables,
@@ -457,120 +327,271 @@ def _category_column(headers: list[str], records: list[dict]) -> str | None:
     return None
 
 
-def _sig_note(headers: list[str], signed: bool) -> str:
-    """Significance-threshold wording for the lead, matched to the table's stat."""
-    if "q_value" in headers or "group_q" in headers:
-        return "FDR q &lt; 0.05"
-    if "p_corrected" in headers:
-        return "p_corrected &lt; 0.05"
-    if not signed:  # decoding metrics use a permutation test against chance
-        return "perm p &lt; 0.05"
-    if "p_fdr" in headers:
-        return "FDR p &lt; 0.05"
-    # Default preserves the original wording for the existing g-digest modules.
-    return "FDR q &lt; 0.05"
+# --------------------------------------------------------------------------- #
+# The study around a digest
+# --------------------------------------------------------------------------- #
+@dataclass
+class Study:
+    """What the study config says about its contrasts and groups."""
+
+    labels: dict = field(default_factory=dict)        # contrast -> label
+    tiers: dict = field(default_factory=dict)         # contrast -> tier / group label
+    meta: dict = field(default_factory=dict)          # contrast -> {role, test, gate_on}
+    order: list = field(default_factory=list)         # contrasts, in the config's order
+    group_labels: dict = field(default_factory=dict)  # group id -> label
+    design: dict = field(default_factory=dict)        # contrast -> {group_a, group_b}
+
+    def label(self, contrast) -> str:
+        return str(self.labels.get(contrast, contrast))
+
+    def sorted(self, contrasts) -> list:
+        """In the config's order; contrasts it does not list keep theirs, after."""
+        rank = {c: i for i, c in enumerate(self.order)}
+        return sorted(contrasts, key=lambda c: rank.get(c, len(rank)))
+
+    def role(self, contrast) -> str | None:
+        return (self.meta.get(contrast) or {}).get("role")
+
+    def group(self, gid) -> str | None:
+        return None if gid is None else str(self.group_labels.get(gid, gid))
+
+    def key(self, contrast, rows, headers, effect_col) -> tuple[str | None, str]:
+        """(test kind, the ``sig-groups`` span saying what ▲ means for it)."""
+        design = self.design.get(contrast)
+        kind = R.test_kind(rows, headers, effect_col, design)
+        a, b = R.groups(rows, design)
+        text = direction_text(kind, self.group(a), self.group(b))
+        return kind, f' <span class="sig-groups">{text}</span>'
 
 
-def _group_pair(rows) -> str:
-    """Name the A-vs-B pairing for a contrast so the ▲/▼ arrows are unambiguous:
-    ▲ = the first-listed group (group_a) is higher. Groups come straight from the
-    stat rows (native group_a/group_b columns)."""
-    if not rows:
+def _item(study: Study, contrast, body: str, null: bool = False, key: str = "") -> str:
+    cls = ' class="sig-null-item"' if null else ""
+    return (f'<li{cls}><span class="sig-contrast">{escape(study.label(contrast))}</span>'
+            f'{key} {body}</li>')
+
+
+def _null(text: str) -> str:
+    return f'<span class="sig-none-inline">{text}</span>'
+
+
+def _plural(n: int, one: str, many: str | None = None) -> str:
+    return f"{n:,} {one if n == 1 else (many or one + 's')}"
+
+
+def _lead(headline: str, counts: str, extra: str = "") -> str:
+    return f'<p class="sig-lead">{headline}{counts}{extra}</p>'
+
+
+def _headline(study: Study, best: dict, n_tests: int, noun: str = "effect",
+              of: str = "test") -> str:
+    """The confirmatory contrasts' results, or else the largest effect — named as
+    the largest of how many tests, because it was selected for being largest.
+
+    ``best`` maps a contrast to ``(magnitude, html, eligible)``: its most
+    prominent result; ineligible ones (an omnibus or equivalence test) are not
+    compared for "largest".
+    """
+    confirmatory = [c for c in study.sorted(best) if study.role(c) == "confirmatory"]
+    if confirmatory:
+        parts = [f'Confirmatory — <span class="sig-contrast-ref">{escape(study.label(c))}</span>: '
+                 f'{best[c][1]}' for c in confirmatory]
+        return '<span class="sig-top">' + "; ".join(parts) + ".</span> "
+    pool = {c: v for c, v in best.items() if v[2]} or best
+    if not pool:
         return ""
-    ga = rows[0].get("group_a")
-    gb = rows[0].get("group_b")
-    if not ga or not gb or str(ga).strip() in _DEGENERATE or str(gb).strip() in _DEGENERATE:
-        return ""
-    return f' <span class="sig-groups">{escape(str(ga))} vs {escape(str(gb))}</span>'
+    c = max(study.sorted(pool), key=lambda k: pool[k][0])
+    return (f'<span class="sig-top">Largest {noun} of {_plural(n_tests, of)} — '
+            f'<span class="sig-contrast-ref">{escape(study.label(c))}</span>: '
+            f'{pool[c][1]}.</span> ')
 
+
+def _counts(n_sig: int, n_tests: int, noun: str, statement: str, k: int, n_contrasts: int,
+            verb: str = "reach") -> str:
+    verb = f"{verb} " if verb else ""
+    return (f"{n_sig:,} of {_plural(n_tests, noun)} {verb}{statement}, "
+            f"in {k} of {n_contrasts} comparisons.")
+
+
+#: How a confidence-interval criterion reads in a count.
+_CI_COUNT = ("have a 95% CI excluding 0 at source and/or sensor "
+             "(multiple-comparison correction not recorded)")
+
+
+# --------------------------------------------------------------------------- #
+# One row, in words
+# --------------------------------------------------------------------------- #
+def _where(rec: dict, cat, facet_col=None, elem_col=None) -> str:
+    """Where a result is: its category, facet and element (HTML)."""
+    parts = []
+    if cat and str(rec.get(cat) or "").strip().lower() not in _DEGENERATE:
+        parts.append(f"<strong>{escape(_pretty_metric(rec.get(cat)))}</strong>")
+    if facet_col and rec.get(facet_col):
+        parts.append(f'<span class="sig-facet">{escape(_pretty_metric(rec[facet_col]))}</span>')
+    if elem_col and str(rec.get(elem_col) or "").strip().lower() not in _DEGENERATE:
+        parts.append(escape(str(rec.get(elem_col))))
+    return " ".join(parts)
+
+
+def _value(rec, headers, effect_col, ci=None) -> str:
+    """``▲ g = 0.45`` for a signed effect, ``ω²p = 0.05`` / ``AUC = 0.81 (above
+    chance)`` for an unsigned one."""
+    v = _to_float(rec.get(effect_col))
+    if v is None:
+        return ""
+    m = R.measure(rec, headers, effect_col)
+    if R.signed(rec, headers, effect_col):
+        return f'{arrow(v)} <span class="g">{effect_text(v, m, ci, signed_magnitude=True)}</span>'
+    text = effect_text(v, m, ci)
+    if effect_col == "auc":
+        text += " (above chance)" if v > 0.5 else " (below chance)" if v < 0.5 else " (at chance)"
+    return f'<span class="g">{text}</span>'
+
+
+def _p(rec, corr) -> str:
+    p = R.p_of(rec, corr)
+    return f' <span class="sig-q">{p_text(p, corr["symbol"])}</span>' if p is not None else ""
+
+
+def _magnitude(rec, effect_col) -> float:
+    """How large an effect is: |value| for a signed measure, the value itself
+    for an unsigned one (decoding, ω²)."""
+    v = _to_float(rec.get(effect_col))
+    if v is None:
+        return 0.0
+    unsigned = (effect_col in ("auc", "accuracy")
+                or str(rec.get("effect_size_type") or "").strip() in R.UNSIGNED)
+    return v if unsigned else abs(v)
+
+
+def _largest(rows, effect_col):
+    return max(rows, key=lambda r: _magnitude(r, effect_col)) if rows else None
+
+
+def _equivalence_body(rows, headers, effect_col, corr, statement, where) -> str:
+    """An equivalence contrast: the TOST outcome first; its difference tests'
+    significant results after, as differences."""
+    if "equivalent" in headers:
+        flags = [str(r.get("equivalent") or "").strip().upper() for r in rows]
+        n_eq = sum(f in ("TRUE", "T", "1", "YES") for f in flags)
+        body = (f'<span class="sig-equiv">equivalent within the study margin in '
+                f'{n_eq} of {_plural(len(rows), "test")}</span>')
+    else:
+        body = '<span class="sig-equiv">equivalence outcome not recorded</span>'
+    diffs = [r for r in rows if _is_sig(r)]
+    if diffs:
+        best = _largest(diffs, effect_col)
+        body += (f'; differs ({statement}) in {len(diffs)}: largest {where(best)} '
+                 f'{_value(best, headers, effect_col)}{_p(best, corr)}')
+    elif rows:
+        best = _largest(rows, effect_col)
+        body += (f'; no difference reaches {statement} — largest: {where(best)} '
+                 f'{_value(best, headers, effect_col)}{_p(best, corr)}')
+    return body
+
+
+# --------------------------------------------------------------------------- #
+# Entry point
+# --------------------------------------------------------------------------- #
 def build_significance_summary(tables: list[dict], contrast_labels: dict | None = None,
                                contrast_groups: dict | None = None,
                                contrast_meta: dict | None = None,
-                               region_pair_table: dict | None = None) -> str | None:
-    """Return concise HTML summarizing significant effects by contrast, or None.
+                               region_pair_table: dict | None = None,
+                               contrast_order: list | None = None,
+                               group_labels: dict | None = None,
+                               contrast_design: dict | None = None) -> str | None:
+    """Return a digest of every contrast's result, as HTML, or None.
 
     ``tables`` are embedded table dicts: ``{filename, headers, rows}``.
     ``contrast_labels`` maps raw contrast names to readable labels for display.
     ``contrast_groups`` maps contrast names to a tier/group label; when given, the
     digest is organized into sections in the group's first-seen (YAML) order.
     ``contrast_meta`` maps contrast names to ``{role, test, gate_on}``; each
-    contrast is badged with its role and gated contrasts name their gate.
+    contrast is badged with its role, gated contrasts name their gate, and a
+    confirmatory contrast leads the digest. ``contrast_order`` is the study's
+    contrast order; ``group_labels`` name its groups; ``contrast_design`` maps a
+    contrast to the two groups it compares when the tables do not say.
     """
-    return build_digest(_build_significance_summary, tables, contrast_labels,
-                        contrast_groups, contrast_meta, region_pair_table=region_pair_table)
+    study = Study(labels=contrast_labels or {}, tiers=contrast_groups or {},
+                  meta=contrast_meta or {},
+                  order=list(contrast_order or (contrast_labels or {}).keys()),
+                  group_labels=group_labels or {}, design=contrast_design or {})
+    return build_digest(lambda t, _labels, _groups, **kw: _build_significance_summary(t, study, **kw),
+                        tables, contrast_labels, contrast_groups, contrast_meta,
+                        region_pair_table=region_pair_table)
 
 
-def _build_significance_summary(tables, contrast_labels, contrast_groups,
-                                region_pair_table):
-    labels = contrast_labels or {}
-    groups = contrast_groups or {}
-
-    def _label(name):
-        return labels.get(name, name)
-
+def _build_significance_summary(tables, study: Study, region_pair_table=None):
     # Vertex cluster-permutation modules: the inferential unit is the cluster
     # (corrected p), so summarize the cluster table directly — otherwise the
     # digest would fall through to the truncated per-vertex table and miss most
     # significant clusters (and every contrast past the first).
     ctable, c_pcol, c_dcol = _cluster_table(tables)
     if ctable is not None:
-        return _build_cluster_summary(ctable, c_pcol, c_dcol, _label, groups)
+        return _build_cluster_summary(ctable, c_pcol, c_dcol, study)
 
     # Graph-theory modules: summarize by graph parameter (which metrics differ),
     # not by the generic band axis — and don't let the empty ``spatial`` column
     # fool the per-element aggregation into a meaningless "1 ROI" count.
     gtable = _graph_table(tables)
     if gtable is not None:
-        return _build_graph_summary(gtable, _label, groups)
+        return _build_graph_summary(gtable, study)
 
-    # Parcellated spectral modules (roi_psd/aperiodic, electrode_psd/aperiodic):
-    # name the significant ROIs/channels from the per-unit posthoc table, rather
-    # than the region-averaged global table that hides which units differ.
     # Source-vs-sensor comparison (electrode_comparison): concordance + which
     # measures are significant at each level.
     cmptable = _comparison_table(tables)
     if cmptable is not None:
-        return _build_comparison_summary(cmptable, _label, groups)
+        return _build_comparison_summary(cmptable, study)
 
     fcdtable = _fcd_comparison_table(tables)
     if fcdtable is not None:
-        return _build_fcd_comparison_summary(fcdtable, _label, groups)
+        return _build_fcd_comparison_summary(fcdtable, study)
 
+    # Parcellated spectral modules (roi_psd/aperiodic, electrode_psd/aperiodic):
+    # name the significant ROIs/channels from the per-unit posthoc table, rather
+    # than the region-averaged global table that hides which units differ.
     rtable = _roi_posthoc_table(tables)
     if rtable is not None:
-        return _build_roi_posthoc_summary(rtable, tables, _label, groups)
+        return _build_roi_posthoc_summary(rtable, tables, study)
 
     table = _summary_table(tables)
     if table is None:
         # No effect-size table — fall back to an NBS sub-network digest if present.
         nbs = _nbs_table(tables)
         if nbs is not None:
-            return _build_nbs_summary(nbs, _label, groups)
+            return _build_nbs_summary(nbs, study)
         return None
+    return _build_effect_summary(table, tables, study, region_pair_table)
 
+
+# --------------------------------------------------------------------------- #
+# Effect tables (one row per test, or per element)
+# --------------------------------------------------------------------------- #
+def _build_effect_summary(table, tables, study: Study, region_pair_table):
     headers = table["headers"]
     records = _to_native(_records(headers, table["rows"]))
     cat = _category_column(headers, records)
-    effect_col, effect_fmt, signed = _effect_column(headers)
+    effect_col, _signed = _effect_column(headers)
     elem_col = _element_column(headers)
     facet_col, _ = _facet_column(headers, records)
     if facet_col == cat:  # don't repeat the category as its own facet (aperiodic dv)
         facet_col = None
     if elem_col:  # per-element tables aggregate over the facet too
         facet_col = None
+    elif facet_col is None and "classifier" in headers:
+        facet_col = "classifier"   # decoding: which classifier each result is
+    corr = R.correction(headers, records)
+    statement = correction_statement(corr["p_kind"], corr["method"], corr["symbol"])
 
-    all_contrasts = _unique(records, "hypothesis")
-    sig_by_contrast: dict[str, list[dict]] = {}
+    def where(rec):
+        return _where(rec, cat, facet_col, elem_col)
+
+    all_contrasts = study.sorted(_unique(records, "hypothesis"))
+    by_contrast: dict[str, list[dict]] = {}
     for rec in records:
-        if _is_sig(rec) and _to_float(rec.get(effect_col)) is not None:
-            sig_by_contrast.setdefault(rec.get("hypothesis"), []).append(rec)
-
-    if not sig_by_contrast:
-        return (
-            '<div class="sig-summary"><p class="sig-lead">'
-            "No significant group contrasts (" + _sig_note(headers, signed) + ")."
-            "</p></div>"
-        )
+        if _to_float(rec.get(effect_col)) is not None:
+            by_contrast.setdefault(rec.get("hypothesis"), []).append(rec)
+    if not all_contrasts:
+        return None
 
     # Protected post-hoc: for connectivity (a region-pair table is present), count
     # region pairs at uncorrected p<0.05 per (contrast, band, metric) — these are
@@ -588,45 +609,69 @@ def _build_significance_summary(tables, contrast_labels, contrast_groups,
                 key = (r.get("hypothesis"), r.get("band"), r.get("metric"))
                 rp_counts[key] = rp_counts.get(key, 0) + 1
 
-    # Build one list item per significant contrast (keyed for later grouping).
+    unit_s, unit_p = (("vertex", "vertices") if elem_col == "vertex_idx" else ("ROI", "ROIs"))
     item_by_contrast: dict[str, str] = {}
-    n_findings = 0
+    best: dict[str, tuple] = {}
+    n_tests = n_sig = 0
+    sig_contrasts = 0
+    n_equiv_tests = n_equivalent = 0
     for contrast in all_contrasts:
-        rows = sig_by_contrast.get(contrast)
+        rows = by_contrast.get(contrast, [])
+        kind, key = study.key(contrast, rows, headers, effect_col)
+        n_tests += len(rows)
+        sig = [r for r in rows if _is_sig(r)]
+        n_sig += len(sig)
+        if sig:
+            sig_contrasts += 1
         if not rows:
+            item_by_contrast[contrast] = _item(study, contrast, _null("no effect recorded"),
+                                               null=True, key=key)
             continue
-        if elem_col:
-            chips, added = _aggregated_chips(rows, cat, effect_col, effect_fmt, signed, elem_col)
+        top = _largest(sig, effect_col) or _largest(rows, effect_col)
+        top_html = (f"{where(top)} {_value(top, headers, effect_col)}{_p(top, corr)}"
+                    + ("" if sig else " (n.s.)"))
+        best[contrast] = (_magnitude(top, effect_col), top_html,
+                          kind not in ("omnibus", "equivalence"))
+
+        if kind == "equivalence":
+            if "equivalent" in headers:
+                n_equiv_tests += len(rows)
+                n_equivalent += sum(str(r.get("equivalent") or "").strip().upper() in
+                                    ("TRUE", "T", "1", "YES") for r in rows)
+            body = _equivalence_body(rows, headers, effect_col, corr, statement, where)
+            item_by_contrast[contrast] = _item(study, contrast, body, key=key)
+        elif sig:
+            if elem_col:
+                chips = _aggregated_chips(sig, cat, headers, effect_col, corr, elem_col,
+                                          unit_s, unit_p)
+            else:
+                chips = _per_record_chips(sig, cat, headers, effect_col, corr, facet_col,
+                                          rp_counts if has_region_pairs else None)
+            item_by_contrast[contrast] = _item(study, contrast, "".join(chips), key=key)
         else:
-            chips, added = _per_record_chips(
-                rows, cat, effect_col, effect_fmt, signed, facet_col,
-                rp_counts if has_region_pairs else None)
-        n_findings += added
-        item_by_contrast[contrast] = (
-            f'<li><span class="sig-contrast">{escape(str(_label(contrast)))}</span>'
-            + _group_pair(rows)
-            + " " + "".join(chips)
-            + "</li>"
-        )
+            largest = _largest(rows, effect_col)
+            word = "best" if effect_col in ("auc", "accuracy") else "largest"
+            item_by_contrast[contrast] = _item(
+                study, contrast,
+                _null(f"n.s. — {word}: {where(largest)} {_value(largest, headers, effect_col)}"
+                      f"{_p(largest, corr)}; {_plural(len(rows), 'test')}"),
+                null=True, key=key)
 
-    _fill_nulls(all_contrasts, item_by_contrast, _label,
-                "decoding not above chance" if not signed else "No significant effects")
-    body = _render_body(all_contrasts, item_by_contrast, groups)
-
+    body = _render_body(all_contrasts, item_by_contrast, study.tiers)
+    extra = ""
+    if n_equiv_tests:
+        extra = (f" Equivalence (TOST, the study's margin) shown in {n_equivalent:,} of "
+                 f"{_plural(n_equiv_tests, 'equivalence test')}.")
+    if effect_col == "auc":
+        extra += ' <span class="sig-key">chance AUC = 0.5</span>.'
     html = '<div class="sig-summary">'
-    html += (
-        f'<p class="sig-lead">{n_findings} significant effect{"s" if n_findings != 1 else ""} '
-        f"across {len(sig_by_contrast)} of {len(all_contrasts)} comparisons "
-        f"({_sig_note(headers, signed)})."
-        + (' <span class="sig-key">&#9650;/&#9660; = the first-listed group of each '
-           'pair is higher/lower</span>.'
-           if signed else " <span class=\"sig-key\">decoding above chance</span>.")
-        + "</p>"
-    )
+    html += _lead(_headline(study, best, n_tests),
+                  _counts(n_sig, n_tests, "test", statement, sig_contrasts, len(all_contrasts)),
+                  extra)
     if has_region_pairs:
         html += (
             '<p class="sig-note">Region-pair counts are protected post-hocs '
-            "(uncorrected p &lt; 0.05) within each FDR-significant omnibus; "
+            "(uncorrected p &lt; 0.05) within each significant omnibus; "
             "<em>diffuse</em> = no suprathreshold region pair. Each non-diffuse "
             "effect has a circos in the Figures tab.</p>"
         )
@@ -635,20 +680,10 @@ def _build_significance_summary(tables, contrast_labels, contrast_groups,
     return html
 
 
-def _per_record_chips(rows, cat, effect_col, effect_fmt, signed, facet_col, rp_counts):
+def _per_record_chips(rows, cat, headers, effect_col, corr, facet_col, rp_counts):
     """One chip per significant record (aggregated tables: vertex_graph, psd, …)."""
     chips = []
-    n = 0
-    for rec in sorted(rows, key=lambda r: -abs(_to_float(r.get(effect_col)) or 0.0)):
-        v = _to_float(rec.get(effect_col))
-        arrow = ""
-        if signed:
-            arrow = (f'<span class="arrow up">&#9650;</span> ' if v > 0
-                     else '<span class="arrow down">&#9660;</span> ')
-        band = f"<strong>{escape(str(rec.get(cat, '')))}</strong>"
-        facet = ""
-        if facet_col and rec.get(facet_col):
-            facet = ' <span class="sig-facet">' + escape(_pretty_metric(rec[facet_col])) + "</span>"
+    for rec in sorted(rows, key=lambda r: -_magnitude(r, effect_col)):
         pairs = ""
         if rp_counts is not None:  # connectivity: annotate with gated region-pair detail
             k = (rec.get("hypothesis"), rec.get(cat), rec.get(facet_col) if facet_col else None)
@@ -656,72 +691,231 @@ def _per_record_chips(rows, cat, effect_col, effect_fmt, signed, facet_col, rp_c
             pairs = (' <span class="sig-pairs">' + f"{cnt} region pair{'s' if cnt != 1 else ''}" + "</span>"
                      if cnt else ' <span class="sig-pairs diffuse">diffuse</span>')
         chips.append(
-            f'<span class="sig-item">{arrow}{band}{facet} '
-            f'<span class="g">{effect_fmt(v)}</span>{pairs}</span>'
+            f'<span class="sig-item">{_where(rec, cat, facet_col)} '
+            f'{_value(rec, headers, effect_col)}{_p(rec, corr)}{pairs}</span>'
         )
-        n += 1
-    return chips, n
+    return chips
 
 
-def _aggregated_chips(rows, cat, effect_col, effect_fmt, signed, elem_col):
+def _aggregated_chips(rows, cat, headers, effect_col, corr, elem_col, unit_s, unit_p):
     """One chip per (category) for per-element tables (roi_graph, specparam, …):
     collapse the elements to a count + the strongest effect, so a per-vertex/ROI
     table renders a handful of chips instead of thousands."""
     by_cat: dict[str, list[dict]] = {}
     for rec in rows:
         by_cat.setdefault(str(rec.get(cat, "")), []).append(rec)
-    unit_s, unit_p = ("vertex", "vertices") if elem_col == "vertex_idx" else ("ROI", "ROIs")
 
-    # Order categories by their strongest |effect|.
     def _peak(recs):
-        return max((abs(_to_float(r.get(effect_col)) or 0.0) for r in recs), default=0.0)
+        return max((_magnitude(r, effect_col) for r in recs), default=0.0)
 
     chips = []
     for cat_val, recs in sorted(by_cat.items(), key=lambda kv: -_peak(kv[1])):
-        best = max(recs, key=lambda r: abs(_to_float(r.get(effect_col)) or 0.0))
-        v = _to_float(best.get(effect_col)) or 0.0
-        arrow = ""
-        if signed:
-            arrow = (f'<span class="arrow up">&#9650;</span> ' if v > 0
-                     else '<span class="arrow down">&#9660;</span> ')
+        best = _largest(recs, effect_col)
         n_el = len({r.get(elem_col) for r in recs})
         chips.append(
-            f'<span class="sig-item">{arrow}<strong>{escape(_pretty_metric(cat_val))}</strong> '
-            f'<span class="g">{effect_fmt(v)}</span> '
+            f'<span class="sig-item"><strong>{escape(_pretty_metric(cat_val))}</strong> '
+            f'{_value(best, headers, effect_col)}{_p(best, corr)} '
             f'<span class="sig-pairs">{n_el} {unit_s if n_el == 1 else unit_p}</span></span>'
         )
-    return chips, len(chips)
+    return chips
 
 
-def _build_cluster_summary(table: dict, p_col: str, dir_col: str,
-                           _label, groups: dict) -> str | None:
-    """Digest a vertex cluster-permutation table: significant clusters per
-    contrast (cluster-corrected p < 0.05), each with its band/measure, spatial
-    extent (n vertices), direction (sign of the peak statistic), and p."""
+# --------------------------------------------------------------------------- #
+# Source vs sensor
+# --------------------------------------------------------------------------- #
+def _ci(rec, level):
+    lo, hi = _to_float(rec.get(f"{level}_ci_lo")), _to_float(rec.get(f"{level}_ci_hi"))
+    return (lo, hi) if lo is not None and hi is not None else None
+
+
+def _level_value(rec, level, effect) -> str:
+    v = _to_float(rec.get(effect))
+    if v is None:
+        return "not recorded"
+    return (f'{arrow(v)} <span class="g">{effect_text(v, "g", _ci(rec, level), signed_magnitude=True)}</span>'
+            + ("" if _ci_sig(rec, level) else " (CI includes 0)"))
+
+
+def _build_comparison_summary(table: dict, study: Study) -> str | None:
+    """Digest the source-vs-sensor comparison: cross-subject concordance (r) plus,
+    per contrast, each band/power measure's group effect at the source and the
+    sensor level with its 95% CI — measures whose CI excludes 0 at either level
+    first — and which level localizes it more sharply."""
     records = _to_native(_records(table["headers"], table["rows"]))
-    has_flag = "significant" in table["headers"]
-    all_contrasts: list[str] = []
-    sig_by_contrast: dict[str, list[dict]] = {}
+    headers = table["headers"]
+    all_contrasts = study.sorted(_unique(records, "hypothesis"))
+
+    rs_all = [_to_float(r.get("correlation_r")) for r in records]
+    rs_all = [x for x in rs_all if x is not None]
+    concord = ""
+    if rs_all:
+        concord = (' <span class="sig-key">source–sensor concordance r = '
+                   f'{number(min(rs_all))}–{number(max(rs_all))} (median {number(sorted(rs_all)[len(rs_all)//2])})</span>.')
+
+    def _measure(rec):
+        band = str(rec.get("band") or "").strip()
+        pt = str(rec.get("power_type") or rec.get("dv") or "").strip()
+        return f"{band} {pt}".strip() if band else (pt or "value")
+
+    def _sig(r):
+        return _ci_sig(r, "source") or _ci_sig(r, "electrode")
+
+    item_by_contrast: dict[str, str] = {}
+    best: dict[str, tuple] = {}
+    n_findings = sig_contrasts = 0
+    for contrast in all_contrasts:
+        rows = [r for r in records if r.get("hypothesis") == contrast]
+        kind, key = study.key(contrast, rows, headers, "source_hedges_g")
+        sig = [r for r in rows if _sig(r)]
+        n_findings += len(sig)
+        sig_contrasts += bool(sig)
+
+        def _chip(rec):
+            sg = _to_float(rec.get("source_hedges_g")) or 0.0
+            eg = _to_float(rec.get("electrode_hedges_g")) or 0.0
+            sharper = ' <span class="sig-facet">source localizes sharper</span>' if abs(sg) > abs(eg) else ""
+            return (f'<span class="sig-item has-region"><strong>{escape(_measure(rec))}</strong> '
+                    f'<span class="sig-region">source {_level_value(rec, "source", "source_hedges_g")} · '
+                    f'sensor {_level_value(rec, "electrode", "electrode_hedges_g")}{sharper}</span></span>')
+
+        top = (max(sig or rows, key=lambda r: abs(_to_float(r.get("source_hedges_g")) or 0.0))
+               if rows else None)
+        if top is not None:
+            best[contrast] = (abs(_to_float(top.get("source_hedges_g")) or 0.0),
+                              f'<strong>{escape(_measure(top))}</strong> source '
+                              f'{_level_value(top, "source", "source_hedges_g")}', True)
+        if sig:
+            chips = [_chip(r) for r in sorted(sig, key=lambda r: -abs(_to_float(r.get("source_hedges_g")) or 0.0))]
+            item_by_contrast[contrast] = _item(study, contrast, "".join(chips), key=key)
+        elif top is not None:
+            item_by_contrast[contrast] = _item(
+                study, contrast,
+                _null(f"no CI excludes 0 at either level — largest: {best[contrast][1]}"),
+                null=True, key=key)
+        else:
+            item_by_contrast[contrast] = _item(study, contrast, _null("no effect recorded"),
+                                               null=True, key=key)
+
+    body = _render_body(all_contrasts, item_by_contrast, study.tiers)
+    n_tests = len(records)
+    html = '<div class="sig-summary">'
+    html += _lead(_headline(study, best, n_tests),
+                  _counts(n_findings, n_tests, "band/power measure", _CI_COUNT, sig_contrasts,
+                          len(all_contrasts), verb=""),
+                  concord)
+    html += body
+    html += "</div>"
+    return html
+
+
+def _build_fcd_comparison_summary(table: dict, study: Study) -> str | None:
+    """Digest the FCD source-vs-sensor comparison: mean-FCD & spatial-CV
+    concordance (r) plus, per contrast, the band × metric measures where the
+    group effect's 95% CI excludes 0 at source and/or sensor, with the CIs."""
+    records = _to_native(_records(table["headers"], table["rows"]))
+    headers = table["headers"]
+    all_contrasts = study.sorted(_unique(records, "hypothesis"))
+
+    def _rng(col):
+        xs = [_to_float(r.get(col)) for r in records]
+        xs = [x for x in xs if x is not None]
+        return f"{number(min(xs))}–{number(max(xs))}" if xs else None
+    parts_r = []
+    if _rng("corr_mean_r"):
+        parts_r.append(f"mean-FCD r = {_rng('corr_mean_r')}")
+    if _rng("corr_cv_r"):
+        parts_r.append(f"spatial-CV r = {_rng('corr_cv_r')}")
+    concord = f' <span class="sig-key">source–sensor concordance: {"; ".join(parts_r)}</span>.' if parts_r else ""
+
+    def _measure(rec):
+        return f"{str(rec.get('band') or '').strip()} {_pretty_metric(rec.get('metric'))}".strip()
+
+    LEVELS = [("mean FCD", "source_mean", "sensor_mean"), ("spatial CV", "source_cv", "sensor_cv")]
+
+    def _sig(r):
+        return any(_ci_sig(r, s) or _ci_sig(r, e) for _, s, e in LEVELS)
+
+    def _chip(rec):
+        parts = []
+        for lbl, src, sen in LEVELS:
+            if _to_float(rec.get(f"{src}_g")) is None and _to_float(rec.get(f"{sen}_g")) is None:
+                continue
+            parts.append(f'{lbl}: source {_level_value(rec, src, f"{src}_g")}'
+                         f' · sensor {_level_value(rec, sen, f"{sen}_g")}')
+        return (f'<span class="sig-item has-region"><strong>{escape(_measure(rec))}</strong>'
+                f'<span class="sig-region">{" ; ".join(parts)}</span></span>')
+
+    item_by_contrast: dict[str, str] = {}
+    best: dict[str, tuple] = {}
+    n_findings = sig_contrasts = 0
+    for contrast in all_contrasts:
+        rows = [r for r in records if r.get("hypothesis") == contrast]
+        _kind, key = study.key(contrast, rows, headers, "source_mean_g")
+        sig = [r for r in rows if _sig(r)]
+        n_findings += len(sig)
+        sig_contrasts += bool(sig)
+        top = (max(sig or rows, key=lambda r: abs(_to_float(r.get("source_mean_g")) or 0.0))
+               if rows else None)
+        if top is not None:
+            best[contrast] = (abs(_to_float(top.get("source_mean_g")) or 0.0),
+                              f'<strong>{escape(_measure(top))}</strong> mean FCD source '
+                              f'{_level_value(top, "source_mean", "source_mean_g")}', True)
+        if sig:
+            chips = [_chip(r) for r in sorted(sig, key=lambda r: -abs(_to_float(r.get("source_mean_g")) or 0.0))]
+            item_by_contrast[contrast] = _item(study, contrast, "".join(chips), key=key)
+        elif top is not None:
+            item_by_contrast[contrast] = _item(
+                study, contrast, _null(f"no CI excludes 0 at either level — largest: {best[contrast][1]}"),
+                null=True, key=key)
+        else:
+            item_by_contrast[contrast] = _item(study, contrast, _null("no effect recorded"),
+                                               null=True, key=key)
+
+    body = _render_body(all_contrasts, item_by_contrast, study.tiers)
+    n_tests = len(records)
+    html = '<div class="sig-summary">'
+    html += _lead(_headline(study, best, n_tests),
+                  _counts(n_findings, n_tests, "band/metric FCD measure", _CI_COUNT, sig_contrasts,
+                          len(all_contrasts), verb=""),
+                  concord)
+    html += body
+    html += "</div>"
+    return html
+
+
+# --------------------------------------------------------------------------- #
+# Cluster permutation (vertices / channels)
+# --------------------------------------------------------------------------- #
+_PEAK_LABELS = {"peak_t": "peak t", "peak_stat": "peak statistic", "cluster_stat": "cluster statistic",
+                "mass": "cluster mass"}
+
+
+def _build_cluster_summary(table: dict, p_col: str, dir_col: str, study: Study) -> str | None:
+    """Digest a vertex cluster-permutation table: every contrast's clusters
+    (cluster-corrected p < 0.05), each with its band/measure, spatial extent (n
+    vertices), direction and peak statistic, and p; a contrast without one shows
+    its smallest-p cluster."""
+    headers = table["headers"]
+    records = _to_native(_records(headers, table["rows"]))
+    has_flag = "significant" in headers
+    rows_by: dict[str, list[dict]] = {}
     for rec in records:
         contrast = rec.get("hypothesis") or rec.get("contrast")
-        if not contrast:
-            continue
-        if contrast not in all_contrasts:
-            all_contrasts.append(contrast)
-        p = _to_float(rec.get(p_col))
+        if contrast:
+            rows_by.setdefault(contrast, []).append(rec)
+    all_contrasts = study.sorted(list(rows_by))
+    if not all_contrasts:
+        return None
+
+    def _p(rec):
+        return _to_float(rec.get(p_col))
+
+    def _is_cluster_sig(rec):
         # cluster_results has no `significant` column → gate on the corrected p;
         # the map hypotheses table carries the adapter's own significance flag
         # (which also encodes equivalence for TOST rows).
-        is_sig = _is_sig(rec) if has_flag else (p is not None and p < 0.05)
-        if is_sig:
-            sig_by_contrast.setdefault(contrast, []).append(rec)
-
-    if not all_contrasts:
-        return None
-    if not sig_by_contrast:
-        return ('<div class="sig-summary"><p class="sig-lead">'
-                "No significant clusters (cluster-corrected p &lt; 0.05)."
-                "</p></div>")
+        p = _p(rec)
+        return _is_sig(rec) if has_flag else (p is not None and p < 0.05)
 
     # Sensor-montage modules (electrode_connectivity) reuse the vertex cluster
     # schema (``n_vertices``/``peak_vertex``), but the inferential unit is a
@@ -730,353 +924,387 @@ def _build_cluster_summary(table: dict, p_col: str, dir_col: str,
     unit_s, unit_p = (("channel", "channels")
                       if ("electrode" in fn or "channel" in fn)
                       else ("vertex", "vertices"))
+    statement = correction_statement("corrected", "cluster-level")
+
+    def _chip(rec, bare=False):
+        d = _to_float(rec.get(dir_col))
+        arrow_html = (arrow(d) + " ") if d is not None else ""
+        n_vtx = _to_float(rec.get("n_vertices"))
+        extent = (f'<span class="sig-pairs">{_plural(int(n_vtx), unit_s, unit_p)}</span>'
+                  if n_vtx is not None else "")
+        peak = (f' <span class="g">{_PEAK_LABELS.get(dir_col, escape(dir_col))} = {number(d)}</span>'
+                if d is not None else "")
+        p = _p(rec)
+        pstr = f' <span class="sig-q">{p_text(p)}</span>' if p is not None else ""
+        region = rec.get("region")
+        region_html = (f'<span class="sig-region">{escape(str(region))}</span>'
+                       if region not in (None, "") else "")
+        cls = "sig-item has-region" if region_html else "sig-item"
+        inner = (f'{arrow_html}<strong>{escape(_cluster_measure_label(rec))}</strong> '
+                 f'{extent}{peak}{pstr}')
+        return inner if bare else f'<span class="{cls}">{inner}{region_html}</span>'
+
+    def _by_p(r):
+        p = _p(r)
+        return p if p is not None else 1.0
 
     item_by_contrast: dict[str, str] = {}
-    n_findings = 0
+    best: dict[str, tuple] = {}
+    n_findings = sig_contrasts = 0
     for contrast in all_contrasts:
-        recs = sig_by_contrast.get(contrast)
-        if not recs:
-            continue
-        chips = []
-        for rec in sorted(recs, key=lambda r: (_to_float(r.get(p_col)) if _to_float(r.get(p_col)) is not None else 1.0)):
-            d = _to_float(rec.get(dir_col))
-            arrow = ""
-            if d is not None:
-                arrow = ('<span class="arrow up">&#9650;</span> ' if d > 0
-                         else '<span class="arrow down">&#9660;</span> ')
-            n_vtx = _to_float(rec.get("n_vertices"))
-            extent = (f'<span class="sig-pairs">{int(n_vtx)} '
-                      f'{unit_s if n_vtx == 1 else unit_p}</span>') if n_vtx is not None else ""
-            p = _to_float(rec.get(p_col))
-            pstr = f" <span class=\"g\">p={p:.3f}</span>" if p is not None else ""
-            region = rec.get("region")
-            region_html = (f'<span class="sig-region">{escape(str(region))}</span>'
-                           if region not in (None, "") else "")
-            cls = "sig-item has-region" if region_html else "sig-item"
-            chips.append(
-                f'<span class="{cls}">{arrow}<strong>{escape(_cluster_measure_label(rec))}</strong> '
-                f'{extent}{pstr}{region_html}</span>'
-            )
-            n_findings += 1
-        # Region-bearing findings render one-per-row (block), so drop the space
-        # separators that would otherwise leave stray gaps between block rows.
-        joiner = "" if any("has-region" in c for c in chips) else " "
-        item_by_contrast[contrast] = (
-            f'<li><span class="sig-contrast">{escape(str(_label(contrast)))}</span> '
-            + joiner.join(chips) + "</li>"
-        )
+        rows = rows_by[contrast]
+        _kind, key = study.key(contrast, rows, headers, dir_col)
+        sig = sorted((r for r in rows if _is_cluster_sig(r)), key=_by_p)
+        n_findings += len(sig)
+        sig_contrasts += bool(sig)
+        top = sig[0] if sig else min(rows, key=_by_p)
+        best[contrast] = (_to_float(top.get("n_vertices")) or 0.0,
+                          _chip(top, bare=True) + ("" if sig else " (n.s.)"), bool(sig))
+        if sig:
+            chips = [_chip(r) for r in sig]
+            # Region-bearing findings render one-per-row (block), so drop the space
+            # separators that would otherwise leave stray gaps between block rows.
+            joiner = "" if any("has-region" in c for c in chips) else " "
+            item_by_contrast[contrast] = _item(study, contrast, joiner.join(chips), key=key)
+        else:
+            item_by_contrast[contrast] = _item(
+                study, contrast,
+                _null(f"no cluster reaches {statement} — "
+                      + (f"smallest p: {_chip(top, bare=True)}" if _p(top) is not None
+                         else f"no cluster p recorded: {_chip(top, bare=True)}")
+                      + f"; {_plural(len(rows), 'cluster')}"),
+                null=True, key=key)
 
-    _fill_nulls(all_contrasts, item_by_contrast, _label, "No significant clusters")
-    body = _render_body(all_contrasts, item_by_contrast, groups)
+    body = _render_body(all_contrasts, item_by_contrast, study.tiers)
+    n_tests = len(records)
     html = '<div class="sig-summary">'
-    html += (
-        f'<p class="sig-lead">{n_findings} significant cluster'
-        f'{"s" if n_findings != 1 else ""} across {len(sig_by_contrast)} of '
-        f"{len(all_contrasts)} comparisons (cluster-corrected p &lt; 0.05)."
-        ' <span class="sig-key">&#9650;/&#9660; = the first-listed group of each '
-        'pair is higher/lower</span>.</p>'
-    )
+    html += _lead(_headline(study, best, n_tests, noun="cluster", of="cluster"),
+                  _counts(n_findings, n_tests, "cluster", statement, sig_contrasts,
+                          len(all_contrasts)))
     html += body
     html += "</div>"
     return html
 
 
-def _arrow(v) -> str:
-    return ('<span class="arrow up">&#9650;</span>' if (v or 0) > 0
-            else '<span class="arrow down">&#9660;</span>')
-
-
-def _fmt_q(rec: dict) -> str:
-    """Compact secondary significance annotation for a finding (R5: effect size +
-    direction lead, p/q shown but secondary). Prefers the corrected q_value, then
-    group_q, then the raw p_value; empty string when none is present."""
-    for col, sym in (("q_value", "q"), ("group_q", "q"), ("p_value", "p")):
-        v = _to_float(rec.get(col))
-        if v is None:
-            continue
-        if v < 0.001:
-            txt = f"{sym}&lt;.001"
-        else:
-            txt = f"{sym}={v:.3f}".replace("0.", ".", 1)
-        return f' <span class="sig-q">{txt}</span>'
-    return ""
-
-
-def _build_roi_posthoc_summary(table: dict, tables: list[dict], _label, groups: dict) -> str | None:
+# --------------------------------------------------------------------------- #
+# Per-ROI / per-channel post hocs, with the whole-brain effect
+# --------------------------------------------------------------------------- #
+def _build_roi_posthoc_summary(table: dict, tables: list[dict], study: Study) -> str | None:
     """Digest parcellated spectral results at BOTH levels, per contrast × measure
     (band + dv): the whole-brain (region-averaged) effect AND the per-ROI/channel
     breakdown that names which units differ. Either level may be significant on
-    its own (e.g. a global aperiodic effect with no surviving per-ROI unit)."""
-    records = _to_native(_records(table["headers"], table["rows"]))
-    elem = _element_column(table["headers"])
+    its own (e.g. a global aperiodic effect with no surviving per-ROI unit). A
+    contrast with neither shows its largest effect, and its p."""
+    headers = table["headers"]
+    records = _to_native(_records(headers, table["rows"]))
+    elem = _element_column(headers)
     fn = table["filename"].lower()
     unit_word = "channel" if ("electrode" in fn or "channel" in fn) else "ROI"
-    all_contrasts = _unique(records, "hypothesis")
+    corr = R.correction(headers, records)
+    statement = correction_statement(corr["p_kind"], corr["method"], corr["symbol"])
 
-    # Significant per-unit rows, keyed (contrast, measure).
-    roi_by: dict[tuple, list[dict]] = {}
-    for r in records:
-        if _is_sig(r) and _to_float(r.get("effect_size")) is not None and r.get(elem):
-            roi_by.setdefault((r.get("hypothesis"), _roi_measure_label(r)), []).append(r)
-
-    # Significant whole-brain (region-averaged) effects, keyed (contrast, measure).
+    # Every per-unit row, keyed (contrast, measure).
+    roi_rows = [r for r in records
+                if _to_float(r.get("effect_size")) is not None and r.get(elem)]
     gtbl = next((t for t in tables if "posthoc_global" in t["filename"].lower()), None)
-    global_by: dict[tuple, dict] = {}
+    global_rows = []
     if gtbl is not None:
-        for r in _to_native(_records(gtbl["headers"], gtbl["rows"])):
-            if _is_sig(r) and _to_float(r.get("effect_size")) is not None:
-                global_by[(r.get("hypothesis"), _roi_measure_label(r))] = r
-    # A contrast may be significant only at the whole-brain level.
-    for c, _mzr in global_by:
-        if c not in all_contrasts:
-            all_contrasts.append(c)
-
+        global_rows = [r for r in _to_native(_records(gtbl["headers"], gtbl["rows"]))
+                       if _to_float(r.get("effect_size")) is not None]
+    all_contrasts = study.sorted(_unique(records, "hypothesis")
+                                 + [c for c in _unique(global_rows, "hypothesis")
+                                    if c not in _unique(records, "hypothesis")])
     if not all_contrasts:
         return None
-    if not roi_by and not global_by:
-        return ('<div class="sig-summary"><p class="sig-lead">'
-                f"No significant spectral effects (FDR q &lt; 0.05).</p></div>")
 
     NAME_CAP = 8
-    item_by_contrast: dict[str, str] = {}
-    n_findings = 0
-    sig_contrasts: set = set()
-    # The digest leads with the strongest single effect (R5). Prefer the absolute
-    # DV: normalized DVs (relative/delta_ref) can surface large redistribution
-    # artifacts that misrepresent the finding, while absolute power is the honest
-    # primary read. Lead with the strongest significant absolute effect; only fall
-    # back to the global max across all DVs when no absolute effect survives.
+    # The digest leads with the confirmatory contrast, else the largest single
+    # effect (R5). Prefer the absolute DV: normalized DVs (relative/delta_ref) can
+    # surface large redistribution artifacts that misrepresent the finding, while
+    # absolute power is the honest primary read. Only when no absolute effect is
+    # recorded does the lead fall back to the largest across all DVs.
     LEAD_DV = "absolute"
-    top = (0.0, "")       # (|g|, html) global max across all DVs — fallback lead
-    top_pref = (0.0, "")  # (|g|, html) strongest preferred-DV effect — leads if any
+
+    def _unit_text(rec, unit):
+        return (f'<strong>{escape(_roi_measure_label(rec))}</strong> {escape(unit)} '
+                f'{_value(rec, headers, "effect_size")}{_p(rec, corr)}')
+
+    item_by_contrast: dict[str, str] = {}
+    best: dict[str, tuple] = {}
+    best_pref: dict[str, tuple] = {}
+    n_findings = 0
+    sig_contrasts = 0
     for contrast in all_contrasts:
-        # Collect measures from either level for this contrast.
+        c_rois = [r for r in roi_rows if r.get("hypothesis") == contrast]
+        c_glob = [r for r in global_rows if r.get("hypothesis") == contrast]
+        kind, key = study.key(contrast, c_rois or c_glob, headers, "effect_size")
         meas: dict[str, dict] = {}
-        for (c, mzr), rows in roi_by.items():
-            if c == contrast:
-                meas.setdefault(mzr, {"rois": [], "global": None})["rois"] = rows
-        for (c, mzr), grow in global_by.items():
-            if c == contrast:
-                meas.setdefault(mzr, {"rois": [], "global": None})["global"] = grow
-        if not meas:
+        for r in c_rois:
+            if _is_sig(r):
+                meas.setdefault(_roi_measure_label(r), {"rois": [], "global": None})["rois"].append(r)
+        for r in c_glob:
+            if _is_sig(r):
+                meas.setdefault(_roi_measure_label(r), {"rois": [], "global": None})["global"] = r
+
+        # The contrast's most prominent result: its largest significant effect at
+        # either level, else its largest effect (marked n.s.).
+        cands = ([(m["global"], "whole-brain") for m in meas.values() if m["global"] is not None]
+                 + [(r, str(r.get(elem))) for m in meas.values() for r in m["rois"]])
+        is_sig = bool(cands)
+        if not cands:
+            cands = [(r, "whole-brain") for r in c_glob] + [(r, str(r.get(elem))) for r in c_rois]
+        for rec, unit in cands:
+            mag = _magnitude(rec, "effect_size")
+            html = _unit_text(rec, unit) + ("" if is_sig else " (n.s.)")
+            eligible = kind not in ("omnibus", "equivalence")
+            if contrast not in best or mag > best[contrast][0]:
+                best[contrast] = (mag, html, eligible)
+            if (str(rec.get("dv") or "").strip().lower() == LEAD_DV
+                    and (contrast not in best_pref or mag > best_pref[contrast][0])):
+                best_pref[contrast] = (mag, html, eligible)
+
+        if kind == "equivalence":
+            rows = c_rois + c_glob
+            item_by_contrast[contrast] = _item(
+                study, contrast,
+                _equivalence_body(rows, headers, "effect_size", corr, statement,
+                                  lambda r: f'<strong>{escape(_roi_measure_label(r))}</strong> '
+                                            f'{escape(str(r.get(elem) or "whole-brain"))}'),
+                key=key)
             continue
-        sig_contrasts.add(contrast)
+        if not meas:
+            if contrast in best:
+                item_by_contrast[contrast] = _item(
+                    study, contrast,
+                    _null(f"n.s. — largest: {best[contrast][1].replace(' (n.s.)', '')}; "
+                          f"{_plural(len(c_rois) + len(c_glob), 'test')}"),
+                    null=True, key=key)
+            else:
+                item_by_contrast[contrast] = _item(study, contrast, _null("no effect recorded"),
+                                                   null=True, key=key)
+            continue
+        sig_contrasts += 1
 
         def _peak(m):
-            vals = [abs(_to_float(r.get("effect_size")) or 0.0) for r in m["rois"]]
+            vals = [_magnitude(r, "effect_size") for r in m["rois"]]
             if m["global"] is not None:
-                vals.append(abs(_to_float(m["global"].get("effect_size")) or 0.0))
+                vals.append(_magnitude(m["global"], "effect_size"))
             return max(vals, default=0.0)
 
         chips = []
         for measure, m in sorted(meas.items(), key=lambda kv: -_peak(kv[1])):
             global_html = ""
             if m["global"] is not None:
-                gv = _to_float(m["global"].get("effect_size")) or 0.0
-                global_html = (f' <span class="sig-facet">whole-brain</span> {_arrow(gv)}'
-                               f'<span class="g">g={abs(gv):.2f}</span>{_fmt_q(m["global"])}')
+                global_html = (f' <span class="sig-facet">whole-brain</span> '
+                               f'{_value(m["global"], headers, "effect_size")}{_p(m["global"], corr)}')
                 n_findings += 1
-            rs = sorted(m["rois"], key=lambda x: -abs(_to_float(x.get("effect_size")) or 0.0))
+            rs = sorted(m["rois"], key=lambda x: -_magnitude(x, "effect_size"))
             count_html = region_html = ""
             if rs:
                 named = []
                 for r in rs[:NAME_CAP]:
-                    v = _to_float(r.get("effect_size")) or 0.0
-                    named.append(f'{_arrow(v)}&nbsp;{escape(str(r.get(elem)))} '
-                                 f'<span class="g">g={abs(v):.2f}</span>{_fmt_q(r)}')
+                    named.append(f'{escape(str(r.get(elem)))}&nbsp;{_value(r, headers, "effect_size")}'
+                                 f'{_p(r, corr)}')
                 more = len(rs) - len(named)
                 tail = f" (+{more} more)" if more > 0 else ""
                 count_html = (f' <span class="sig-pairs">{len(rs)} {unit_word}'
                               f'{"s" if len(rs) != 1 else ""}</span>')
                 region_html = f'<span class="sig-region">{", ".join(named)}{tail}</span>'
                 n_findings += len(rs)
-            # Track the strongest single effect (whole-brain or per-unit) so the
-            # digest can LEAD with direction + magnitude (R5), not a bare count.
-            for rec, unit in (([(m["global"], "whole-brain")] if m["global"] is not None else [])
-                              + ([(rs[0], str(rs[0].get(elem)))] if rs else [])):
-                sv = _to_float(rec.get("effect_size")) or 0.0
-                frag = (f'<span class="sig-contrast">{escape(str(_label(contrast)))}</span> '
-                        f'<strong>{escape(measure)}</strong> {escape(unit)} {_arrow(sv)}'
-                        f'<span class="g">g={abs(sv):.2f}</span>{_fmt_q(rec)}')
-                if abs(sv) > top[0]:
-                    top = (abs(sv), frag)
-                if (str(rec.get("dv") or "").strip().lower() == LEAD_DV
-                        and abs(sv) > top_pref[0]):
-                    top_pref = (abs(sv), frag)
             # Every measure is its own block row — so a whole-brain-only contrast
             # (rescue/exploratory, no surviving per-ROI unit) lines up the same as
             # a per-ROI one instead of cramming onto a single line.
             chips.append(
                 f'<span class="sig-item has-region"><strong>{escape(measure)}</strong>'
                 f'{global_html}{count_html}{region_html}</span>')
-        item_by_contrast[contrast] = (
-            f'<li><span class="sig-contrast">{escape(str(_label(contrast)))}</span> '
-            + "".join(chips) + "</li>")
+        item_by_contrast[contrast] = _item(study, contrast, "".join(chips), key=key)
 
-    _fill_nulls(all_contrasts, item_by_contrast, _label, "No significant effects")
-    body = _render_body(all_contrasts, item_by_contrast, groups)
+    body = _render_body(all_contrasts, item_by_contrast, study.tiers)
+    n_tests = len(roi_rows) + len(global_rows)
+    use_pref = any(v[2] for v in best_pref.values())
+    lead_pool = best_pref if use_pref else best
     html = '<div class="sig-summary">'
-    lead_src = top_pref if top_pref[1] else top  # prefer absolute DV; fall back to global max
-    lead_effect = f'<span class="sig-top">Strongest: {lead_src[1]}.</span> ' if lead_src[1] else ""
-    html += (
-        f'<p class="sig-lead">{lead_effect}'
-        f'{n_findings} {unit_word}-level effect'
-        f'{"s" if n_findings != 1 else ""} reach FDR q &lt; 0.05 across '
-        f'{len(sig_contrasts)} of {len(all_contrasts)} comparisons.'
-        ' <span class="sig-key">effect size (Hedges g) + direction lead, q secondary; '
-        f'whole-brain effect + the {unit_word}s that differ; '
-        '&#9650;/&#9660; = the first-listed group is higher/lower</span>.</p>'
-    )
+    html += _lead(
+        _headline(study, {**lead_pool, **{c: best[c] for c in best
+                                           if study.role(c) == "confirmatory"}}, n_tests,
+                  noun=f"{LEAD_DV}-power effect" if use_pref else "effect"),
+        _counts(n_findings, n_tests, f"{unit_word}-level and whole-brain test", statement,
+                sig_contrasts, len(all_contrasts)),
+        f' <span class="sig-key">whole-brain effect + the {unit_word}s that differ</span>.')
     html += body
     html += "</div>"
     return html
 
 
-def _build_graph_summary(table: dict, _label, groups: dict) -> str | None:
+# --------------------------------------------------------------------------- #
+# Graph theory (by graph parameter)
+# --------------------------------------------------------------------------- #
+def _build_graph_summary(table: dict, study: Study) -> str | None:
     """Digest a graph-theory table by graph parameter: for each contrast, which
     graph metrics differ (global efficiency, modularity, …), in which bands and
     connectivity metrics, with the peak effect and direction. Answers 'which
     graph parameters are significant', not just which bands."""
-    records = _to_native(_records(table["headers"], table["rows"]))
-    all_contrasts = _unique(records, "hypothesis")
-    sig_by_contrast: dict[str, list[dict]] = {}
-    for r in records:
-        if _is_sig(r):
-            sig_by_contrast.setdefault(r.get("hypothesis"), []).append(r)
-
+    headers = table["headers"]
+    records = _to_native(_records(headers, table["rows"]))
+    all_contrasts = study.sorted(_unique(records, "hypothesis"))
     if not all_contrasts:
         return None
-    if not any(sig_by_contrast.values()):
-        return ('<div class="sig-summary"><p class="sig-lead">'
-                "No significant graph metrics (FDR q &lt; 0.05).</p></div>")
+    corr = R.correction(headers, records)
+    statement = correction_statement(corr["p_kind"], corr["method"], corr["symbol"])
 
-    def _peak(rs):
-        return max((abs(_to_float(x.get("effect_size")) or 0.0) for x in rs), default=0.0)
+    def _where_gm(rec):
+        gm = rec.get("graph_metric") or ""
+        label = _GRAPH_METRIC_LABEL.get(gm, str(gm).replace("_", " "))
+        bits = [b for b in (rec.get("band"), _pretty_metric(rec.get("conn_metric"))) if b]
+        return (f"<strong>{escape(label)}</strong>"
+                + (f' <span class="sig-facet">{escape(", ".join(bits))}</span>' if bits else ""))
 
     item_by_contrast: dict[str, str] = {}
-    n_findings = 0
+    best: dict[str, tuple] = {}
+    n_findings = sig_contrasts = 0
+    n_tests = 0
     for contrast in all_contrasts:
-        rows = sig_by_contrast.get(contrast)
-        if not rows:
+        rows = [r for r in records if r.get("hypothesis") == contrast
+                and _to_float(r.get("effect_size")) is not None]
+        kind, key = study.key(contrast, rows, headers, "effect_size")
+        n_tests += len(rows)
+        sig = [r for r in rows if _is_sig(r)]
+        top = _largest(sig, "effect_size") or _largest(rows, "effect_size")
+        if top is not None:
+            best[contrast] = (_magnitude(top, "effect_size"),
+                              f"{_where_gm(top)} {_value(top, headers, 'effect_size')}{_p(top, corr)}"
+                              + ("" if sig else " (n.s.)"),
+                              kind not in ("omnibus", "equivalence"))
+        if kind == "equivalence" and rows:
+            item_by_contrast[contrast] = _item(
+                study, contrast,
+                _equivalence_body(rows, headers, "effect_size", corr, statement, _where_gm), key=key)
+            n_findings += len(sig)
+            sig_contrasts += bool(sig)
             continue
+        if not sig:
+            body = (_null(f"n.s. — largest: {_where_gm(top)} {_value(top, headers, 'effect_size')}"
+                          f"{_p(top, corr)}; {_plural(len(rows), 'test')}")
+                    if top is not None else _null("no effect recorded"))
+            item_by_contrast[contrast] = _item(study, contrast, body, null=True, key=key)
+            continue
+        sig_contrasts += 1
         by_gm: dict[str, list[dict]] = {}
-        for r in rows:
+        for r in sig:
             by_gm.setdefault(r.get("graph_metric") or "", []).append(r)
         chips = []
-        for gm, rs in sorted(by_gm.items(), key=lambda kv: -_peak(kv[1])):
-            best = max(rs, key=lambda x: abs(_to_float(x.get("effect_size")) or 0.0))
-            v = _to_float(best.get("effect_size")) or 0.0
-            signed = str(best.get("effect_size_type", "")).lower() == "hedges_g"
-            arrow = ""
-            if signed:
-                arrow = ('<span class="arrow up">&#9650;</span> ' if v > 0
-                         else '<span class="arrow down">&#9660;</span> ')
+        for gm, rs in sorted(by_gm.items(), key=lambda kv: -max(_magnitude(x, "effect_size") for x in kv[1])):
+            peak = _largest(rs, "effect_size")
+            label = _GRAPH_METRIC_LABEL.get(gm, str(gm).replace("_", " "))
             bands = _order_graph_bands({str(x.get("band")) for x in rs if x.get("band")})
             conns = sorted({_pretty_metric(x.get("conn_metric")) for x in rs if x.get("conn_metric")})
-            label = _GRAPH_METRIC_LABEL.get(gm, str(gm).replace("_", " "))
-            estr = f"g&le;{abs(v):.2f}" if signed else f"&omega;&sup2;&le;{abs(v):.2f}"
             band_html = (f' <span class="sig-facet">{escape(", ".join(bands))}</span>'
                          if bands else "")
             conn_html = (f' <span class="sig-pairs">{escape(", ".join(conns))}</span>'
                          if conns else "")
             chips.append(
-                f'<span class="sig-item">{arrow}<strong>{escape(label)}</strong>'
-                f'{band_html}{conn_html} <span class="g">{estr}</span></span>')
-            n_findings += 1
-        item_by_contrast[contrast] = (
-            f'<li><span class="sig-contrast">{escape(str(_label(contrast)))}</span> '
-            + "".join(chips) + "</li>")
+                f'<span class="sig-item"><strong>{escape(label)}</strong>'
+                f'{band_html}{conn_html} largest {_value(peak, headers, "effect_size")}'
+                f'{_p(peak, corr)}</span>')
+            n_findings += len(rs)
+        item_by_contrast[contrast] = _item(study, contrast, "".join(chips), key=key)
 
-    n_sig_contrasts = sum(1 for c in sig_by_contrast if sig_by_contrast[c])
-    _fill_nulls(all_contrasts, item_by_contrast, _label, "No significant graph metrics")
-    body = _render_body(all_contrasts, item_by_contrast, groups)
+    body = _render_body(all_contrasts, item_by_contrast, study.tiers)
     html = '<div class="sig-summary">'
-    html += (
-        f'<p class="sig-lead">{n_findings} significant graph-metric finding'
-        f'{"s" if n_findings != 1 else ""} across {n_sig_contrasts} of '
-        f"{len(all_contrasts)} comparisons (FDR q &lt; 0.05)."
-        ' <span class="sig-key">grouped by graph parameter; bands and connectivity '
-        'metric listed; &#9650;/&#9660; = the first-listed group is higher/lower</span>.</p>'
-    )
+    html += _lead(_headline(study, best, n_tests),
+                  _counts(n_findings, n_tests, "graph-metric test", statement, sig_contrasts,
+                          len(all_contrasts)),
+                  ' <span class="sig-key">grouped by graph parameter; bands and connectivity '
+                  'metric listed</span>.')
     html += body
     html += "</div>"
     return html
 
 
-def _build_nbs_summary(table: dict, _label, groups: dict) -> str | None:
-    """Digest an NBS component table: significant sub-networks per (contrast, band,
-    metric), parsed from the ``key`` column (``<contrast>_<band>[_<metric>]``)."""
+# --------------------------------------------------------------------------- #
+# Network-Based Statistic
+# --------------------------------------------------------------------------- #
+def _build_nbs_summary(table: dict, study: Study) -> str | None:
+    """Digest an NBS component table: every contrast's sub-networks per (band,
+    metric), parsed from the ``key`` column (``<contrast>_<band>[_<metric>]``),
+    significant ones (component-level family-wise p < 0.05) listed, the largest
+    component shown for a contrast without one."""
     records = _records(table["headers"], table["rows"])
-    sig_by_contrast: dict[str, list[tuple]] = {}
-    all_contrasts: list[str] = []
+    comps_by: dict[str, list[tuple]] = {}
     for rec in records:
         contrast, band, metric = _parse_nbs_key(str(rec.get("key", "")))
         if contrast is None:
             continue
-        if contrast not in all_contrasts:
-            all_contrasts.append(contrast)
-        p = _to_float(rec.get("p_corrected"))
-        n_edges = _to_float(rec.get("n_edges"))
-        if p is not None and p < 0.05:
-            sig_by_contrast.setdefault(contrast, []).append(
-                (band, metric, n_edges, p, rec.get("region"), rec.get("direction"),
-                 _to_float(rec.get("n_edges_increase")),
-                 _to_float(rec.get("n_edges_decrease"))))
-
+        comps_by.setdefault(contrast, []).append(
+            (band, metric, _to_float(rec.get("n_edges")), _to_float(rec.get("p_corrected")),
+             rec.get("region"), rec.get("direction"),
+             _to_float(rec.get("n_edges_increase")), _to_float(rec.get("n_edges_decrease"))))
+    all_contrasts = study.sorted(list(comps_by))
     if not all_contrasts:
         return None
-    if not sig_by_contrast:
-        return ('<div class="sig-summary"><p class="sig-lead">'
-                "No significant sub-networks (NBS p_corrected &lt; 0.05)."
-                "</p></div>")
+    statement = correction_statement("fwe", "NBS")
+
+    def _chip(comp, bare=False):
+        band, metric, n_edges, p, region, direction, n_inc, n_dec = comp
+        facet = (f' <span class="sig-facet">{escape(_pretty_metric(metric))}</span>'
+                 if metric else "")
+        edges = f"{int(n_edges)}-edge " if n_edges is not None else ""
+        # Direction: NBS thresholds |t|, so a sub-network can be up-, down-, or
+        # mixed-regulation. ▲ = group A > B, ▼ = group A < B.
+        dstr = str(direction or "").strip().lower()
+        if dstr == "increase":
+            arrow_html = '<span class="arrow up">&#9650;</span> '
+        elif dstr == "decrease":
+            arrow_html = '<span class="arrow down">&#9660;</span> '
+        elif dstr == "mixed" and n_inc is not None and n_dec is not None:
+            arrow_html = (f'<span class="sig-mixed">&#9650;{int(n_inc)}/'
+                          f'&#9660;{int(n_dec)}</span> ')
+        else:
+            arrow_html = ""
+        region_html = (f'<span class="sig-region">{escape(str(region))}</span>'
+                       if region not in (None, "") else "")
+        cls = "sig-item has-region" if region_html else "sig-item"
+        band_html = f"<strong>{escape(band)}</strong>" if band else ""
+        pstr = f" ({p_text(p)})" if p is not None else ""
+        inner = f'{arrow_html}{band_html}{facet} <span class="sig-pairs">{edges}sub-network{pstr}</span>'
+        return inner if bare else f'<span class="{cls}">{inner}{region_html}</span>'
+
+    def _is_comp_sig(comp):
+        return comp[3] is not None and comp[3] < 0.05
 
     item_by_contrast: dict[str, str] = {}
-    n_findings = 0
+    best: dict[str, tuple] = {}
+    n_findings = sig_contrasts = 0
     for contrast in all_contrasts:
-        comps = sig_by_contrast.get(contrast)
-        if not comps:
-            continue
-        chips = []
-        for band, metric, n_edges, p, region, direction, n_inc, n_dec in sorted(
-                comps, key=lambda c: (c[3])):
-            facet = (f' <span class="sig-facet">{escape(_pretty_metric(metric))}</span>'
-                     if metric else "")
-            edges = f"{int(n_edges)}-edge " if n_edges is not None else ""
-            # Direction: NBS thresholds |t|, so a sub-network can be up-, down-, or
-            # mixed-regulation. ▲ = group A > B, ▼ = group A < B.
-            dstr = str(direction or "").strip().lower()
-            if dstr == "increase":
-                arrow = '<span class="arrow up">&#9650;</span> '
-            elif dstr == "decrease":
-                arrow = '<span class="arrow down">&#9660;</span> '
-            elif dstr == "mixed" and n_inc is not None and n_dec is not None:
-                arrow = (f'<span class="sig-mixed">&#9650;{int(n_inc)}/'
-                         f'&#9660;{int(n_dec)}</span> ')
-            else:
-                arrow = ""
-            region_html = (f'<span class="sig-region">{escape(str(region))}</span>'
-                           if region not in (None, "") else "")
-            cls = "sig-item has-region" if region_html else "sig-item"
-            band_html = f"<strong>{escape(band)}</strong>" if band else ""
-            chips.append(
-                f'<span class="{cls}">{arrow}{band_html}{facet} '
-                f'<span class="sig-pairs">{edges}sub-network (p={p:.3f})</span>{region_html}</span>'
-            )
-            n_findings += 1
-        joiner = "" if any("has-region" in c for c in chips) else " "
-        item_by_contrast[contrast] = (
-            f'<li><span class="sig-contrast">{escape(str(_label(contrast)))}</span> '
-            + joiner.join(chips) + "</li>"
-        )
+        comps = comps_by[contrast]
+        design = study.design.get(contrast)
+        a, b = R.groups([], design)
+        kind = "two_group" if a else None
+        key = (f' <span class="sig-groups">'
+               f'{direction_text(kind, study.group(a), study.group(b))}</span>')
+        sig = sorted((c for c in comps if _is_comp_sig(c)), key=lambda c: c[3])
+        n_findings += len(sig)
+        sig_contrasts += bool(sig)
+        top = (max(sig, key=lambda c: c[2] or 0.0) if sig
+               else max(comps, key=lambda c: c[2] or 0.0))
+        best[contrast] = (top[2] or 0.0, _chip(top, bare=True) + ("" if sig else " (n.s.)"), bool(sig))
+        if sig:
+            chips = [_chip(c) for c in sig]
+            joiner = "" if any("has-region" in c for c in chips) else " "
+            item_by_contrast[contrast] = _item(study, contrast, joiner.join(chips), key=key)
+        else:
+            item_by_contrast[contrast] = _item(
+                study, contrast,
+                _null(f"no sub-network reaches {statement} — largest: {_chip(top, bare=True)}; "
+                      f"{_plural(len(comps), 'component')}"),
+                null=True, key=key)
 
-    _fill_nulls(all_contrasts, item_by_contrast, _label, "No significant sub-networks")
-    body = _render_body(all_contrasts, item_by_contrast, groups)
+    body = _render_body(all_contrasts, item_by_contrast, study.tiers)
+    n_tests = len(records)
     html = '<div class="sig-summary">'
-    html += (
-        f'<p class="sig-lead">{n_findings} significant sub-network'
-        f'{"s" if n_findings != 1 else ""} across {len(sig_by_contrast)} of '
-        f"{len(all_contrasts)} comparisons (NBS p_corrected &lt; 0.05).</p>"
-    )
+    html += _lead(_headline(study, best, n_tests, noun="sub-network", of="component"),
+                  _counts(n_findings, n_tests, "component", statement, sig_contrasts,
+                          len(all_contrasts)))
     html += body
     html += "</div>"
     return html

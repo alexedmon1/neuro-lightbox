@@ -13,16 +13,17 @@
   /* ── Acronym map for display formatting ── */
   const ACRONYMS = V.acronyms || {};
 
-  /* ── Group label fallbacks for readable contrast display (the study's own
-     `groups:` labels come first) ── */
-  const GROUP_LABELS = V.group_labels || {};
-
   /* ── The inputs side (subjects / QC of what the analyses ran on), if any ── */
   const INPUTS = V.inputs || {};
   const INPUT_DATA = (INPUTS.key && M[INPUTS.key]) || {};
 
   /* ── How the profile's table columns are grouped, labelled and formatted ── */
   const TABLE = V.table || {};
+
+  /* ── The study's contrasts, in its order (tables and figures follow it) ── */
+  const CONTRAST_ORDER = (M && M.contrast_order) || [];
+  const CONTRAST_RANK = {};
+  CONTRAST_ORDER.forEach(function (c, i) { if (!(c in CONTRAST_RANK)) CONTRAST_RANK[c] = i; });
 
   /* ── State ── */
   let currentSource = null;
@@ -117,8 +118,11 @@
     return (ad.figures[src] && ad.figures[src].length > 0) ||
            (ad.tables[src] && ad.tables[src].length > 0) || !!ad.summary;
   }
-  function analysisDomain(ad) {
-    return (ad && ad.meta && ad.meta.domain) || "Other";
+  // Without a domain (no metadata for the analysis), an analysis is listed under
+  // its own name rather than lumped with unrelated ones.
+  function analysisDomain(ad, name) {
+    return (ad && ad.meta && ad.meta.domain) ||
+      (ad && ad.meta && ad.meta.display_name) || formatName(name || "Other");
   }
 
   // Ordered domain names with ≥1 analysis that has data for src, within paradigm.
@@ -126,7 +130,7 @@
     var analyses = M.paradigms[paradigm] || {};
     var present = {};
     for (var a of Object.keys(analyses)) {
-      if (analysisHasData(analyses[a], src)) present[analysisDomain(analyses[a])] = true;
+      if (analysisHasData(analyses[a], src)) present[analysisDomain(analyses[a], a)] = true;
     }
     return DOMAIN_ORDER.filter(function (d) { return present[d]; })
       .concat(Object.keys(present).filter(function (d) { return DOMAIN_ORDER.indexOf(d) < 0; }));
@@ -149,7 +153,7 @@
   function domainAnalyses(paradigm, domain, src) {
     var analyses = M.paradigms[paradigm] || {};
     var names = Object.keys(analyses).filter(function (a) {
-      return analysisHasData(analyses[a], src) && analysisDomain(analyses[a]) === domain;
+      return analysisHasData(analyses[a], src) && analysisDomain(analyses[a], a) === domain;
     });
     var suppOf = function (a) { return analyses[a].meta && analyses[a].meta.supplements; };
     var prim = names.filter(function (a) { return !suppOf(a); })
@@ -192,7 +196,7 @@
   // paradigm they sit in.
   function designLabel(paradigm, analysisName) {
     var ad = M.paradigms[paradigm] && M.paradigms[paradigm][analysisName];
-    var d = ad && analysisDomain(ad);
+    var d = ad && analysisDomain(ad, analysisName);
     if (d === SUBSECTION_DOMAIN) return SUBSECTION_DOMAIN;
     if (d === SECTION_DOMAIN) return SECTION_DOMAIN;
     return paradigmLabel(paradigm);
@@ -272,7 +276,7 @@
           }
           lastGroup = grp;  // null for ungrouped → next grouped paradigm re-emits
 
-          html += '<div class="nav-study-design">' + paradigmLabel(paradigm) + '</div>';
+          html += '<div class="nav-study-design">' + escapeHtml(paradigmLabel(paradigm)) + '</div>';
           // Group analyses by domain (one nav item per domain → domain page).
           // The promoted domains get their own study-design heading (deferred to the
           // group end), so they are not listed as domains under this paradigm's label.
@@ -303,7 +307,8 @@
   }
 
   function navItem(route, label) {
-    return '<a class="nav-item" href="#' + route + '" data-route="' + route + '">' + label + '</a>';
+    return '<a class="nav-item" href="#' + escapeHtml(route) + '" data-route="' + escapeHtml(route) + '">' +
+      escapeHtml(label) + '</a>';
   }
 
   function highlightNav(hash) {
@@ -337,7 +342,7 @@
       for (var paradigm of Object.keys(M.paradigms)) {
         var domains = domainsForParadigm(paradigm, src);
         if (domains.length === 0) continue;
-        html += '<h3 style="margin:12px 0 6px">' + paradigmLabel(paradigm) + '</h3>';
+        html += '<h3 style="margin:12px 0 6px">' + escapeHtml(paradigmLabel(paradigm)) + '</h3>';
         html += "<ul>" + domainListItems(paradigm, domains, src) + "</ul>";
       }
     }
@@ -377,7 +382,7 @@
     for (var paradigm of Object.keys(M.paradigms)) {
       var domains = domainsForParadigm(paradigm, src);
       if (domains.length === 0) continue;
-      html += '<h3 style="margin:12px 0 6px">' + paradigmLabel(paradigm) + '</h3>';
+      html += '<h3 style="margin:12px 0 6px">' + escapeHtml(paradigmLabel(paradigm)) + '</h3>';
       html += "<ul>" + domainListItems(paradigm, domains, src) + "</ul>";
     }
     setContent(html);
@@ -394,7 +399,7 @@
     clearSourceSelector();
 
     var domains = domainsForParadigm(paradigm, src);
-    var html = '<h2 class="section-header">' + paradigmLabel(paradigm) + '</h2>';
+    var html = '<h2 class="section-header">' + escapeHtml(paradigmLabel(paradigm)) + '</h2>';
     html += "<ul>" + domainListItems(paradigm, domains, src) + "</ul>";
     setContent(html);
   }
@@ -428,17 +433,72 @@
   }
 
   /* ── What produced these tables ──
-     The analysis's provenance.json, as the profile shows it: nothing when the
-     profile has no strip for it, or when an older results tree has no record
-     (rather than a guess). */
+     The analysis's provenance.json, as the profile shows it, else in the output
+     specification's terms (tools, run, inputs, subjects, caveats). Without one
+     the strip says so: what produced the numbers is not recorded. */
   function provenanceHtml(prov) {
-    if (!prov || !HOOKS.provenanceHtml) return "";
-    return HOOKS.provenanceHtml(prov);
+    if (!prov) {
+      return '<details class="analysis-prov analysis-prov-none"><summary>What produced this — ' +
+        'not recorded</summary><dl><dt>provenance</dt><dd>No provenance.json beside this ' +
+        'analysis\'s tables.</dd></dl></details>';
+    }
+    if (HOOKS.provenanceHtml) return HOOKS.provenanceHtml(prov);
+    return specProvenanceHtml(prov);
+  }
+
+  function specProvenanceHtml(prov) {
+    var html = "";
+    var run = prov.run || {};
+    var status = String(run.status || "").toLowerCase();
+    if (status && ["complete", "completed", "finished", "success", "ok"].indexOf(status) < 0) {
+      html += '<div class="analysis-warn"><b>This run did not finish</b> — status ' +
+        escapeHtml(run.status) + '; its tables may be incomplete.</div>';
+    }
+    var caveats = prov.caveats || [];
+    if (!Array.isArray(caveats)) caveats = Object.keys(caveats).map(function (k) { return k + ": " + caveats[k]; });
+    if (caveats.length) {
+      html += '<div class="analysis-warn"><b>Caveats</b><ul>' + caveats.map(function (c) {
+        return "<li>" + escapeHtml(String(c)) + "</li>";
+      }).join("") + "</ul></div>";
+    }
+    var tools = (prov.tools || []).map(function (t) {
+      return [t.name, t.version, t.commit ? "(" + String(t.commit).slice(0, 7) + ")" : ""]
+        .filter(Boolean).join(" ");
+    });
+    var bits = [["tools", tools.length ? tools.join("; ") : "not recorded"]];
+    if (run.id) bits.push(["run", run.id]);
+    if (run.start || run.end) {
+      bits.push(["when", [run.start, run.end].filter(Boolean).map(function (t) {
+        return String(t).replace("T", " ").slice(0, 16);
+      }).join(" → ")]);
+    }
+    if (status) bits.push(["status", run.status]);
+    var subj = prov.subjects || {};
+    if (subj.n != null) {
+      var groups = subj.groups || {};
+      var gnames = Object.keys(groups).sort();
+      bits.push(["subjects", subj.n + (gnames.length ? " (" + gnames.map(function (g) {
+        return formatGroup(g) + " " + groups[g];
+      }).join(", ") + ")" : "")]);
+    }
+    if (prov.inputs) {
+      var inputs = Array.isArray(prov.inputs) ? prov.inputs : [prov.inputs];
+      bits.push(["inputs", inputs.map(function (i) {
+        return typeof i === "string" ? i : (i.label || i.path || JSON.stringify(i));
+      }).join("; ")]);
+    }
+    html += '<details class="analysis-prov"><summary>What produced this — ' +
+      escapeHtml(tools.length ? tools.join("; ") : "tools not recorded") + "</summary><dl>";
+    bits.forEach(function (b) {
+      html += "<dt>" + escapeHtml(b[0]) + "</dt><dd>" + escapeHtml(String(b[1])) + "</dd>";
+    });
+    return html + "</dl></details>";
   }
 
   function renderAnalysisContent(paradigm, analysis, data, source, allSources) {
     var inner = buildAnalysisInner(paradigm, analysis, data, source, allSources, "a");
-    var html = '<h2 class="section-header">' + designLabel(paradigm, analysis) + ' — ' + analysisLabel(paradigm, analysis) + '</h2>' + inner.html;
+    var html = '<h2 class="section-header">' + escapeHtml(designLabel(paradigm, analysis)) + ' — ' +
+      escapeHtml(analysisLabel(paradigm, analysis)) + '</h2>' + inner.html;
     setContent(html);
     initLightbox();
     bindTableToggles(inner.tables);
@@ -497,7 +557,7 @@
         var id = idPrefix + "-tbl-" + ti + "-" + tbl.filename.replace(/[^a-z0-9]/gi, "_");
         var displayName = formatTableFilename(tbl.filename);
         tablePanel += '<button class="table-toggle" data-table-idx="' + ti + '" data-table-id="' + id + '">';
-        tablePanel += '<span class="arrow">&#9654;</span> ' + displayName;
+        tablePanel += '<span class="arrow">&#9654;</span> ' + escapeHtml(displayName);
         tablePanel += "</button>";
         tablePanel += '<div id="' + id + '" class="table-container" style="display:none"></div>';
       }
@@ -579,7 +639,7 @@
           escapeHtml(M.paradigms[paradigm][o.name].meta.supplements) + '"' : "";
         var supTag = o.supp ? ' <span class="pill-supp">supplemental</span>' : "";
         html += '<button class="pill' + (i === 0 ? " active" : "") + '" data-pill="' + i + '"' +
-          supTip + '>' + analysisLabel(paradigm, o.name) + supTag + "</button>";
+          supTip + '>' + escapeHtml(analysisLabel(paradigm, o.name)) + supTag + "</button>";
       });
       html += "</div>";
     }
@@ -604,7 +664,7 @@
       var desc = (data.meta && data.meta.description)
         ? ' <span class="analysis-desc">' + escapeHtml(data.meta.description) + '</span>' : "";
       cont.innerHTML = (ordered.length > 1
-        ? '<h3 class="analysis-sub-header">' + analysisLabel(paradigm, o.name) + desc + '</h3>' : "") + inner.html;
+        ? '<h3 class="analysis-sub-header">' + escapeHtml(analysisLabel(paradigm, o.name)) + desc + '</h3>' : "") + inner.html;
       initLightbox();
       bindTableToggles(inner.tables, cont);
       bindTabs(cont);
@@ -720,7 +780,7 @@
 
     var figsPanel = (loc.qc_figures && loc.qc_figures.length) ? renderFigureRows(loc.qc_figures) : "";
     var metricsPanel = (loc.qc_metrics && loc.qc_metrics.length) ? renderQCMetricsTable(loc.qc_metrics, loc.subject_meta) : "";
-    var reportPanel = loc.qc_report ? '<iframe class="qc-iframe" src="' + loc.qc_report + '"></iframe>' : "";
+    var reportPanel = loc.qc_report ? '<iframe class="qc-iframe" src="' + escapeHtml(loc.qc_report) + '"></iframe>' : "";
 
     var tabs = [];
     if (figsPanel) tabs.push({ id: "figures", label: "Figures", html: figsPanel });
@@ -796,7 +856,7 @@
       for (var key of gb.subjects) {
         var sid = key.replace(/^sub-/, "");
         var out = subjectIsOutlier(loc, key);
-        html += '<button class="subject-chip' + (out ? " is-outlier" : "") + '" data-sub="' + key + '"' +
+        html += '<button class="subject-chip' + (out ? " is-outlier" : "") + '" data-sub="' + escapeHtml(key) + '"' +
           (out ? ' title="Outlier: ' + escapeHtml(out.join(", ")) + '"' : "") + '>' +
           escapeHtml(sid) + (out ? ' <span class="warn">&#9888;</span>' : "") + '</button>';
       }
@@ -940,8 +1000,8 @@
     var html = '<div class="figure-grid">';
     for (var i = 0; i < show; i++) {
       var fig = figs[i];
-      html += '<a href="' + fig.path + '" class="glightbox figure-card" data-gallery="gallery">';
-      html += '<img src="' + fig.thumb + '" alt="' + escapeHtml(fig.filename) + '" loading="lazy">';
+      html += '<a href="' + escapeHtml(fig.path) + '" class="glightbox figure-card" data-gallery="gallery">';
+      html += '<img src="' + escapeHtml(fig.thumb) + '" alt="' + escapeHtml(fig.filename) + '" loading="lazy">';
       html += '<div class="caption">' + escapeHtml(fig.filename) + '</div>';
       html += "</a>";
     }
@@ -994,6 +1054,10 @@
   var FIGURE_AXES = FIGURES.axes || [];          // single-axis groupings, in order
   var NESTED_LAYOUTS = FIGURES.nested || [];     // two-level layouts, in order
   var CATEGORY_ORDER = (V.categories && V.categories.order) || [];
+  // The study's group ids (its `groups:`), as they appear in figure names.
+  var STUDY_GROUPS = ((M && M.group_order) || []).concat(Object.keys((M && M.group_labels) || {}))
+    .map(function (g) { return String(g).toLowerCase(); })
+    .filter(function (g, i, all) { return g && all.indexOf(g) === i; });
   function _escapeRe(s) { return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"); }
   function _contrastVocab() {
     // Longest-first so "hd_icv_rescue" is matched before any shorter substring.
@@ -1033,7 +1097,7 @@
   function _kindVocab(contrasts) {
     var key = contrasts.join("|");
     if (_kindVocabKey === key) return _kindVocabCache;
-    var all = contrasts.slice();
+    var all = contrasts.concat(STUDY_GROUPS);
     KIND_TOKENS.forEach(function (name) { all = all.concat(GROUP_VOCAB[name] || []); });
     // Longest-first so a long token is removed before a shorter one inside it.
     all = all.filter(function (v, i) { return all.indexOf(v) === i; })
@@ -1205,8 +1269,8 @@
     for (var fig of figs) {
       html += '<figure class="figure-row">';
       html += '<figcaption>' + escapeHtml(formatFigureTitle(fig.filename)) + '</figcaption>';
-      html += '<a href="' + fig.path + '" class="glightbox" data-gallery="gallery">';
-      html += '<img src="' + fig.path + '" alt="' + escapeHtml(fig.filename) + '" loading="lazy">';
+      html += '<a href="' + escapeHtml(fig.path) + '" class="glightbox" data-gallery="gallery">';
+      html += '<img src="' + escapeHtml(fig.path) + '" alt="' + escapeHtml(fig.filename) + '" loading="lazy">';
       html += '</a></figure>';
     }
     html += "</div>";
@@ -1262,7 +1326,7 @@
         a.href = fig.path;
         a.className = "glightbox figure-card";
         a.setAttribute("data-gallery", "gallery");
-        a.innerHTML = '<img src="' + fig.thumb + '" alt="' + escapeHtml(fig.filename) +
+        a.innerHTML = '<img src="' + escapeHtml(fig.thumb) + '" alt="' + escapeHtml(fig.filename) +
           '" loading="lazy"><div class="caption">' + escapeHtml(fig.filename) + '</div>';
         grid.appendChild(a);
       }
@@ -1350,8 +1414,14 @@
     if (groupCols.length > 0) {
       rows = rows.slice().sort(function (a, b) {
         for (var gc of groupCols) {
-          var va = (a[gc.idx] || "").toString().toLowerCase().replace(/^"|"$/g, "");
-          var vb = (b[gc.idx] || "").toString().toLowerCase().replace(/^"|"$/g, "");
+          var ra = (a[gc.idx] || "").toString().replace(/^"|"$/g, "");
+          var rb = (b[gc.idx] || "").toString().replace(/^"|"$/g, "");
+          if (gc.studyOrder) {   // contrasts in the study's order, unlisted ones after
+            var oa = CONTRAST_RANK.hasOwnProperty(ra) ? CONTRAST_RANK[ra] : CONTRAST_ORDER.length;
+            var ob = CONTRAST_RANK.hasOwnProperty(rb) ? CONTRAST_RANK[rb] : CONTRAST_ORDER.length;
+            if (oa !== ob) return oa - ob;
+          }
+          var va = ra.toLowerCase(), vb = rb.toLowerCase();
           if (va < vb) return -1;
           if (va > vb) return 1;
         }
@@ -1417,7 +1487,8 @@
     html += "</tbody></table>";
     var note = "";
     if (tbl.truncated) {
-      note += 'Showing ' + rows.length + ' of ' + tbl.total_rows + ' rows';
+      note += 'Showing ' + rows.length.toLocaleString("en-US") + ' of ' +
+        Number(tbl.total_rows).toLocaleString("en-US") + ' rows (the full table is in the CSV)';
     }
     if (tbl.csv) {
       note += (note ? ' &middot; ' : '') + '<a href="' + escapeHtml(tbl.csv) + '" download>Download full CSV</a>';
@@ -1490,7 +1561,8 @@
       primarySpec = primary[pi];
     }
     if (contrastIdx >= 0 && columnAddsGrouping(contrastIdx)) {
-      groups.push({ idx: contrastIdx, label: primarySpec.label, formatter: cellFormatter(primarySpec.format) });
+      groups.push({ idx: contrastIdx, label: primarySpec.label, formatter: cellFormatter(primarySpec.format),
+                    studyOrder: primarySpec.format === "contrast" });
       usedIndices.push(contrastIdx);
     }
 
@@ -1608,10 +1680,7 @@
    * Format a group name for display.
    */
   function formatGroupName(name) {
-    if (TX_GROUP_LABELS[name]) return TX_GROUP_LABELS[name];
-    var lower = name.toLowerCase();
-    if (GROUP_LABELS[lower]) return GROUP_LABELS[lower];
-    return name;
+    return TX_GROUP_LABELS[name] || name;
   }
 
   /**

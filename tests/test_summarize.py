@@ -24,10 +24,10 @@ def test_digest_groups_by_contrast_with_direction():
     assert "sig-summary" in html
     # significant contrasts present, non-significant-only contrast listed as null
     assert "disease_effect" in html and "hd_icv_vs_wt" in html
-    assert "dose_icv" in html  # appears in the "No significant effects" line
+    assert "dose_icv" in html  # listed in place, with its largest effect
     # direction: positive -> up arrow class, negative -> down
     assert "arrow up" in html and "arrow down" in html
-    assert "g=3.55" in html
+    assert "g = 3.55" in html   # legacy hedges_g column: the measure is g by name
 
 
 def test_digest_prefers_global_over_roi_detail():
@@ -94,7 +94,9 @@ def test_no_significant_rows_states_so():
     tbl = _tbl("x_global.csv", "contrast,band,hedges_g,significant",
               ["disease_effect,Alpha,0.1,FALSE"])
     html = build_significance_summary([tbl])
-    assert html is not None and "No significant" in html
+    # a null result keeps its magnitude: the largest effect, and the test count
+    assert html is not None and "n.s. — largest" in html and "g = 0.10" in html
+    assert "1 test" in html
 
 
 # ── generalized effect columns + per-element aggregation + NBS ──────────────
@@ -114,9 +116,11 @@ def test_roi_graph_aggregates_per_band_no_roi_flooding():
     )
     html = build_significance_summary([tbl])
     assert html is not None
-    assert "Motor_R" not in html and "Motor_L" not in html   # no per-ROI flooding
+    listing = html[html.index("</p>"):]                       # the lead may name the largest
+    assert "Motor_R" not in listing and "Motor_L" not in listing   # no per-ROI flooding
     assert "2 ROIs" in html                                   # Low Gamma: 2 sig ROIs
-    assert "g=1.40" in html                                   # strongest |g| reported
+    assert "g = 1.40" in html                                 # strongest |g| reported
+    assert "FDR q &lt; 0.05" in html                          # p_fdr: FDR-adjusted, judged on it
     assert "arrow up" in html and "arrow down" in html        # both directions
 
 
@@ -134,9 +138,9 @@ def test_nbs_digest_from_key_with_spaced_band():
     assert html is not None
     assert "sub-network" in html
     assert "Low Gamma" in html and "12-edge" in html
-    assert "p=0.004" in html
-    # 2 significant sub-networks across 2 of 2 (or 3) comparisons
-    assert "significant sub-network" in html
+    assert "p = .004" in html
+    # counts with their denominator and the NBS correction
+    assert "2 of 3 components reach family-wise corrected (NBS) p &lt; 0.05" in html
 
 
 def test_mvpa_unsigned_vs_chance():
@@ -150,8 +154,8 @@ def test_mvpa_unsigned_vs_chance():
     )
     html = build_significance_summary([tbl])
     assert html is not None
-    assert "AUC=0.81" in html
-    assert "above chance" in html
+    assert "AUC = 0.81 (above chance)" in html
+    assert "chance AUC = 0.5" in html
     assert "arrow up" not in html and "arrow down" not in html  # unsigned: no arrows
 
 
@@ -166,7 +170,7 @@ def test_spatial_signed_coefficient():
     )
     html = build_significance_summary([tbl])
     assert html is not None
-    assert "&beta;=+0.42" in html
+    assert "&beta; = 0.42" in html
     assert "arrow up" in html
 
 
@@ -185,7 +189,7 @@ def test_specparam_per_vertex_uses_corrected_significant():
     html = build_significance_summary([tbl])
     assert html is not None
     assert "exponent" in html and "2 vertices" in html
-    assert "g=1.30" in html
+    assert "g = 1.30" in html
     assert "offset" not in html   # the offset vertex is not cluster-significant
 
 
@@ -213,8 +217,8 @@ def test_vertex_cluster_digest_reads_corrected_clusters():
     html = build_significance_summary([voxel, clusters],
                                       contrast_labels={"hd_icv_normalization": "HD-ICV normalization to WT"})
     assert html is not None
-    assert "cluster-corrected" in html
-    assert "2 significant clusters" in html and "2 of 2 comparisons" in html
+    assert "corrected (cluster-level) p &lt; 0.05" in html
+    assert "2 of 4 clusters reach" in html and "2 of 2 comparisons" in html
     # normalization difference clusters are surfaced (the reported bug)
     assert "HD-ICV normalization to WT" in html
     assert "Low Gamma absolute" in html and "80 vertices" in html
@@ -245,7 +249,7 @@ def test_graph_digest_groups_by_graph_parameter():
     )
     html = build_significance_summary([tbl], contrast_labels={"disease_effect": "Disease effect"})
     assert html is not None
-    assert "graph-metric finding" in html
+    assert "3 of 5 graph-metric tests reach FDR q &lt; 0.05" in html
     # graph parameters are named
     assert "modularity" in html and "global efficiency" in html
     # bands listed under a parameter (modularity is significant in Theta & Beta)
@@ -253,9 +257,9 @@ def test_graph_digest_groups_by_graph_parameter():
     # connectivity metric surfaced
     assert "Imag. coherence" in html or "AEC" in html   # metric acronyms capitalized
     # peak effect + direction (global_efficiency peak +0.78 -> up)
-    assert "g&le;0.78" in html and "arrow up" in html
-    # a contrast with no significant graph metric renders as an in-place null item
-    assert "sig-null-item" in html and "No significant graph metrics" in html
+    assert "largest <span class=\"arrow up\">&#9650;</span> <span class=\"g\">g = 0.78</span>" in html
+    # a contrast with no significant graph metric renders in place, with its magnitude
+    assert "sig-null-item" in html and "n.s. — largest" in html and "g = 0.30" in html
     assert "dose_icv" in html
     # NOT the per-element "ROI" aggregation
     assert "1 ROI" not in html
@@ -282,13 +286,14 @@ def test_roi_posthoc_names_significant_rois():
     html = build_significance_summary([glob, roi],
                                       contrast_labels={"disease_effect": "Disease effect"})
     assert html is not None
-    assert "ROI-level effect" in html            # ROI-level digest
+    assert "ROI-level and whole-brain test" in html   # ROI-level digest
     assert "Frontal_Anterior_L" in html and "Motor_L" in html   # ROIs named
-    assert "g=2.52" in html
+    # no effect_size_type and no hedges_g column: the measure is not recorded
+    assert "effect = 2.52" in html and "g = " not in html
     assert "Auditory_R" not in html              # non-significant excluded
     assert "arrow up" in html and "arrow down" in html
     # BOTH levels: the whole-brain global effect AND the per-ROI breakdown
-    assert "whole-brain" in html and "g=1.63" in html
+    assert "whole-brain" in html and "effect = 1.63" in html
 
 
 def test_roi_posthoc_global_only_when_no_significant_rois():
@@ -308,7 +313,9 @@ def test_roi_posthoc_global_only_when_no_significant_rois():
     )
     html = build_significance_summary([glob, roi])
     assert html is not None
-    assert "whole-brain" in html and "offset" in html and "g=1.20" in html
+    assert "whole-brain" in html and "offset" in html and "effect = 1.20" in html
+    # the contrast with no significant unit is listed with its largest effect
+    assert "n.s. — largest" in html and "effect = 0.30" in html
 
 
 def test_electrode_posthoc_says_channels():
@@ -321,7 +328,7 @@ def test_electrode_posthoc_says_channels():
     )
     html = build_significance_summary([tbl])
     assert html is not None
-    assert "channel-level effect" in html and "3 channels" in html
+    assert "channel-level and whole-brain test" in html and "3 channels" in html
     assert "Fp1" in html and "ROI" not in html
 
 

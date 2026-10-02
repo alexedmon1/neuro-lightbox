@@ -40,6 +40,7 @@ class BuildConfig:
     contrast_labels: dict | None = None   # contrast name -> readable label
     contrast_groups: dict | None = None   # contrast name -> tier/group label
     contrast_meta: dict | None = None     # contrast name -> {role, test, gate_on}
+    contrast_design: dict | None = None   # contrast name -> {group_a, group_b} (two-group)
     # Per-paradigm nav display: paradigm key -> {group, label}. Lets a study nest
     # its paradigms under a shared group header (e.g. resting/vertex -> "Resting"
     # with "ROI-based"/"Vertex-based" sub-labels). None = flat, formatName labels.

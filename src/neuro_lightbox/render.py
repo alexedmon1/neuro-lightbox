@@ -22,6 +22,7 @@ orchestration with the profile's hooks before and after the overview.
 from __future__ import annotations
 
 import math
+import textwrap
 from pathlib import Path
 
 import matplotlib
@@ -137,7 +138,10 @@ def _heatmap(mat, rows, cols, smask, title, out_path, dpi,
     (e.g. sequential) scale. ``int_annot`` formats cell labels as integers.
     """
     n_r, n_c = mat.shape
-    fig, ax = plt.subplots(figsize=(max(4.0, 0.65 * n_c + 2.5), max(2.5, 0.45 * n_r + 1.4)))
+    width = max(4.0, 0.65 * n_c + 2.5)
+    fig, ax = plt.subplots(figsize=(width, max(2.5, 0.45 * n_r + 1.4)))
+    # Wrap each title line to the figure, so a long note is not cut off.
+    title = "\n".join(textwrap.fill(line, width=int(width * 11)) for line in title.split("\n"))
     finite = mat[np.isfinite(mat)]
     if vmin is not None or vmax is not None:
         lo = vmin if vmin is not None else (float(np.min(finite)) if finite.size else 0.0)
@@ -213,6 +217,28 @@ def select_renderer(headers: list[str], registry) -> type[Renderer] | None:
     return None
 
 
+def in_study_order(records: list[dict], columns, order, labels: dict | None) -> list[dict]:
+    """``records`` sorted (stably) into the study's contrast order, so a figure's
+    rows follow the config, not the table. ``order`` lists contrast names; rows
+    may already carry their labels. Contrasts the study does not list go last."""
+    if not order:
+        return records
+    labels = labels or {}
+    rank: dict = {}
+    for i, name in enumerate(order):
+        rank.setdefault(name, i)
+        rank.setdefault(labels.get(name, name), i)
+
+    def key(rec):
+        # The first column that holds one of the study's contrasts: a table may
+        # also carry a column of the same name meaning something else.
+        for col in columns:
+            if rec.get(col) in rank:
+                return rank[rec[col]]
+        return len(order)
+    return sorted(records, key=key)
+
+
 def relabel(records: list[dict], columns, labels: dict | None) -> list[dict]:
     """Replace contrast names in ``columns`` with the study's labels (in place)."""
     if labels:
@@ -227,7 +253,7 @@ def relabel(records: list[dict], columns, labels: dict | None) -> list[dict]:
 # Module-level overview selection
 # --------------------------------------------------------------------------- #
 def render_table_figures(tables, staging_dir, dpi: int = 150, log=lambda *a, **k: None, *,
-                         profile, state=None, contrast_labels=None):
+                         profile, state=None, contrast_labels=None, contrast_order=None):
     """Render figures per analysis module.
 
     Tables are grouped by ``(source_label, paradigm, analysis)``. For each group
@@ -235,7 +261,8 @@ def render_table_figures(tables, staging_dir, dpi: int = 150, log=lambda *a, **k
     they replace the overview; otherwise the module gets one overview figure
     from its highest-ranked table a renderer matches, then whatever the profile
     draws alongside it (:meth:`~Profile.render_after`). ``state`` is what
-    :meth:`~Profile.render_setup` returned.
+    :meth:`~Profile.render_setup` returned. Rows follow ``contrast_order``, the
+    study's contrast order.
 
     Returns a list of :class:`~neuro_lightbox.scanner.FigureEntry`
     (category ``"analytics"``).
@@ -280,8 +307,10 @@ def render_table_figures(tables, staging_dir, dpi: int = 150, log=lambda *a, **k
 
         tbl, data = chosen
         renderer = select_renderer(data["headers"], profile.renderers)
-        records = relabel(_records(data["headers"], data["rows"]),
-                          profile.contrast_columns, contrast_labels)
+        records = in_study_order(
+            relabel(_records(data["headers"], data["rows"]), profile.contrast_columns,
+                    contrast_labels),
+            profile.contrast_columns, contrast_order, contrast_labels)
         dest.mkdir(parents=True, exist_ok=True)
         stem = Path(tbl.filename).stem
         try:

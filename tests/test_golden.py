@@ -97,12 +97,14 @@ def _build(case: str, root: Path) -> dict:
     manifest = (out / "data" / "manifest.json").read_text(encoding="utf-8")
     html = (out / "index.html").read_text(encoding="utf-8")
     html = re.sub(r"\?v=\d+", "?v=<build_ts>", html)
-    html = html.replace(manifest, "<manifest.json>")
-    # The profile's vocabulary is inlined too ("</" escaped); its bytes are
-    # pinned by data/profile.json's hash in files.txt.
+    # The manifest and the profile's vocabulary are inlined, escaped for a
+    # <script>; their bytes are pinned by their hashes in files.txt.
+    from neuro_lightbox.builder import _script_safe
+
     profile = (out / "data" / "profile.json").read_text(encoding="utf-8")
-    assert profile.replace("</", "<\\/") in html, "index.html does not inline data/profile.json"
-    html = html.replace(profile.replace("</", "<\\/"), "<profile.json>")
+    for name, text in (("manifest.json", manifest), ("profile.json", profile)):
+        assert _script_safe(text) in html, f"index.html does not inline data/{name}"
+        html = html.replace(_script_safe(text), f"<{name}>")
 
     files, figures = [], []
     for p in sorted(out.rglob("*")):

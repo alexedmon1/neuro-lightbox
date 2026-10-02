@@ -21,8 +21,6 @@
 
   var BAND_ORDER = (V.categories && V.categories.order) || [];
   var METRIC_ORDER = V.metric_order || [];
-  // Study-specific (FORGE's group abbreviations), inherited; see vocabulary.py.
-  var CONTRAST_UPPER = { hd: "HD", icv: "ICV", iv: "IV", ld: "LD", wt: "WT", veh: "Veh" };
 
   /* ── What produced these tables ──
      source-analytics writes provenance.json beside each analysis's tables
@@ -148,13 +146,11 @@
     return null;
   }
 
+  // A contrast's label from the study; else its name, word by word.
   function circosContrastLabel(name) {
     if (M && M.contrast_labels && M.contrast_labels[name]) return M.contrast_labels[name];
     return name.split("_").map(function (t) {
-      var l = t.toLowerCase();
-      if (CONTRAST_UPPER[l]) return CONTRAST_UPPER[l];
-      if (l === "vs") return "vs";
-      return t.charAt(0).toUpperCase() + t.slice(1);
+      return t.toLowerCase() === "vs" ? "vs" : formatName(t);
     }).join(" ");
   }
 

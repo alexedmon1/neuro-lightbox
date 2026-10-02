@@ -1012,6 +1012,17 @@ main {
 .sig-top { font-weight: 600; }
 .sig-top .g { color: var(--text-primary); }
 
+/* What ▲ means for a comparison (its groups, or that it is not recorded); a
+   contrast named inside the lead; an equivalence test's outcome; arrows outside
+   a chip (the lead, a null's largest effect). */
+.sig-groups { font-size: 12px; color: var(--text-muted); margin-left: 4px; }
+.sig-contrast-ref { font-weight: 600; }
+.sig-equiv { font-style: italic; }
+.sig-summary .arrow.up { color: #c0392b; font-weight: 700; }
+.sig-summary .arrow.down { color: #2c6fb5; font-weight: 700; }
+/* The provenance strip of an analysis that recorded none. */
+.analysis-prov-none summary { color: var(--text-muted); }
+
 .sig-facet {
   color: var(--text-muted);
   font-style: italic;

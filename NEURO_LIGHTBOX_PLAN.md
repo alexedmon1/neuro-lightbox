@@ -1,6 +1,6 @@
 # neuro-lightbox — plan
 
-**Status: Phases 0–2 done (2026-10-02); see §6.** Written 2026-10-02 from a
+**Status: Phases 0–2 done; Phase 3 done on today's trees, in review (2026-10-02); see §6.** Written 2026-10-02 from a
 cuprizone (rat MRI) session, after a feasibility test built one MRI analysis
 into a source-lightbox gallery; revised the same day with the author's two
 principles (§1).
@@ -414,6 +414,45 @@ failing one. Phases S and 0 can run in parallel.
   digest with effect, CI (where present), direction and the correction statement
   that matches its `p_kind`; the EEG golden diff lists only the intended changes,
   for the author to review.
+- **Done on today's trees (2026-10-02), awaiting the author's review of the
+  golden diff.** No output-specification files exist yet (Phase S), so the
+  contract fields are read where today's tables record them and are otherwise
+  said to be not recorded. `neuro_lightbox/contract.py` holds the words (spec
+  vocabulary: `p_kind`, `test_kind`, measures); `profiles/eeg/reading.py` reads
+  source-analytics' columns into it: `effect_size_type` → the measure; `q_value`
+  + `fdr_family` → FDR and its method (BH); `p_fdr` / `q_fdr` → FDR;
+  `p_corrected` → corrected, procedure named by the digest (cluster-level, NBS);
+  a raw p → "correction not recorded" (a permutation p, recorded by
+  `n_permutations`, says so); `kind` → omnibus / equivalence / contrast;
+  `group_a` / `group_b`, else the study's `weights`, → which group ▲ means.
+  - Items 1–4, 7, 9, 12, 13 and 15 are done. Item 5: CIs are shown in digests
+    wherever a table holds *the effect's own* interval (source-vs-sensor and FCD
+    comparisons); source-analytics' hypothesis tables carry the interval of the
+    raw estimate (`estimate_lcl/ucl`), not of g, so their digests show none
+    rather than a mislabelled one, and no heatmap CI cue is drawn yet. Item 10:
+    the cap reads "Showing 500 of 540 rows (the full table is in the CSV)" and a
+    run whose `run.status` is not complete is flagged by the core provenance
+    strip; "declared but no tables" waits for `analysis.json`. Item 11: an
+    analysis without metadata is listed under its own name; the EEG profile
+    bundles source-analytics v0.8.2's metadata for builds without its
+    interpreter. Items 6, 8 and 14 need `analysis.json` / column dictionaries
+    and wait for Phase S.
+  - Found on the way: source-analytics' equivalence rows carry the *difference*
+    test's p / q / `significant`, and the TOST outcome only in `equivalent`;
+    the digest listed significant differences as normalization "effects". It now
+    reports "equivalent within the study margin in k of n tests", then any
+    significant differences. Decoding: an AUC below 0.5 was called "above
+    chance"; it now says which side of chance. Heatmaps mixed ω² omnibus rows
+    with g on one colour scale; one measure is drawn and the others named as
+    left out.
+  - Acceptance: `tests/test_contract.py` (the words, and each §2 defect as a
+    test) and `tests/test_digest_contract.py` (every digest of all four golden
+    galleries: a direction and a magnitude for every comparison, the correction
+    matching the tables, study order). The MRI golden build no longer shows §2's
+    defects 1–4 and 8: "p < 0.05, correction not recorded", "effect = …" (the
+    export records no measure), "▲ = positive (the test's direction is not
+    recorded)", the confirmatory contrast leading, and heatmap rows in tier
+    order.
 
 ### Phase 4 — MRI profile
 - Reads neurofaune's spec folders (Phase S). Axes: category = measure

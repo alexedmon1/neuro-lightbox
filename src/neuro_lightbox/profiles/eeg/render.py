@@ -25,12 +25,15 @@ from ...render import (  # noqa: F401  (re-exported for the digest builders)
     _records,
     _to_float,
     _unique,
+    in_study_order,
     relabel,
 )
 from ...render import _grid as _core_grid
 from ...render import render_table_figures as _render_table_figures
 from ...render import select_renderer as _select_renderer
+from ...contract import correction_statement
 from ...scanner import _slugify
+from . import reading as R
 
 # Canonical Jonak-style band order; categories not in this list keep file order.
 BAND_ORDER = ["Delta", "Theta", "Alpha", "Beta", "Low Gamma", "High Gamma", "Epsilon"]
@@ -124,14 +127,21 @@ def _grid(records, row_key, col_key, value_fn, sig_fn=_is_sig, agg="last"):
 
 def _facet_heatmaps(records, headers, out_dir, stem, dpi, value_fn, *,
                     col_key, sig_fn=_is_sig, agg="last", center=0.0,
-                    value_label="Hedges g", cmap="RdBu_r", suffix="effect_size",
-                    single=False):
+                    value_label=None, cmap="RdBu_r", suffix="effect_size",
+                    single=False, star=None):
     """Emit contrast x ``col_key`` heatmap(s), faceted by the measure column.
 
     With ``single=True`` (overview mode) only the preferred facet value is drawn,
-    giving exactly one figure.
+    giving exactly one figure. Without a ``value_label`` the values are effect
+    sizes: one measure is drawn, named on the colour bar (see
+    :func:`.reading.one_measure`). ``star`` says what ★ marks (default: the
+    table's correction, as recorded).
     """
     records = _to_native(records)
+    note = ""
+    if value_label is None:
+        records, value_label, note = R.one_measure(records, headers)
+    star = star or R.star_note(headers, records)
     fcol, fvals = _facet_column(headers, records)
     if single and fcol:
         fvals = [_pick_preferred(fvals, _FACET_PREF)]
@@ -141,7 +151,7 @@ def _facet_heatmaps(records, headers, out_dir, stem, dpi, value_fn, *,
         mat, rows, cols, smask = _grid(subset, "hypothesis", col_key, value_fn, sig_fn, agg)
         if not rows or not cols:
             continue
-        title = stem + (f" — {fval}" if fval else "")
+        title = stem + (f" — {fval}" if fval else "") + f"\n{star}{note}"
         fname = f"{stem}__{suffix}" + (f"_{_slugify(fval)}" if fval else "") + ".png"
         path = out_dir / fname
         _heatmap(mat, rows, cols, smask, title, path, dpi,
@@ -170,7 +180,8 @@ class RoiBandHeatmap(Renderer):
 
     @staticmethod
     def render(records, headers, out_dir, stem, dpi, overview=False, contrast_labels=None):
-        records = _to_native(records)
+        records, label, note = R.one_measure(_to_native(records), headers)
+        star = R.star_note(headers, records)
         contrasts = _unique(records, "hypothesis")
         if overview and contrasts:
             contrasts = [_pick_preferred(contrasts, _CONTRAST_PREF)]
@@ -183,8 +194,8 @@ class RoiBandHeatmap(Renderer):
             if not rows or not cols:
                 continue
             path = out_dir / f"{stem}__{_slugify(contrast)}.png"
-            _heatmap(mat, rows, cols, smask, f"{stem} — {contrast}", path, dpi,
-                     value_label="Hedges g")
+            _heatmap(mat, rows, cols, smask, f"{stem} — {contrast}\n{star}{note}", path, dpi,
+                     value_label=label)
             out.append(path)
         return out
 
@@ -217,6 +228,9 @@ class RoiGraphMetricHeatmap(Renderer):
             f = _to_float(rec.get("q_value"))
             return f is not None and f < 0.05
 
+        corr = R.correction(["q_value"], records)
+        star = "\u2605 = " + R.plain(correction_statement("fdr", corr["method"], "q"))
+
         # Nodal rows only: the native hypotheses table also carries the global
         # (whole-network) metrics with an empty spatial cell.
         records = [r for r in _to_native(records) if r.get("spatial") not in (None, "")]
@@ -241,11 +255,13 @@ class RoiGraphMetricHeatmap(Renderer):
                 if not rows or not cols:
                     continue
                 cm = f" · {conn}" if conn else ""
-                title = f"{stem} — {gm} · {contrast}{cm}"
+                title = f"{stem} — {gm} · {contrast}{cm}\n{star}"
                 fname = f"{stem}__{_slugify(gm)}_{_slugify(contrast)}.png"
                 path = out_dir / fname
+                ga, gb = subset[0].get("group_a"), subset[0].get("group_b")
+                sign = f" ({ga} \u2212 {gb})" if ga and gb else ""
                 _heatmap(mat, rows, cols, smask, title, path, dpi,
-                         value_label="Welch t (A − B); ★ FDR<0.05")
+                         value_label=f"t{sign}")
                 out.append(path)
         return out
 
@@ -269,7 +285,7 @@ class MvpaHeatmap(Renderer):
         return _facet_heatmaps(
             records, headers, out_dir, stem, dpi,
             value_fn=lambda r: _to_float(r.get(metric)),
-            col_key="band", center=0.5, value_label=metric.upper(),
+            col_key="band", center=0.5, value_label=metric.upper() if metric == "auc" else "accuracy",
             cmap="RdBu_r", suffix="mvpa", single=overview,
         )
 
@@ -354,11 +370,12 @@ class NbsComponentPlot(Renderer):
             )
             if not rows or not cols:
                 continue
-            title = stem + (f" — {metric}" if metric else "")
+            title = (stem + (f" — {metric}" if metric else "")
+                     + "\n\u2605 = " + R.plain(correction_statement("fwe", "NBS")))
             fname = f"{stem}__nbs" + (f"_{_slugify(metric)}" if metric else "") + ".png"
             path = out_dir / fname
             _heatmap(mat, rows, cols, smask, title, path, dpi,
-                     value_label="largest component (edges); ★ p<0.05",
+                     value_label="largest component (edges)",
                      cmap="Blues", vmin=0, int_annot=True)
             out.append(path)
             if overview:
@@ -380,8 +397,9 @@ class ClusterHeatmap(Renderer):
         return _facet_heatmaps(
             records, headers, out_dir, stem, dpi,
             value_fn=lambda r: _to_float(r.get("cluster_stat")),
-            col_key="band", agg="max_abs", value_label="cluster stat",
+            col_key="band", agg="max_abs", value_label="cluster statistic",
             suffix="cluster", single=overview,
+            star="\u2605 = " + R.plain(correction_statement("corrected", "cluster-level")),
         )
 
 
@@ -406,6 +424,8 @@ class SummaryHeatmap(Renderer):
             value_fn=lambda r: _to_float(r.get("max_abs_hedges_g")),
             col_key="band", sig_fn=sig_fn, value_label="max |Hedges g|",
             cmap="Reds", center=0.0, suffix="summary", single=overview,
+            star=("\u2605 = at least one vertex at uncorrected p < 0.05"
+                  if "n_nominal_sig" in headers else None),
         )
 
 
@@ -518,7 +538,8 @@ def _analysis_key(analysis: str) -> str:
 # --------------------------------------------------------------------------- #
 # Hooks around the overview (see neuro_lightbox.profiles.Profile)
 # --------------------------------------------------------------------------- #
-def render_state(brain=None, circos=None, contrast_labels=None, log=lambda *a, **k: None):
+def render_state(brain=None, circos=None, contrast_labels=None, log=lambda *a, **k: None,
+                 contrast_order=None):
     """What the hooks below need for one build.
 
     ``brain`` is an optional dict: ``{categories, contrasts, python, power_type}``
@@ -545,7 +566,7 @@ def render_state(brain=None, circos=None, contrast_labels=None, log=lambda *a, *
             log("  WARNING: circos unavailable — source-analytics interpreter not usable "
                 f"at {circos_mod._resolve(circos.get('python'))}")
     return {"brain": brain, "brain_ok": brain_ok, "circos": circos, "circos_ok": circos_ok,
-            "contrast_labels": contrast_labels}
+            "contrast_labels": contrast_labels, "contrast_order": contrast_order}
 
 
 def render_before(group, dest: Path, module: tuple, state, log) -> tuple[list, bool]:
@@ -620,8 +641,10 @@ def render_after(ranked, chosen, renderer, dest: Path, module: tuple, state, dpi
         if select_renderer(data2["headers"]) is not RoiGraphMetricHeatmap:
             continue
         graph_done = True  # native hypotheses + legacy stats: draw the first only
-        records2 = relabel(_records(data2["headers"], data2["rows"]),
-                           ("contrast", "hypothesis"), contrast_labels)
+        records2 = in_study_order(
+            relabel(_records(data2["headers"], data2["rows"]), ("contrast", "hypothesis"),
+                    contrast_labels),
+            ("contrast", "hypothesis"), (state or {}).get("contrast_order"), contrast_labels)
         dest.mkdir(parents=True, exist_ok=True)
         stem2 = Path(tbl2.filename).stem
         try:
