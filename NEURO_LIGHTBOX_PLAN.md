@@ -1,9 +1,62 @@
 # neuro-lightbox — plan
 
-**Status: Phases 0–2 done; Phase 3 done on today's trees, in review (2026-10-02); see §6.** Written 2026-10-02 from a
-cuprizone (rat MRI) session, after a feasibility test built one MRI analysis
-into a source-lightbox gallery; revised the same day with the author's two
-principles (§1).
+**Status: Phases 0–2 done; Phase 3 done on today's trees, in review (2026-10-02).
+2026-10-04: scope changed to MRI only — see "Decision 2026-10-04" below; the
+split (Phase 3b) is next, then the MRI profile (Phase 4).** Written 2026-10-02
+from a cuprizone (rat MRI) session, after a feasibility test built one MRI
+analysis into a source-lightbox gallery; revised the same day with the author's
+two principles (§1).
+
+## Decision 2026-10-04 — neuro-lightbox is for MRI; source-lightbox stays EEG
+
+**Decided by the author, superseding the 2026-10-02 decision below wherever they
+differ:** neuro-lightbox serves **MRI only** (neurofaune outputs). source-lightbox
+is **not frozen**: it stays the EEG tool (source-analytics outputs) and is
+developed on its own. Reason (author): *the data are completely different
+between the two modalities*, so one tool with two profiles buys little; each
+tool changes as its own modality needs.
+
+What this keeps and what it undoes:
+
+- **Kept:** this repository (with source-lightbox's history up to the split), the
+  Phase 3 reporting contract in the core (`contract.py` — it is domain-neutral
+  and is exactly what MRI needs), the core-purity test (it still keeps DUET and
+  any one study out of the core), the `mri_h1c` fixture, the output
+  specification (§4, now owned by neurofaune for this tool) and both principles
+  of §1 — with source-analytics no longer an input of this tool.
+- **Undone (Phase 3b below):** the EEG profile, the EEG golden cases, the
+  `source-lightbox` aliases, and Phase 6 (EEG regression and release).
+- **Moves to source-lightbox:** the EEG side of the Phase 3 fixes. source-lightbox
+  records the defects as to-dos in its `DESIGN_NOTES.md` ("Reporting defects
+  found 2026-10-02"); this repository's commit `1500523` (`contract.py`,
+  `profiles/eeg/reading.py`) is the implementation to port from — it stays in
+  this repository's history after the EEG profile is removed.
+
+### Phase 3b — split: remove EEG (next)
+1. **Remove the `source-lightbox` console script and the `source_lightbox` shim
+   package** (Phase 1's aliases). With source-lightbox alive, both packages
+   would install a `source-lightbox` command and a `source_lightbox` module into
+   the same environment and shadow each other. `tests/test_compat.py` goes too.
+2. **Remove `profiles/eeg/`** (renderers over source-analytics' schema, digest
+   builders, localization inputs and QC, the mosaic / circos workers, bundled
+   source-analytics metadata, `eeg.js`, retired analyses) and the golden cases
+   `eeg`, `eeg_no_sa`, `eeg_legacy` with their fixtures. Keep `mri_h1c`.
+3. **The profile interface:** keep it with one profile (MRI), or fold MRI into
+   the core — open decision (§8, 7). Until decided, the default profile becomes
+   the MRI one, and a config naming `profile: eeg` fails with a message pointing
+   to source-lightbox.
+4. **Docs and metadata:** README, pyproject description ("formerly
+   source-lightbox" → "derived from source-lightbox, for MRI"), DEPLOY, and the
+   GitHub repository description ("EEG and MRI … Successor to source-lightbox"
+   is no longer true — changing it is an outward-facing edit, for the author to
+   approve).
+5. **The lab website** reads gallery manifests (`title`, `stats.*`, `sources`;
+   §6 Phase 0) — keep those keys for MRI galleries too.
+- **Accept:** the suite passes with only the MRI case; the `mri_h1c` golden
+  build is unchanged by the split; nothing in the package mentions EEG,
+  source-analytics or localization; `source-lightbox` installed beside it works.
+
+---
 
 **Decision (author, 2026-10-02):** rename source-lightbox to **neuro-lightbox**
 and generalise it **in one repository** (option 1), with a **profile
@@ -480,11 +533,10 @@ failing one. Phases S and 0 can run in parallel.
   spec knows about them.
 - A `study.yaml` for the gallery; build into the study's report folder.
 
-### Phase 6 — EEG regression and release
-- Rebuild an existing EEG study gallery; review the diff against its golden
-  manifest with the author (Phase 3 changes EEG digests on purpose — the
-  correction wording, d/g labels, null magnitudes).
-- Tag neuro-lightbox 0.2.0; update references in source-analytics' docs.
+### Phase 6 — EEG regression and release *(dropped 2026-10-04: EEG stays in source-lightbox)*
+- ~~Rebuild an existing EEG study gallery; review the diff against its golden
+  manifest with the author.~~ The EEG fixes are ported in source-lightbox instead.
+- Release: tag neuro-lightbox's first MRI release after Phase 4.
 
 ## 7. Testing
 
@@ -514,6 +566,9 @@ failing one. Phases S and 0 can run in parallel.
    currently written in the cuprizone study's `analyses/REPORTING.md`): make it
    part of the output specification, so producers meet it and any reader —
    neuro-lightbox's contract tests included — can check it.
+7. *(2026-10-04)* With one modality: keep the profile interface with a single MRI
+   profile (cheap, already built and tested), or fold MRI into the core (less
+   indirection). Items 2–4 above assumed both modalities and are moot.
 
 ## 9. Related, outside this plan
 
