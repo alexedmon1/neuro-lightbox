@@ -12,8 +12,12 @@ mount (§1) and rebuild flow (§3) are identical, since both servers run as the
 same `www-data` user on Debian/Ubuntu.
 
 **Build vs serve are separate.** Keep *building* galleries on the machine that
-has `source-analytics` + the Allen atlas (brain mosaics need them). The
+has the analysis outputs (for galleries built with the inherited profile, also
+`source-analytics` + the Allen atlas, which its brain mosaics need). The
 workstation only *serves* the finished `gallery*/` directories.
+
+*The worked example below is an EEG study served from galleries built before the
+split; the hosting steps are the same for MRI galleries.*
 
 Worked example: an Ubuntu workstation serving MS1 (`gallery/`) and MS2
 (`gallery_treatment/`) from a mounted FORGE drive, LAN-only.

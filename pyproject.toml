@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "neuro-lightbox"
 version = "0.1.0"
-description = "Static gallery builder for neuro study results (formerly source-lightbox)"
+description = "Static gallery builder for MRI study results (neurofaune); derived from source-lightbox"
 readme = "README.md"
 requires-python = ">=3.10"
 license = {text = "MIT"}

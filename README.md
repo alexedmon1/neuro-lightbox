@@ -1,10 +1,20 @@
 # neuro-lightbox
 
-*Formerly **source-lightbox**. The `source-lightbox` command and the
-`source_lightbox` import still work, with a deprecation note, for scripts
-written before the rename. It is being generalised from EEG to any neuro
-study (EEG and MRI profiles): see
+*Derived from **source-lightbox**, for MRI. neuro-lightbox is the gallery for
+MRI study results (neurofaune outputs); EEG galleries stay with
+[source-lightbox](https://github.com/alexedmon1/source-lightbox), which is
+developed on its own. The `source-lightbox` command and `source_lightbox` import
+are no longer provided here, so the two install side by side. See
 [`NEURO_LIGHTBOX_PLAN.md`](NEURO_LIGHTBOX_PLAN.md).*
+
+**Transitional state (2026-10-06).** The MRI profile does not exist yet (plan,
+Phase 4); it will read the results output specification neurofaune is to write
+(Phase S). Until then the package still contains the profile it inherited from
+source-lightbox, and that profile is what this README documents below: it reads
+source-analytics' table layout, and it is what builds the MRI test fixture
+(`tests/fixtures/mri_h1c`, an export in that layout). The inherited profile, its
+documentation and its test cases are removed in Phase 4, when the MRI profile
+replaces them.
 
 Static gallery builder for EEG source-analysis results (its `eeg` profile,
 below). It turns the output
