@@ -1320,3 +1320,9 @@ th[title] { cursor: help; }
   font-weight: 700;
   color: var(--text-primary);
 }
+/* A run of an analysis (specification 0.2, §3.2): the summary's opening line. */
+.spec-run {
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin: 0 0 10px;
+}

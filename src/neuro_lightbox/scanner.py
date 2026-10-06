@@ -79,6 +79,9 @@ class ScanResult:
     #: (paradigm, analysis) -> its :class:`~neuro_lightbox.spec.SpecAnalysis`, for
     #: results written to the results specification.
     spec: dict = field(default_factory=dict)
+    #: (paradigm, analysis) -> one run of a 0.2 analysis: {analysis_id, run, title, label,
+    #: supersedes, n_tests, n_superseded, superseded_by, current} (spec.run_status).
+    spec_runs: dict = field(default_factory=dict)
 
 
 def _slugify(text: str) -> str:
@@ -212,9 +215,10 @@ class SpecScanner:
         self.sections = sections or []
 
     def scan(self) -> ScanResult:
-        from .spec import UNSECTIONED, find_analyses, load_analysis, section_of
+        from .spec import UNSECTIONED, find_analyses, load_analysis, run_status, section_of
 
         result = ScanResult()
+        by_id: dict[str, list] = {}
         for folder in find_analyses(self.path):
             spec = load_analysis(folder, self.warn)
             if spec is None:
@@ -226,12 +230,16 @@ class SpecScanner:
                               "listed under Other")
             else:
                 paradigm = _slugify(spec.analysis_type)
-            analysis = _slugify(spec.id)
+            # a 0.2 folder is one run of its analysis: one gallery entry per run, the
+            # runs of an id shown together (manifest: one domain)
+            analysis = _slugify(f"{spec.id}__{spec.run['id']}" if spec.run else spec.id)
             key = (paradigm, analysis)
             if key in result.spec:
                 self.warn(f"  WARNING: two analyses with id {spec.id!r}; {folder} skipped")
                 continue
             result.spec[key] = spec
+            if spec.run:
+                by_id.setdefault(spec.id, []).append((key, spec))
             if spec.provenance is not None:
                 result.provenance[key] = spec.provenance
             seen = set()
@@ -252,4 +260,13 @@ class SpecScanner:
                     src_path=path, category="analytics", source_label=self.label,
                     paradigm=paradigm, analysis=analysis,
                     filename="__".join(path.relative_to(folder).parts)))
+        # The runs of each 0.2 analysis, read together: what each supersedes and whether
+        # it is current; the analysis is titled by its latest current run (by run id).
+        for aid, items in by_id.items():
+            status = run_status([s for _k, s in items])
+            current = [s for _k, s in items if status[s.run["id"]]["current"]] or [s for _k, s in items]
+            latest = max(current, key=lambda s: s.run["id"])
+            for key, s in items:
+                result.spec_runs[key] = {"analysis_id": aid, "run": s.run["id"],
+                                         "title": latest.record.get("title") or aid, **status[s.run["id"]]}
         return result

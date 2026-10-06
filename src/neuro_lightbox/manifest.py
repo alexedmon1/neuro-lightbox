@@ -201,6 +201,14 @@ def build_manifest(scan: ScanResult, title: str, max_table_rows: int = 500,
                                  "display_name": spec.record.get("title")}
                 entry["spec"] = {k: spec.record.get(k) for k in
                                  ("id", "title", "role", "analysis_type", "modality", "measures")}
+                run = (getattr(scan, "spec_runs", None) or {}).get((paradigm, analysis))
+                if run:
+                    # one run of a 0.2 analysis: its runs share one page (the domain),
+                    # one tab each, and its summary opens with what the run is
+                    entry["meta"]["domain"] = run["title"]
+                    entry["meta"]["display_name"] = _run_label(run)
+                    entry["spec"]["run"] = run
+                    entry["summary"] = _run_note(run) + (entry["summary"] or "")
                 record = (getattr(scan, "provenance", None) or {}).get((paradigm, analysis))
                 if record:
                     entry["provenance"] = profile.trim_provenance(record)
@@ -289,3 +297,28 @@ def apply_sections(manifest: dict, sections: list[dict]) -> None:
     # The study's sections in order, Other (when anything fell there) last: the app
     # shows these with their group (breadcrumbs, overview headings).
     manifest["sections"] = [s["key"] for s in sections] + ([UNSECTIONED] if UNSECTIONED in ordered else [])
+
+
+def _run_label(run: dict) -> str:
+    """A run's tab label: its id, its label, and whether it has been superseded."""
+    label = f"Run {run['run']}" + (f" — {run['label']}" if run.get("label") else "")
+    if not run.get("current"):
+        label += " (superseded)"
+    elif run.get("n_superseded"):
+        label += f" ({run['n_superseded']} of {run['n_tests']} tests superseded)"
+    return label
+
+
+def _run_note(run: dict) -> str:
+    """The opening line of a run's summary: which run, what it supersedes, what supersedes it."""
+    from html import escape
+
+    parts = [f"<b>Run {escape(run['run'])}</b>" + (f" — {escape(run['label'])}" if run.get("label") else ""),
+             f"{run['n_tests']} test{'s' if run['n_tests'] != 1 else ''}"]
+    if run.get("supersedes"):
+        parts.append("supersedes run " + ", ".join(escape(r) for r in run["supersedes"]))
+    if run.get("superseded_by"):
+        parts.append(f"{run['n_superseded']} of its tests superseded by run "
+                     + ", ".join(f"{escape(r)} ({n})" for r, n in run["superseded_by"].items())
+                     + ("; not current" if not run.get("current") else ""))
+    return '<p class="spec-run">' + " · ".join(parts) + "</p>"

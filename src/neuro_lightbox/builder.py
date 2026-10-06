@@ -221,6 +221,7 @@ def _merge_scan(target: ScanResult, source: ScanResult):
     target.runs.update(source.runs)
     target.provenance.update(source.provenance)
     target.spec.update(source.spec)
+    target.spec_runs.update(source.spec_runs)
 
 
 def _render_html(out: Path, manifest_json: str, title: str = "Gallery",

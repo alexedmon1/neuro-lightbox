@@ -22,7 +22,7 @@ from pathlib import Path, PurePosixPath
 
 SPEC = "neurofaune.results"
 READS_MAJOR = 0
-READS_MINOR = 1
+READS_MINOR = 2
 TABLE_SUFFIXES = {".csv": ",", ".tsv": "\t"}
 
 
@@ -73,6 +73,24 @@ class SpecAnalysis:
     @property
     def measures(self) -> list[str]:
         return [str(m) for m in self.record.get("measures") or []]
+
+    @property
+    def run(self) -> dict:
+        """This folder's run of the analysis (0.2: ``{id, label, supersedes}``), else {}."""
+        r = self.record.get("run")
+        return dict(r) if isinstance(r, dict) and r.get("id") else {}
+
+    def test_keys(self) -> set[tuple[str, str, str]]:
+        """(measure, contrast, facet) of every row of its tests tables."""
+        keys = set()
+        for t in self.tables_with_role("tests"):
+            std = t.standard()
+            m, c, f = std.get("measure"), std.get("contrast"), std.get("facet")
+            if not c:
+                continue
+            _cols, rows = t.read()
+            keys |= {(r.get(m, "") if m else "", r.get(c, ""), r.get(f, "") if f else "") for r in rows}
+        return keys
 
     def tables_with_role(self, role: str) -> list[SpecTable]:
         return [t for t in self.tables if t.role == role]
@@ -129,7 +147,8 @@ def readable(version: str) -> bool:
         major, minor = (int(x) for x in str(version).split(".")[:2])
     except ValueError:
         return False
-    return major == READS_MAJOR and (major > 0 or minor == READS_MINOR)
+    # while the major is 0, every minor up to this reader's (0.2 reads 0.1 and 0.2)
+    return major == READS_MAJOR and (major > 0 or minor <= READS_MINOR)
 
 
 def load_analysis(folder: Path, warn=lambda msg: None) -> SpecAnalysis | None:
@@ -294,3 +313,32 @@ def section_of(analysis: SpecAnalysis, sections: list[dict]) -> str:
         if section_matches(analysis, s["match"]):
             return s["key"]
     return UNSECTIONED
+
+
+def run_status(runs: list[SpecAnalysis]) -> dict[str, dict]:
+    """The runs of one analysis id, read together (specification §3.2): run id ->
+    {label, supersedes, n_tests, n_superseded, superseded_by, current}.
+
+    A run's test is superseded when a run listing it in ``supersedes`` holds the same
+    test (measure, contrast, facet); a run all of whose tests are superseded is not
+    current. Nothing here is decided by date: only what the runs declare.
+    """
+    keys = {a.run["id"]: a.test_keys() for a in runs if a.run}
+    out = {}
+    for a in runs:
+        rid = a.run.get("id")
+        if not rid:
+            continue
+        mine = keys[rid]
+        by = {}
+        for b in runs:
+            if b.run and rid in (b.run.get("supersedes") or []):
+                overlap = mine & keys[b.run["id"]]
+                if overlap:
+                    by[b.run["id"]] = len(overlap)
+        n_sup = len({k for b in runs if b.run and rid in (b.run.get("supersedes") or [])
+                     for k in mine & keys[b.run["id"]]})
+        out[rid] = {"label": a.run.get("label"), "supersedes": list(a.run.get("supersedes") or []),
+                    "n_tests": len(mine), "n_superseded": n_sup, "superseded_by": by,
+                    "current": not (mine and n_sup == len(mine))}
+    return out

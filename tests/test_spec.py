@@ -251,3 +251,71 @@ def test_section_of_first_match_wins_and_unmatched_is_listed():
     # every condition must hold: tbss without a modality does not match
     assert section_of(_analysis(analysis_type="tbss"), sections) == UNSECTIONED
     assert section_of(_analysis(analysis_type="vbm", modality="anat"), sections) == UNSECTIONED
+
+
+# ── 0.2 runs: tests of one analysis run at different times ────────────────────────
+
+def _as_run(src: Path, dst: Path, run: dict, keep_measures=None) -> None:
+    """The fixture's tbss/demo as one 0.2 run (optionally keeping only some measures' rows)."""
+    shutil.copytree(src, dst)
+    a = json.loads((dst / "analysis.json").read_text())
+    a.update(spec_version="0.2.0", id="dwi/tbss/demo", modality="dwi", run=run)
+    if keep_measures:
+        import csv
+
+        for t in a["tables"]:
+            if t.get("role") != "tests":
+                continue
+            p = dst / t["path"]
+            with open(p, newline="") as fh:
+                rows = list(csv.DictReader(fh))
+            cols = list(rows[0])
+            meas = next(c for c, m in json.loads(p.with_suffix(".json").read_text()).items()
+                        if m.get("Standard") == "measure")
+            rows = [r for r in rows if r[meas] in keep_measures]
+            with open(p, "w", newline="") as fh:
+                w = csv.DictWriter(fh, cols)
+                w.writeheader()
+                w.writerows(rows)
+            t["n_rows"] = len(rows)
+    (dst / "analysis.json").write_text(json.dumps(a))
+
+
+@pytest.fixture
+def two_runs(tmp_path):
+    src = RESULTS / "tbss" / "demo"
+    root = tmp_path / "results"
+    _as_run(src, root / "dwi" / "tbss" / "demo" / "2026-10-05", {"id": "2026-10-05", "label": "registered"})
+    _as_run(src, root / "dwi" / "tbss" / "demo" / "2026-10-08",
+            {"id": "2026-10-08", "label": "MD re-run", "supersedes": ["2026-10-05"]}, keep_measures={"MD"})
+    return root
+
+
+def test_a_reader_reads_0_2_and_not_0_3():
+    from neuro_lightbox.spec import readable
+
+    assert readable("0.1.0") and readable("0.2.0") and not readable("0.3.0") and not readable("1.0.0")
+
+
+def test_runs_of_one_analysis_are_read_together(two_runs):
+    scan = SpecScanner(two_runs, "results").scan()
+    runs = {v["run"]: v for v in scan.spec_runs.values()}
+    assert set(runs) == {"2026-10-05", "2026-10-08"}
+    first, second = runs["2026-10-05"], runs["2026-10-08"]
+    assert {first["analysis_id"], second["analysis_id"]} == {"dwi/tbss/demo"}
+    # the re-run repeats only MD's tests: those of the first run are superseded, the rest stay
+    assert second["supersedes"] == ["2026-10-05"] and second["current"]
+    assert 0 < first["n_superseded"] < first["n_tests"] and first["current"]
+    assert first["superseded_by"] == {"2026-10-08": first["n_superseded"]}
+
+
+def test_runs_share_one_page_one_tab_each(two_runs, tmp_path):
+    out = build(BuildConfig(output_dir=tmp_path / "g", results=[SourceInput(two_runs, "results")],
+                            render_figures=False), verbose=False)
+    m = json.loads((out / "data" / "manifest.json").read_text())
+    entries = [e for p in m["paradigms"].values() for e in p.values() if (e.get("spec") or {}).get("run")]
+    assert len(entries) == 2 and len({e["meta"]["domain"] for e in entries}) == 1
+    labels = sorted(e["meta"]["display_name"] for e in entries)
+    assert labels[0].startswith("Run 2026-10-05 — registered (") and "superseded" in labels[0]
+    assert labels[1] == "Run 2026-10-08 — MD re-run"
+    assert all(e["summary"].startswith('<p class="spec-run">') for e in entries)
