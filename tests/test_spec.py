@@ -142,3 +142,32 @@ def test_opposite_one_sided_contrasts_share_a_row():
     assert _pairs(keys, cell, ["FA", "MD"], std) == {("w1", "b>a"): ("w1", "a>b")}
     cell[("w1", "b>a", "MD")] = {"d": "1.2"}                  # not an exact negation
     assert _pairs(keys, cell, ["FA", "MD"], std) == {}
+
+
+def test_subgroup_overview_draws_each_subgroup_and_survives_tiny_ones(tmp_path):
+    import csv
+
+    from neuro_lightbox.spec_render import subgroup_dots
+
+    root = tmp_path / "demo"
+    shutil.copytree(RESULTS / "tbss" / "demo", root)
+    with open(root / "tests.csv", newline="") as fh:
+        rows = list(csv.DictReader(fh))
+    for k, r in enumerate(rows):
+        r["d_A"], r["d_B"], r["n_B"] = str(0.1 * k), str(40.0 if k == 0 else -0.3), "2"
+    with open(root / "tests.csv", "w", newline="") as fh:
+        w = csv.DictWriter(fh, fieldnames=list(rows[0]))
+        w.writeheader()
+        w.writerows(rows)
+    cols = json.loads((root / "tests.json").read_text())
+    cols.update({"d_A": {"Description": "d in A", "Standard": "subgroup_effect", "EffectMeasure": "d",
+                         "Subgroup": "A"},
+                 "d_B": {"Description": "d in B", "Standard": "subgroup_effect", "EffectMeasure": "d",
+                         "Subgroup": "B"},
+                 "n_B": {"Description": "n in B", "Standard": "subgroup_n", "Subgroup": "B"}})
+    (root / "tests.json").write_text(json.dumps(cols))
+    spec = load_analysis(root)
+    out = subgroup_dots(spec, spec.tables_with_role("tests")[0], tmp_path / "s.png", 72)
+    assert out is not None and out.stat().st_size > 0             # B (n = 2, d = 40) drawn, not fatal
+    plain = load_analysis(RESULTS / "tbss" / "demo")
+    assert subgroup_dots(plain, plain.tables_with_role("tests")[0], tmp_path / "t.png", 72) is None
