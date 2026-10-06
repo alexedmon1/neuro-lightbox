@@ -1,11 +1,40 @@
 # neuro-lightbox — plan
 
-**Status: Phases 0–2 done; Phase 3 done on today's trees, in review (2026-10-02).
-2026-10-04: scope changed to MRI only — see "Decision 2026-10-04" below; the
-split (Phase 3b) is next, then the MRI profile (Phase 4).** Written 2026-10-02
+**Status (2026-10-06): Phases 0–3 done (Phase 3 not yet reviewed by the author).
+Phase 3b partly done — the aliases are gone and the docs are MRI-framed; removing
+the EEG profile moved into Phase 4 (see Phase 3b). Next: Phase S in neurofaune
+for the randomise-based analyses, then Phase 4 for the same.** Written 2026-10-02
 from a cuprizone (rat MRI) session, after a feasibility test built one MRI
 analysis into a source-lightbox gallery; revised the same day with the author's
-two principles (§1).
+two principles (§1); scope changed to MRI only on 2026-10-04; order and the
+specification's home decided 2026-10-06.
+
+## Decision 2026-10-06 — order of work; the specification lives in neurofaune
+
+**Decided by the author** (cuprizone session, 2026-10-06), on top of the
+2026-10-04 decision:
+
+- **Order:** Phase 3b → Phase S for the randomise-based analyses (TBSS, VBM,
+  voxelwise fMRI — the tests neurofaune's `read_randomise` reads out) → Phase 4
+  for the same analyses → cuprizone adoption (Phase 5) for them. ROI and network
+  analyses follow, in the same order. One family of results carried end to end
+  first, rather than every analysis half-way.
+- **Montages are core:** skeleton and slice montages of the maps move from
+  Phase 4's "later, optional" into Phase 4 itself. For voxelwise results the
+  location is the result, and tables alone hide it.
+- **§8 item 1 decided — the output specification lives in neurofaune.** With
+  neuro-lightbox MRI-only, neurofaune is the owning producer. **neurovrai** (the
+  human MRI pipeline, `alexedmon1/neurovrai`) is a second producer and must be
+  able to write the same format: the specification carries a producer guide
+  for it, and its conformance checker must run without neurofaune's pipeline
+  dependencies.
+- **§8 item 7 decided — keep the profile interface**, with a single MRI profile
+  (it is built and tested; folding it into the core gains little). Per the
+  agreed plan.
+- *Stale in the 2026-10-04 handoff:* neurofaune's `tbss-reporting` branch is
+  merged (neurofaune `092f94b`; HTML escaping fixed in `240ae2a`;
+  `neurofaune.analysis.stats.readout.read_randomise`, which RandomiseAnalysis —
+  VBM, voxelwise fMRI — also reports through).
 
 ## Decision 2026-10-04 — neuro-lightbox is for MRI; source-lightbox stays EEG
 
@@ -32,7 +61,35 @@ What this keeps and what it undoes:
   `profiles/eeg/reading.py`) is the implementation to port from — it stays in
   this repository's history after the EEG profile is removed.
 
-### Phase 3b — split: remove EEG (next)
+### Phase 3b — split: remove EEG (partly done 2026-10-06; the rest moves into Phase 4)
+
+**Done 2026-10-06** (`2735eb7`, `ffdea96`): step 1 — the `source-lightbox`
+console script, `cli.deprecated_main`, the `source_lightbox` shim and
+`tests/test_compat.py` are gone; installed side by side with source-lightbox in
+one environment, each gets its own command and module and the two installs
+share no file. Step 4, the local part — README (MRI framing plus a
+transitional-state note), pyproject description, DEPLOY. Suite 165 passed / 4
+skipped → 162 / 2 (the compat tests); every golden build unchanged.
+
+**Moved into Phase 4: steps 2 and 3** (removing `profiles/eeg`, the EEG golden
+cases, and making the MRI profile the default). The `mri_h1c` case cannot stay
+unchanged without the EEG profile: it is an MRI analysis exported into
+source-analytics' table layout (`tests/fixtures/mri_h1c/export_h1c.py`) and the
+EEG profile draws all of it — a trace of its build calls the EEG renderers
+(`EffectSizeHeatmap` and the facet heatmaps), the digest (`summarize.py`,
+`reading.py`), the vocabulary and `eeg.js` / `eeg.css`, and its manifest carries
+the EEG inputs key (`localization`) and source-analytics provenance fields.
+Keeping it unchanged would mean carrying ~2,500 lines of source-analytics-layout
+code into an "mri" profile that Phase 4 replaces anyway. So in Phase 4, together:
+the H1c fixture is re-exported in the neurofaune specification's format, the MRI
+profile builds it (its golden diff is the review of what the MRI profile shows),
+the MRI profile becomes the default with `profile: eeg` failing and pointing to
+source-lightbox, and `profiles/eeg`, the `eeg` / `eeg_no_sa` / `eeg_legacy`
+cases and their fixtures are deleted. Until then the package still contains the
+EEG profile; it no longer clashes with source-lightbox.
+
+The original steps, for reference:
+
 1. **Remove the `source-lightbox` console script and the `source_lightbox` shim
    package** (Phase 1's aliases). With source-lightbox alive, both packages
    would install a `source-lightbox` command and a `source_lightbox` module into
@@ -518,10 +575,19 @@ failing one. Phases S and 0 can run in parallel.
   against its permutation null.
 - Inputs side: link neurofaune's preprocessing QC index (`qc/index.html`) as the
   MRI counterpart of EEG's localization QC.
-- Later, optional: atlas figures (SIGMA ROI mosaics, skeleton montages),
-  delegated by subprocess to neurofaune's environment.
+- **Montages (core, decided 2026-10-06):** skeleton and slice montages of each
+  test's maps (TBSS skeleton, VBM / voxelwise slices; FWE and uncorrected), with
+  the clusters' named regions beside them, so location is seen, not read off a
+  table. Drawn either by the producer into the analysis folder's `maps/` /
+  `figures/` (listed in `analysis.json`) or by subprocess in neurofaune's
+  environment — decide with Phase S. Later, optional: SIGMA ROI mosaics.
+- The EEG removal moved here from Phase 3b (see there): re-export the H1c
+  fixture in the specification's format, make the MRI profile the default
+  (`profile: eeg` fails, pointing to source-lightbox), delete `profiles/eeg` and
+  the EEG golden cases and fixtures.
 - **Accept:** a neurofaune fixture (the TBSS read-out) and a study-orchestrator
-  fixture (H1c, §2) build with the MRI profile, with none of §2's defects.
+  fixture (H1c, §2) build with the MRI profile, with none of §2's defects;
+  nothing in the package mentions EEG, source-analytics or localization.
 
 ### Phase 5 — study adoption (each study's own side; cuprizone first)
 - A study's own orchestration scripts (cuprizone's `h1_*` analyses are
@@ -551,7 +617,7 @@ failing one. Phases S and 0 can run in parallel.
 
 ## 8. Open decisions (author)
 
-1. **Where the output specification lives**: a small standalone spec
+1. *(decided 2026-10-06: in neurofaune; neurovrai writes it too)* **Where the output specification lives**: a small standalone spec
    (recommended), source-analytics' docs adopted by neurofaune, or two copies.
 2. Other users of source-lightbox, and so the length of the deprecation window.
    *Phase 0 found none outside the author's own scripts (§6, Phase 0); a short
@@ -566,7 +632,7 @@ failing one. Phases S and 0 can run in parallel.
    currently written in the cuprizone study's `analyses/REPORTING.md`): make it
    part of the output specification, so producers meet it and any reader —
    neuro-lightbox's contract tests included — can check it.
-7. *(2026-10-04)* With one modality: keep the profile interface with a single MRI
+7. *(decided 2026-10-06: keep the interface, one MRI profile)* *(2026-10-04)* With one modality: keep the profile interface with a single MRI
    profile (cheap, already built and tested), or fold MRI into the core (less
    indirection). Items 2–4 above assumed both modalities and are moot.
 
