@@ -30,7 +30,8 @@ Planted truth:
   either direction, a few uncorrected-only voxels). The other directions are nulls.
 * ``vbm/demo_change`` (one sample, treated n = 12, GM change): an increase in a
   right-striatum blob (increase FWE-significant, one cluster, not crossing the
-  midline); nothing for decrease. No background image -- a reader draws on the mask.
+  midline); nothing for decrease. No background image and no declared axes -- a reader
+  draws on the mask and orients by the header.
 """
 from __future__ import annotations
 
@@ -229,9 +230,10 @@ def tbss(rng, work: Path) -> Path:
     ys = (np.arange(shape[1]) - (shape[1] - 1) / 2) / (shape[1] / 2.2)
     zs = (np.arange(shape[2]) - (shape[2] - 1) / 2) / (shape[2] / 2.2)
     r2 = xs[:, None, None] ** 2 + ys[None, :, None] ** 2 + zs[None, None, :] ** 2
-    brain = np.where(r2 < 1, 0.15 + 0.1 * (1 - r2), 0)
-    brain[skel] = 0.55
-    background = _save(work / "mean_FA.nii.gz", np.round(brain, 2), aff)
+    # A stand-in for the atlas's intensity template (what readers draw maps on): a brain
+    # with a brighter rim and darker core, not a study-derived image.
+    brain = np.where(r2 < 1, 40 + 50 * r2, 0)
+    background = _save(work / "template.nii.gz", np.round(brain, 1), aff)
 
     write_readout_results(
         out, tests, clusters, analysis_id="tbss/demo", title="TBSS: demo (synthetic)",
@@ -243,7 +245,8 @@ def tbss(rng, work: Path) -> Path:
                 for m in measures],
         settings={"n_permutations": 5000, "tfce": True, "cluster_threshold": 0.95,
                   "min_cluster_size": 10, "seed": 2026},
-        caveats=[CAVEAT], mask=mask_path, background=background, strict=True)
+        caveats=[CAVEAT], mask=mask_path, background=background, axes="RAS", plane="axial",
+        strict=True)
     return out
 
 

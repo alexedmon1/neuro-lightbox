@@ -64,7 +64,8 @@
       "space": "SIGMA",
       "measure": "FA",
       "contrast": "treated>control",
-      "description": "t statistic, treated>control on FA"
+      "description": "t statistic, treated>control on FA",
+      "axes": "RAS"
     },
     {
       "path": "randomise_FA/randomise_tfce_corrp_tstat1.nii.gz",
@@ -73,7 +74,8 @@
       "measure": "FA",
       "contrast": "treated>control",
       "description": "1 - FWE-corrected p (randomise's convention), treated>control on FA",
-      "values": "one_minus_p"
+      "values": "one_minus_p",
+      "axes": "RAS"
     },
     {
       "path": "randomise_FA/randomise_tfce_p_tstat1.nii.gz",
@@ -82,7 +84,8 @@
       "measure": "FA",
       "contrast": "treated>control",
       "description": "1 - uncorrected p (randomise's convention), treated>control on FA",
-      "values": "one_minus_p"
+      "values": "one_minus_p",
+      "axes": "RAS"
     },
     {
       "path": "randomise_FA/randomise_tstat2.nii.gz",
@@ -90,7 +93,8 @@
       "space": "SIGMA",
       "measure": "FA",
       "contrast": "control>treated",
-      "description": "t statistic, control>treated on FA"
+      "description": "t statistic, control>treated on FA",
+      "axes": "RAS"
     },
     {
       "path": "randomise_FA/randomise_tfce_corrp_tstat2.nii.gz",
@@ -99,7 +103,8 @@
       "measure": "FA",
       "contrast": "control>treated",
       "description": "1 - FWE-corrected p (randomise's convention), control>treated on FA",
-      "values": "one_minus_p"
+      "values": "one_minus_p",
+      "axes": "RAS"
     },
     {
       "path": "randomise_FA/randomise_tfce_p_tstat2.nii.gz",
@@ -108,7 +113,8 @@
       "measure": "FA",
       "contrast": "control>treated",
       "description": "1 - uncorrected p (randomise's convention), control>treated on FA",
-      "values": "one_minus_p"
+      "values": "one_minus_p",
+      "axes": "RAS"
     },
     {
       "path": "randomise_MD/randomise_tstat1.nii.gz",
@@ -116,7 +122,8 @@
       "space": "SIGMA",
       "measure": "MD",
       "contrast": "treated>control",
-      "description": "t statistic, treated>control on MD"
+      "description": "t statistic, treated>control on MD",
+      "axes": "RAS"
     },
     {
       "path": "randomise_MD/randomise_tfce_corrp_tstat1.nii.gz",
@@ -125,7 +132,8 @@
       "measure": "MD",
       "contrast": "treated>control",
       "description": "1 - FWE-corrected p (randomise's convention), treated>control on MD",
-      "values": "one_minus_p"
+      "values": "one_minus_p",
+      "axes": "RAS"
     },
     {
       "path": "randomise_MD/randomise_tfce_p_tstat1.nii.gz",
@@ -134,7 +142,8 @@
       "measure": "MD",
       "contrast": "treated>control",
       "description": "1 - uncorrected p (randomise's convention), treated>control on MD",
-      "values": "one_minus_p"
+      "values": "one_minus_p",
+      "axes": "RAS"
     },
     {
       "path": "randomise_MD/randomise_tstat2.nii.gz",
@@ -142,7 +151,8 @@
       "space": "SIGMA",
       "measure": "MD",
       "contrast": "control>treated",
-      "description": "t statistic, control>treated on MD"
+      "description": "t statistic, control>treated on MD",
+      "axes": "RAS"
     },
     {
       "path": "randomise_MD/randomise_tfce_corrp_tstat2.nii.gz",
@@ -151,7 +161,8 @@
       "measure": "MD",
       "contrast": "control>treated",
       "description": "1 - FWE-corrected p (randomise's convention), control>treated on MD",
-      "values": "one_minus_p"
+      "values": "one_minus_p",
+      "axes": "RAS"
     },
     {
       "path": "randomise_MD/randomise_tfce_p_tstat2.nii.gz",
@@ -160,7 +171,8 @@
       "measure": "MD",
       "contrast": "control>treated",
       "description": "1 - uncorrected p (randomise's convention), control>treated on MD",
-      "values": "one_minus_p"
+      "values": "one_minus_p",
+      "axes": "RAS"
     },
     {
       "path": "randomise_MK/randomise_tstat1.nii.gz",
@@ -168,7 +180,8 @@
       "space": "SIGMA",
       "measure": "MK",
       "contrast": "treated>control",
-      "description": "t statistic, treated>control on MK"
+      "description": "t statistic, treated>control on MK",
+      "axes": "RAS"
     },
     {
       "path": "randomise_MK/randomise_tfce_corrp_tstat1.nii.gz",
@@ -177,7 +190,8 @@
       "measure": "MK",
       "contrast": "treated>control",
       "description": "1 - FWE-corrected p (randomise's convention), treated>control on MK",
-      "values": "one_minus_p"
+      "values": "one_minus_p",
+      "axes": "RAS"
     },
     {
       "path": "randomise_MK/randomise_tfce_p_tstat1.nii.gz",
@@ -186,7 +200,8 @@
       "measure": "MK",
       "contrast": "treated>control",
       "description": "1 - uncorrected p (randomise's convention), treated>control on MK",
-      "values": "one_minus_p"
+      "values": "one_minus_p",
+      "axes": "RAS"
     },
     {
       "path": "randomise_MK/randomise_tstat2.nii.gz",
@@ -194,7 +209,8 @@
       "space": "SIGMA",
       "measure": "MK",
       "contrast": "control>treated",
-      "description": "t statistic, control>treated on MK"
+      "description": "t statistic, control>treated on MK",
+      "axes": "RAS"
     },
     {
       "path": "randomise_MK/randomise_tfce_corrp_tstat2.nii.gz",
@@ -203,7 +219,8 @@
       "measure": "MK",
       "contrast": "control>treated",
       "description": "1 - FWE-corrected p (randomise's convention), control>treated on MK",
-      "values": "one_minus_p"
+      "values": "one_minus_p",
+      "axes": "RAS"
     },
     {
       "path": "randomise_MK/randomise_tfce_p_tstat2.nii.gz",
@@ -212,23 +229,29 @@
       "measure": "MK",
       "contrast": "control>treated",
       "description": "1 - uncorrected p (randomise's convention), control>treated on MK",
-      "values": "one_minus_p"
+      "values": "one_minus_p",
+      "axes": "RAS"
     },
     {
       "path": "mask.nii.gz",
       "kind": "mask",
       "space": "SIGMA",
-      "description": "the TBSS skeleton"
+      "description": "the TBSS skeleton",
+      "axes": "RAS"
     },
     {
       "path": "background.nii.gz",
       "kind": "background",
       "space": "SIGMA",
-      "description": "image the maps are drawn on"
+      "description": "intensity template of the SIGMA atlas, on the maps' grid",
+      "axes": "RAS"
     }
   ],
   "modality": "dwi",
   "caveats": [
     "Synthetic fixture: every subject, group and value is invented, and the effects were planted by tests/fixtures/make_mri_spec.py."
-  ]
+  ],
+  "display": {
+    "plane": "axial"
+  }
 }

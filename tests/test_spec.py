@@ -111,3 +111,20 @@ def test_p_maps_that_do_not_say_p_or_one_minus_p_are_not_thresholded(tmp_path):
     logs = []
     assert montages(load_analysis(root), tmp_path / "out", 72, logs.append) == []
     assert any("does not say whether it holds p or 1 - p" in x for x in logs)
+
+
+def test_declared_axes_orient_the_image_not_the_header(tmp_path):
+    """A voxel at index (0, 0, 5) of an LIA image is the most right, superior, anterior one."""
+    import nibabel as nib
+    import numpy as np
+
+    from neuro_lightbox.profiles.mri.montage import _load
+
+    a = np.zeros((4, 5, 6), np.float32)
+    a[0, 0, 5] = 1
+    path = tmp_path / "lia.nii.gz"
+    nib.save(nib.Nifti1Image(a, np.eye(4)), str(path))          # the header claims RAS
+    ras = _load(path, "LIA")
+    assert ras.shape == (4, 6, 5)
+    assert np.argwhere(ras == 1).tolist() == [[3, 5, 4]]
+    assert np.argwhere(_load(path, None) == 1).tolist() == [[0, 0, 5]]   # header: as stored
