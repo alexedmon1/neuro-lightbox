@@ -149,6 +149,20 @@ def build_manifest(scan: ScanResult, title: str, max_table_rows: int = 500,
         if truncated:
             tbl_entry["truncated"] = True
             tbl_entry["total_rows"] = total_rows
+        # A specification table's column dictionary: what each column is, its units and
+        # its standard role (the app labels and orders columns by it).
+        if getattr(tbl, "dictionary", None) is not None:
+            try:
+                import json
+
+                cols = json.loads(Path(tbl.dictionary).read_text(encoding="utf-8"))
+                tbl_entry["columns"] = {
+                    c: {k: m[k2] for k, k2 in (("description", "Description"), ("units", "Units"),
+                                                ("standard", "Standard"), ("subgroup", "Subgroup"))
+                        if isinstance(m, dict) and m.get(k2)}
+                    for c, m in cols.items()}
+            except (OSError, ValueError):
+                pass
         entry["tables"][source].append(tbl_entry)
 
     # Summaries — a concise 'significant results by contrast' digest derived from

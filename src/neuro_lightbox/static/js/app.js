@@ -20,6 +20,14 @@
   /* ── How the profile's table columns are grouped, labelled and formatted ── */
   const TABLE = V.table || {};
 
+  /* ── A specification table's standard columns, in the order a reader takes them in ── */
+  const STANDARD_ORDER = ["facet", "measure", "contrast", "contrast_label", "tested_direction",
+    "test_kind", "group_a", "group_b", "element", "effect_size", "effect_ci_low", "effect_ci_high",
+    "observed_direction", "p_value", "significant", "n_significant", "frac_significant", "n_voxels",
+    "volume_mm3", "peak_region", "peak_xyz_mm", "regions", "crosses_midline", "stat", "estimate",
+    "n", "n_a", "n_b", "df", "mean_a", "mean_b", "mean", "effect_selected", "subgroup_effect",
+    "subgroup_n"];
+
   /* ── The study's contrasts, in its order (tables and figures follow it) ── */
   const CONTRAST_ORDER = (M && M.contrast_order) || [];
   const CONTRAST_RANK = {};
@@ -1407,6 +1415,20 @@
 
     var headers = tbl.headers;
     var rows = tbl.rows;
+    var cols = tbl.columns || null;   // a specification table's column dictionary
+    if (cols) {
+      // Standard columns first, in a fixed reading order; the producer's own after them.
+      var rank = function (h) {
+        var std = (cols[h] || {}).standard;
+        var i = std ? STANDARD_ORDER.indexOf(std) : -1;
+        return i < 0 ? (std ? STANDARD_ORDER.length : STANDARD_ORDER.length + 1) : i;
+      };
+      var order = headers.map(function (h, i) { return i; }).sort(function (a, b) {
+        return (rank(headers[a]) - rank(headers[b])) || (a - b);
+      });
+      headers = order.map(function (i) { return tbl.headers[i]; });
+      rows = rows.map(function (r) { return order.map(function (i) { return r[i]; }); });
+    }
 
     // Determine which columns to hide (diagnostic/model-fit columns)
     var hideCols = computeHiddenColumns(headers);
@@ -1439,7 +1461,13 @@
     var html = '<table class="sortable"><thead><tr>';
     for (var ci = 0; ci < headers.length; ci++) {
       if (hideCols[ci] || groupColIndices.indexOf(ci) >= 0) continue;
-      html += '<th>' + escapeHtml(formatColumnHeader(headers[ci])) + '<span class="sort-indicator"></span></th>';
+      var meta = cols && cols[headers[ci]];
+      var tip = meta ? [meta.description, meta.units ? "units: " + meta.units : "",
+                        meta.standard ? "standard: " + meta.standard + (meta.subgroup ? " (" + meta.subgroup + ")" : "") : ""]
+                        .filter(Boolean).join(" \u2014 ") : "";
+      html += '<th' + (tip ? ' title="' + escapeHtml(tip) + '"' : '') +
+        (meta && meta.standard ? ' class="std-col"' : '') + '>' +
+        escapeHtml(formatColumnHeader(headers[ci])) + '<span class="sort-indicator"></span></th>';
     }
     html += "</tr></thead>";
     // Tablesort sorts each <tbody> independently and leaves single-row bodies
@@ -1448,7 +1476,7 @@
     html += "<tbody>";
 
     var sigIdx = headers.findIndex(function (h) {
-      return h.toLowerCase() === "significant";
+      return cols ? (cols[h] || {}).standard === "significant" : h.toLowerCase() === "significant";
     });
 
     // Count visible, non-grouped columns for colspan

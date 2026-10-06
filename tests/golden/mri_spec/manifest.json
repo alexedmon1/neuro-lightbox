@@ -35,7 +35,132 @@
                 ["MD", "2", "control>treated", "-1 1", "two-group", "control > treated", "control mean > treated mean", "22", "20", "666", "0", "0.0", "0.6500000059604645", "0", "0.0", "0.5", "2.871000051498413", "fwe p < 0.05, 26-connected, >= 10 voxels", "0", "0", "False", "22", "20", "-1.4577028236130007e-05", "-0.5603933521322633", "-1.4104724513629365", "0.30305105159374", "-0.5603933521322674", "0.0006999812829087967", "0.0007145583111449268", "10", "12", "treated > control"],
                 ["MK", "1", "treated>control", "1 -1", "two-group", "treated > control", "treated mean > control mean", "22", "20", "666", "0", "0.0", "0.6500000059604645", "0", "0.0", "0.5", "1.9759999513626099", "fwe p < 0.05, 26-connected, >= 10 voxels", "0", "0", "False", "22", "20", "-0.03909744393300496", "-0.7876979377375237", "-1.6522050433967916", "0.09489706664906726", "-0.7876979377375193", "0.9615212352843852", "1.00061867921739", "12", "10", "control > treated"],
                 ["MK", "2", "control>treated", "-1 1", "two-group", "control > treated", "control mean > treated mean", "22", "20", "666", "171", "0.25675675675675674", "0.009999990463256836", "171", "0.25675675675675674", "0.001999974250793457", "9.057000160217285", "fwe p < 0.05, 26-connected, >= 10 voxels", "2", "126", "True", "22", "20", "0.03909744393300496", "0.7876979377375237", "-0.09489706664906702", "1.6522050433967912", "0.7876979377375193", "1.00061867921739", "0.9615212352843852", "10", "12", "control > treated"]
-              ]
+              ],
+              "columns": {
+                "metric": {
+                  "description": "the measure tested",
+                  "standard": "measure"
+                },
+                "contrast": {
+                  "description": "contrast number in design.con (1-based)"
+                },
+                "contrast_name": {
+                  "description": "contrast name, from the design record or design.con",
+                  "standard": "contrast"
+                },
+                "contrast_vector": {
+                  "description": "the contrast weights, one per design column"
+                },
+                "design": {
+                  "description": "how the contrast reads in the design"
+                },
+                "tested_direction": {
+                  "description": "what a positive statistic means, in the design's terms (randomise tests each contrast one-sided, t > 0)",
+                  "standard": "tested_direction"
+                },
+                "contrast_tests": {
+                  "description": "what the contrast tests, in words, from the design record (empty when the design has no record)",
+                  "standard": "contrast_label"
+                },
+                "n": {
+                  "description": "rows (subjects) in the design",
+                  "standard": "n"
+                },
+                "df": {
+                  "description": "error degrees of freedom, n - rank(X)",
+                  "standard": "df"
+                },
+                "mask_voxels": {
+                  "description": "voxels in the analysis mask",
+                  "units": "voxels"
+                },
+                "n_vox_fwe": {
+                  "description": "voxels with FWE-corrected p below alpha",
+                  "units": "voxels",
+                  "standard": "n_significant"
+                },
+                "frac_mask_fwe": {
+                  "description": "n_vox_fwe as a fraction of the mask",
+                  "standard": "frac_significant"
+                },
+                "min_p_fwe": {
+                  "description": "smallest FWE-corrected voxel p in the map",
+                  "standard": "p_value"
+                },
+                "n_vox_uncorr": {
+                  "description": "voxels with uncorrected p below alpha (empty when randomise wrote no uncorrected maps)",
+                  "units": "voxels"
+                },
+                "frac_mask_uncorr": {
+                  "description": "n_vox_uncorr as a fraction of the mask"
+                },
+                "min_p_uncorr": {
+                  "description": "smallest uncorrected voxel p in the map"
+                },
+                "peak_t": {
+                  "description": "largest t in the map",
+                  "standard": "stat"
+                },
+                "cluster_definition": {
+                  "description": "how clusters were formed for this test"
+                },
+                "n_clusters": {
+                  "description": "clusters under cluster_definition"
+                },
+                "largest_cluster_vox": {
+                  "description": "voxels in the largest cluster",
+                  "units": "voxels"
+                },
+                "significant_fwe": {
+                  "description": "any voxel with FWE-corrected p below alpha",
+                  "standard": "significant"
+                },
+                "whole_effect_n": {
+                  "description": "subjects with a finite whole-mask mean"
+                },
+                "whole_effect_df": {
+                  "description": "degrees of freedom of the whole-mask effect"
+                },
+                "whole_estimate": {
+                  "description": "the contrast estimate c'b on each subject's mean over the whole mask, in the measure's units",
+                  "standard": "estimate"
+                },
+                "whole_d": {
+                  "description": "c'b / residual SD on each subject's mean over the whole mask: pooled-SD Cohen's d for two groups without covariates, mean / SD for one sample; never selected",
+                  "standard": "effect_size"
+                },
+                "whole_d_ci_low": {
+                  "description": "lower bound of whole_d (exact, noncentral t)",
+                  "standard": "effect_ci_low"
+                },
+                "whole_d_ci_high": {
+                  "description": "upper bound of whole_d (exact, noncentral t)",
+                  "standard": "effect_ci_high"
+                },
+                "whole_d_raw": {
+                  "description": "whole-mask d without covariate adjustment (pooled-SD for two groups, mean / SD for one sample)"
+                },
+                "whole_mean_pos": {
+                  "description": "whole-mask mean of the group weighted +1",
+                  "standard": "mean_a"
+                },
+                "whole_mean_neg": {
+                  "description": "whole-mask mean of the group weighted -1",
+                  "standard": "mean_b"
+                },
+                "whole_n_pos": {
+                  "description": "subjects in the group weighted +1",
+                  "standard": "n_a"
+                },
+                "whole_n_neg": {
+                  "description": "subjects in the group weighted -1",
+                  "standard": "n_b"
+                },
+                "whole_observed_direction": {
+                  "description": "the direction the whole-mask effect went",
+                  "standard": "observed_direction"
+                }
+              }
             },
             {
               "filename": "clusters.csv",
@@ -45,7 +170,152 @@
                 ["MD", "1", "treated>control", "1 -1", "two-group", "treated > control", "treated mean > control mean", "22", "20", "1", "126", "3.402000405550019", "7.5229997634887695", "14 28 14", "-1.65 1.35 0.75", "0.00 0.15 0.96", "0.009999990463256836", "0.001999974250793457", "True", "Corpus.Callosum.and.Associated.Subcortical.White.Matter.L", "Corpus.Callosum.and.Associated.Subcortical.White.Matter.L", "Corpus.Callosum.and.Associated.Subcortical.White.Matter.L:63; Corpus.Callosum.and.Associated.Subcortical.White.Matter.R:63", "2", "0", "True", "22", "20", "7.502973451871658e-05", "2.8961337396360785", "1.6546930489533929", "4.103050853322682", "2.8961337396360745", "0.0007750274851488901", "0.0006999977506301736", "12", "10", "treated > control", "True"],
                 ["MK", "2", "control>treated", "-1 1", "two-group", "control > treated", "control mean > treated mean", "22", "20", "1", "126", "3.402000405550019", "8.019000053405762", "25 28 14", "1.65 1.35 0.75", "0.00 0.15 0.96", "0.009999990463256836", "0.001999974250793457", "True", "Corpus.Callosum.and.Associated.Subcortical.White.Matter.R", "Corpus.Callosum.and.Associated.Subcortical.White.Matter.L", "Corpus.Callosum.and.Associated.Subcortical.White.Matter.L:63; Corpus.Callosum.and.Associated.Subcortical.White.Matter.R:63", "2", "0", "True", "22", "20", "0.15183229363626904", "2.9475190328822287", "1.694539295391716", "4.165992995821622", "2.947519032882231", "1.0022278350970102", "0.850395541460741", "10", "12", "control > treated", "True"],
                 ["MK", "2", "control>treated", "-1 1", "two-group", "control > treated", "control mean > treated mean", "22", "20", "2", "45", "1.2150001448392926", "9.057000160217285", "27 25 9", "2.25 0.45 -0.75", "2.25 0.15 -1.05", "0.009999990463256836", "0.001999974250793457", "True", "Internal.Capsule.R", "Internal.Capsule.R", "Internal.Capsule.R:45", "1", "0", "False", "22", "20", "0.15058564490742166", "3.188456294783132", "1.8802337270550664", "4.462371097240774", "3.1884562947831285", "0.9982914117972056", "0.847705766889784", "10", "12", "control > treated", "True"]
-              ]
+              ],
+              "columns": {
+                "metric": {
+                  "description": "the measure tested",
+                  "standard": "measure"
+                },
+                "contrast": {
+                  "description": "contrast number in design.con (1-based)"
+                },
+                "contrast_name": {
+                  "description": "contrast name, from the design record or design.con",
+                  "standard": "contrast"
+                },
+                "contrast_vector": {
+                  "description": "the contrast weights, one per design column"
+                },
+                "design": {
+                  "description": "how the contrast reads in the design"
+                },
+                "tested_direction": {
+                  "description": "what a positive statistic means, in the design's terms (randomise tests each contrast one-sided, t > 0)",
+                  "standard": "tested_direction"
+                },
+                "contrast_tests": {
+                  "description": "what the contrast tests, in words, from the design record (empty when the design has no record)",
+                  "standard": "contrast_label"
+                },
+                "n": {
+                  "description": "rows (subjects) in the design",
+                  "standard": "n"
+                },
+                "df": {
+                  "description": "error degrees of freedom, n - rank(X)",
+                  "standard": "df"
+                },
+                "cluster": {
+                  "description": "cluster id within its test",
+                  "standard": "element"
+                },
+                "n_voxels": {
+                  "description": "cluster extent",
+                  "units": "voxels",
+                  "standard": "n_voxels"
+                },
+                "mm3": {
+                  "description": "cluster extent",
+                  "units": "mm^3",
+                  "standard": "volume_mm3"
+                },
+                "peak_t": {
+                  "description": "largest t in the cluster",
+                  "standard": "stat"
+                },
+                "peak_ijk": {
+                  "description": "peak voxel indices, 'i j k'"
+                },
+                "peak_xyz_mm": {
+                  "description": "peak coordinate, 'x y z' in mm (image affine)",
+                  "standard": "peak_xyz_mm"
+                },
+                "cog_xyz_mm": {
+                  "description": "centre of gravity, 'x y z' in mm"
+                },
+                "min_p_fwe": {
+                  "description": "smallest FWE-corrected p in the cluster",
+                  "standard": "p_value"
+                },
+                "min_p_uncorr": {
+                  "description": "smallest uncorrected p in the cluster"
+                },
+                "fwe_significant": {
+                  "description": "the cluster holds a voxel with FWE-corrected p below alpha",
+                  "standard": "significant"
+                },
+                "peak_region": {
+                  "description": "atlas region at the peak",
+                  "standard": "peak_region"
+                },
+                "top_region": {
+                  "description": "atlas region with the most cluster voxels"
+                },
+                "regions": {
+                  "description": "every region the cluster covers, 'name:voxels; ...', largest first",
+                  "standard": "regions"
+                },
+                "n_regions": {
+                  "description": "regions the cluster covers"
+                },
+                "outside_atlas_vox": {
+                  "description": "cluster voxels with no atlas label",
+                  "units": "voxels"
+                },
+                "crosses_midline": {
+                  "description": "the cluster covers left and right regions",
+                  "standard": "crosses_midline"
+                },
+                "effect_n": {
+                  "description": "subjects with a finite cluster mean"
+                },
+                "effect_df": {
+                  "description": "degrees of freedom of the cluster effect"
+                },
+                "estimate": {
+                  "description": "the contrast estimate on each subject's mean over the cluster",
+                  "standard": "estimate"
+                },
+                "d": {
+                  "description": "d on each subject's mean over the cluster -- computed on voxels chosen for significance, so inflated",
+                  "standard": "effect_size"
+                },
+                "d_ci_low": {
+                  "description": "lower bound of d (does not hold its coverage: selected)",
+                  "standard": "effect_ci_low"
+                },
+                "d_ci_high": {
+                  "description": "upper bound of d (does not hold its coverage: selected)",
+                  "standard": "effect_ci_high"
+                },
+                "d_raw": {
+                  "description": "cluster d without covariate adjustment"
+                },
+                "mean_pos": {
+                  "description": "cluster mean of the group weighted +1",
+                  "standard": "mean_a"
+                },
+                "mean_neg": {
+                  "description": "cluster mean of the group weighted -1",
+                  "standard": "mean_b"
+                },
+                "n_pos": {
+                  "description": "subjects in the group weighted +1",
+                  "standard": "n_a"
+                },
+                "n_neg": {
+                  "description": "subjects in the group weighted -1",
+                  "standard": "n_b"
+                },
+                "observed_direction": {
+                  "description": "the direction the cluster effect went",
+                  "standard": "observed_direction"
+                },
+                "effect_selected": {
+                  "description": "the effect was computed on voxels chosen for significance",
+                  "standard": "effect_selected"
+                }
+              }
             }
           ]
         },
@@ -145,7 +415,120 @@
               "rows": [
                 ["GM", "1", "increase", "1", "one-sample", "mean > 0", "mean GM change > 0 in treated animals", "12", "11", "3872", "136", "0.03512396694214876", "0.009999990463256836", "136", "0.03512396694214876", "0.001999974250793457", "8.708999633789062", "fwe p < 0.05, 26-connected, >= 10 voxels", "1", "136", "True", "12", "11", "0.0036861994119034708", "0.058971561325710166", "-0.5086658873325746", "0.6239671883020091", "0.058971561325710194", "0.0036861994119034725", "mean > 0"],
                 ["GM", "2", "decrease", "-1", "one-sample", "mean < 0", "mean GM change < 0 in treated animals", "12", "11", "3872", "0", "0.0", "0.7999999970197678", "0", "0.0", "0.699999988079071", "2.7260000705718994", "fwe p < 0.05, 26-connected, >= 10 voxels", "0", "0", "False", "12", "11", "-0.0036861994119034708", "-0.058971561325710166", "-0.6239671883020095", "0.508665887332575", "-0.058971561325710194", "0.0036861994119034725", "mean > 0"]
-              ]
+              ],
+              "columns": {
+                "metric": {
+                  "description": "the measure tested",
+                  "standard": "measure"
+                },
+                "contrast": {
+                  "description": "contrast number in design.con (1-based)"
+                },
+                "contrast_name": {
+                  "description": "contrast name, from the design record or design.con",
+                  "standard": "contrast"
+                },
+                "contrast_vector": {
+                  "description": "the contrast weights, one per design column"
+                },
+                "design": {
+                  "description": "how the contrast reads in the design"
+                },
+                "tested_direction": {
+                  "description": "what a positive statistic means, in the design's terms (randomise tests each contrast one-sided, t > 0)",
+                  "standard": "tested_direction"
+                },
+                "contrast_tests": {
+                  "description": "what the contrast tests, in words, from the design record (empty when the design has no record)",
+                  "standard": "contrast_label"
+                },
+                "n": {
+                  "description": "rows (subjects) in the design",
+                  "standard": "n"
+                },
+                "df": {
+                  "description": "error degrees of freedom, n - rank(X)",
+                  "standard": "df"
+                },
+                "mask_voxels": {
+                  "description": "voxels in the analysis mask",
+                  "units": "voxels"
+                },
+                "n_vox_fwe": {
+                  "description": "voxels with FWE-corrected p below alpha",
+                  "units": "voxels",
+                  "standard": "n_significant"
+                },
+                "frac_mask_fwe": {
+                  "description": "n_vox_fwe as a fraction of the mask",
+                  "standard": "frac_significant"
+                },
+                "min_p_fwe": {
+                  "description": "smallest FWE-corrected voxel p in the map",
+                  "standard": "p_value"
+                },
+                "n_vox_uncorr": {
+                  "description": "voxels with uncorrected p below alpha (empty when randomise wrote no uncorrected maps)",
+                  "units": "voxels"
+                },
+                "frac_mask_uncorr": {
+                  "description": "n_vox_uncorr as a fraction of the mask"
+                },
+                "min_p_uncorr": {
+                  "description": "smallest uncorrected voxel p in the map"
+                },
+                "peak_t": {
+                  "description": "largest t in the map",
+                  "standard": "stat"
+                },
+                "cluster_definition": {
+                  "description": "how clusters were formed for this test"
+                },
+                "n_clusters": {
+                  "description": "clusters under cluster_definition"
+                },
+                "largest_cluster_vox": {
+                  "description": "voxels in the largest cluster",
+                  "units": "voxels"
+                },
+                "significant_fwe": {
+                  "description": "any voxel with FWE-corrected p below alpha",
+                  "standard": "significant"
+                },
+                "whole_effect_n": {
+                  "description": "subjects with a finite whole-mask mean"
+                },
+                "whole_effect_df": {
+                  "description": "degrees of freedom of the whole-mask effect"
+                },
+                "whole_estimate": {
+                  "description": "the contrast estimate c'b on each subject's mean over the whole mask, in the measure's units",
+                  "standard": "estimate"
+                },
+                "whole_d": {
+                  "description": "c'b / residual SD on each subject's mean over the whole mask: pooled-SD Cohen's d for two groups without covariates, mean / SD for one sample; never selected",
+                  "standard": "effect_size"
+                },
+                "whole_d_ci_low": {
+                  "description": "lower bound of whole_d (exact, noncentral t)",
+                  "standard": "effect_ci_low"
+                },
+                "whole_d_ci_high": {
+                  "description": "upper bound of whole_d (exact, noncentral t)",
+                  "standard": "effect_ci_high"
+                },
+                "whole_d_raw": {
+                  "description": "whole-mask d without covariate adjustment (pooled-SD for two groups, mean / SD for one sample)"
+                },
+                "whole_mean": {
+                  "description": "whole-mask mean (one-sample tests)",
+                  "standard": "mean"
+                },
+                "whole_observed_direction": {
+                  "description": "the direction the whole-mask effect went",
+                  "standard": "observed_direction"
+                }
+              }
             },
             {
               "filename": "clusters.csv",
@@ -153,7 +536,140 @@
               "headers": ["metric", "contrast", "contrast_name", "contrast_vector", "design", "tested_direction", "contrast_tests", "n", "df", "cluster", "n_voxels", "mm3", "peak_t", "peak_ijk", "peak_xyz_mm", "cog_xyz_mm", "min_p_fwe", "min_p_uncorr", "fwe_significant", "peak_region", "top_region", "regions", "n_regions", "outside_atlas_vox", "crosses_midline", "effect_n", "effect_df", "estimate", "d", "d_ci_low", "d_ci_high", "d_raw", "mean", "observed_direction", "effect_selected"],
               "rows": [
                 ["GM", "1", "increase", "1", "one-sample", "mean > 0", "mean GM change > 0 in treated animals", "12", "11", "1", "136", "3.6720004377365285", "8.708999633789062", "15 18 7", "1.05 1.35 -0.15", "1.50 0.60 0.00", "0.009999990463256836", "0.001999974250793457", "True", "Striatum.R", "Striatum.R", "Striatum.R:110; Cortex.R:26", "2", "0", "False", "12", "11", "0.0991166918892166", "1.5919252046771564", "0.7102291729132035", "2.443577046724824", "1.5919252046771561", "0.09911669188921658", "mean > 0", "True"]
-              ]
+              ],
+              "columns": {
+                "metric": {
+                  "description": "the measure tested",
+                  "standard": "measure"
+                },
+                "contrast": {
+                  "description": "contrast number in design.con (1-based)"
+                },
+                "contrast_name": {
+                  "description": "contrast name, from the design record or design.con",
+                  "standard": "contrast"
+                },
+                "contrast_vector": {
+                  "description": "the contrast weights, one per design column"
+                },
+                "design": {
+                  "description": "how the contrast reads in the design"
+                },
+                "tested_direction": {
+                  "description": "what a positive statistic means, in the design's terms (randomise tests each contrast one-sided, t > 0)",
+                  "standard": "tested_direction"
+                },
+                "contrast_tests": {
+                  "description": "what the contrast tests, in words, from the design record (empty when the design has no record)",
+                  "standard": "contrast_label"
+                },
+                "n": {
+                  "description": "rows (subjects) in the design",
+                  "standard": "n"
+                },
+                "df": {
+                  "description": "error degrees of freedom, n - rank(X)",
+                  "standard": "df"
+                },
+                "cluster": {
+                  "description": "cluster id within its test",
+                  "standard": "element"
+                },
+                "n_voxels": {
+                  "description": "cluster extent",
+                  "units": "voxels",
+                  "standard": "n_voxels"
+                },
+                "mm3": {
+                  "description": "cluster extent",
+                  "units": "mm^3",
+                  "standard": "volume_mm3"
+                },
+                "peak_t": {
+                  "description": "largest t in the cluster",
+                  "standard": "stat"
+                },
+                "peak_ijk": {
+                  "description": "peak voxel indices, 'i j k'"
+                },
+                "peak_xyz_mm": {
+                  "description": "peak coordinate, 'x y z' in mm (image affine)",
+                  "standard": "peak_xyz_mm"
+                },
+                "cog_xyz_mm": {
+                  "description": "centre of gravity, 'x y z' in mm"
+                },
+                "min_p_fwe": {
+                  "description": "smallest FWE-corrected p in the cluster",
+                  "standard": "p_value"
+                },
+                "min_p_uncorr": {
+                  "description": "smallest uncorrected p in the cluster"
+                },
+                "fwe_significant": {
+                  "description": "the cluster holds a voxel with FWE-corrected p below alpha",
+                  "standard": "significant"
+                },
+                "peak_region": {
+                  "description": "atlas region at the peak",
+                  "standard": "peak_region"
+                },
+                "top_region": {
+                  "description": "atlas region with the most cluster voxels"
+                },
+                "regions": {
+                  "description": "every region the cluster covers, 'name:voxels; ...', largest first",
+                  "standard": "regions"
+                },
+                "n_regions": {
+                  "description": "regions the cluster covers"
+                },
+                "outside_atlas_vox": {
+                  "description": "cluster voxels with no atlas label",
+                  "units": "voxels"
+                },
+                "crosses_midline": {
+                  "description": "the cluster covers left and right regions",
+                  "standard": "crosses_midline"
+                },
+                "effect_n": {
+                  "description": "subjects with a finite cluster mean"
+                },
+                "effect_df": {
+                  "description": "degrees of freedom of the cluster effect"
+                },
+                "estimate": {
+                  "description": "the contrast estimate on each subject's mean over the cluster",
+                  "standard": "estimate"
+                },
+                "d": {
+                  "description": "d on each subject's mean over the cluster -- computed on voxels chosen for significance, so inflated",
+                  "standard": "effect_size"
+                },
+                "d_ci_low": {
+                  "description": "lower bound of d (does not hold its coverage: selected)",
+                  "standard": "effect_ci_low"
+                },
+                "d_ci_high": {
+                  "description": "upper bound of d (does not hold its coverage: selected)",
+                  "standard": "effect_ci_high"
+                },
+                "d_raw": {
+                  "description": "cluster d without covariate adjustment"
+                },
+                "mean": {
+                  "description": "cluster mean (one-sample tests)",
+                  "standard": "mean"
+                },
+                "observed_direction": {
+                  "description": "the direction the cluster effect went",
+                  "standard": "observed_direction"
+                },
+                "effect_selected": {
+                  "description": "the effect was computed on voxels chosen for significance",
+                  "standard": "effect_selected"
+                }
+              }
             }
           ]
         },

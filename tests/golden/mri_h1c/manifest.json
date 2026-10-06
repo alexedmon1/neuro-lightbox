@@ -120,7 +120,129 @@
                 ["fALFF_zscore", "cross__p120", "Cuprizone vs control, p120", "GM_all", "cross", "p120", "two_group", "cuprizone > control", "control > cuprizone", "cuprizone", "control", "24", "14", "10", "20.0", "-0.0251603", "-0.0902565", "0.0399359", "0.0210216", "-0.532502", "0.0286802", "-0.207496", "-0.0317914", "-0.0581992", "-0.58901", "2.0", "-0.591213", "6.0", "-0.412418", "6.0", "", "", "", "", ""],
                 ["FC_mean_nogsr", "cross__p120", "Cuprizone vs control, p120", "FC_mean", "cross", "p120", "two_group", "cuprizone > control", "control > cuprizone", "cuprizone", "control", "24", "14", "10", "20.0", "-0.0128374", "-0.0705398", "0.044865", "0.0181393", "-0.552475", "0.339694", "-0.0649858", "-0.015958", "-0.0412739", "-0.196379", "2.0", "-0.226384", "6.0", "-0.217944", "6.0", "", "", "", "", ""],
                 ["FC_homotopic_nogsr", "cross__p120", "Cuprizone vs control, p120", "FC_homotopic", "cross", "p120", "two_group", "cuprizone > control", "control > cuprizone", "cuprizone", "control", "24", "14", "10", "20.0", "-0.0217294", "-0.084767", "0.0413082", "0.0206668", "-1.0238", "0.0162684", "-0.362609", "-0.041466", "-0.0783303", "-0.846221", "2.0", "-0.587097", "6.0", "-0.581367", "6.0", "", "", "", "", ""]
-              ]
+              ],
+              "columns": {
+                "measure": {
+                  "description": "the measure: ReHo, fALFF (raw ROI means; primary), their within-brain z-scored versions (sensitivity), and per-animal summaries of the Fisher-z connectivity matrix with / without global signal regression",
+                  "standard": "measure"
+                },
+                "contrast": {
+                  "description": "the test, as <test>__<level>",
+                  "standard": "contrast"
+                },
+                "contrast_label": {
+                  "description": "the contrast in words",
+                  "standard": "contrast_label"
+                },
+                "variable": {
+                  "description": "the summary tested"
+                },
+                "test": {
+                  "description": "which test"
+                },
+                "level": {
+                  "description": "the window (change tests) or the timepoint (cross)"
+                },
+                "test_kind": {
+                  "description": "one-sample (a group's change) or two-group",
+                  "standard": "test_kind"
+                },
+                "tested_direction": {
+                  "description": "what a positive statistic means",
+                  "standard": "tested_direction"
+                },
+                "observed_direction": {
+                  "description": "the direction the contrast estimate went",
+                  "standard": "observed_direction"
+                },
+                "group_a": {
+                  "description": "two-group tests: the group higher when the statistic is positive",
+                  "standard": "group_a"
+                },
+                "group_b": {
+                  "description": "two-group tests: the other group",
+                  "standard": "group_b"
+                },
+                "n": {
+                  "description": "animals in the test",
+                  "standard": "n"
+                },
+                "n_cuprizone": {
+                  "description": "cuprizone animals in the test"
+                },
+                "n_control": {
+                  "description": "control animals in the test"
+                },
+                "df": {
+                  "description": "error degrees of freedom of the cohort model",
+                  "standard": "df"
+                },
+                "estimate": {
+                  "description": "the contrast estimate in the measure's own units: mean within-animal change, or cuprizone minus control",
+                  "standard": "effect_size"
+                },
+                "ci95_low": {
+                  "description": "lower bound of the estimate's 95% bootstrap interval",
+                  "standard": "effect_ci_low"
+                },
+                "ci95_high": {
+                  "description": "upper bound of the estimate's 95% bootstrap interval",
+                  "standard": "effect_ci_high"
+                },
+                "se": {
+                  "description": "standard error of the estimate (cohort model)"
+                },
+                "t": {
+                  "description": "t of the contrast (cohort model)",
+                  "standard": "stat"
+                },
+                "p": {
+                  "description": "p of the contrast from the cohort model's t, uncorrected",
+                  "standard": "p_value"
+                },
+                "d": {
+                  "description": "Cohen's d, pooled SD, on per-animal values, ignoring cohort (no interval recorded)"
+                },
+                "mean_cuprizone": {
+                  "description": "mean of the cuprizone animals (empty where the test has none)"
+                },
+                "mean_control": {
+                  "description": "mean of the control animals (empty where the test has none)"
+                },
+                "d_X": {
+                  "description": "d in cuprizone cohort X against all controls"
+                },
+                "n_X": {
+                  "description": "animals in cuprizone cohort X"
+                },
+                "d_Y": {
+                  "description": "d in cuprizone cohort Y against all controls"
+                },
+                "n_Y": {
+                  "description": "animals in cuprizone cohort Y"
+                },
+                "d_Z": {
+                  "description": "d in cuprizone cohort Z against all controls"
+                },
+                "n_Z": {
+                  "description": "animals in cuprizone cohort Z"
+                },
+                "adj_estimate": {
+                  "description": "change-group tests: the estimate adjusted for each animal's baseline (change ~ cohort + baseline)"
+                },
+                "adj_se": {
+                  "description": "standard error of adj_estimate"
+                },
+                "adj_t": {
+                  "description": "t of adj_estimate"
+                },
+                "adj_p": {
+                  "description": "p of adj_estimate, uncorrected"
+                },
+                "adj_df": {
+                  "description": "degrees of freedom of adj_estimate"
+                }
+              }
             },
             {
               "filename": "tests_by_hemisphere.csv",
@@ -271,7 +393,133 @@
                 ["ReHo_zscore", "cross__p120", "Cuprizone vs control, p120", "right", "GM_R", "cross", "p120", "two_group", "cuprizone > control", "cuprizone > control", "cuprizone", "control", "24", "14", "10", "20.0", "0.0072962", "-0.0470815", "0.0616739", "0.0201104", "0.273524", "0.841938", "0.00350472", "0.00875134", "0.026574", "0.106892", "2.0", "0.150839", "6.0", "0.077478", "6.0", "", "", "", "", ""],
                 ["fALFF_zscore", "cross__p120", "Cuprizone vs control, p120", "right", "GM_R", "cross", "p120", "two_group", "cuprizone > control", "control > cuprizone", "cuprizone", "control", "24", "14", "10", "20.0", "-0.00209426", "-0.0533508", "0.0491623", "0.0139841", "0.203894", "0.762718", "0.0385412", "0.00281186", "0.024626", "-0.0184577", "2.0", "0.0456944", "6.0", "0.206158", "6.0", "", "", "", "", ""],
                 ["FC_mean_nogsr", "cross__p120", "Cuprizone vs control, p120", "right", "FC_right", "cross", "p120", "two_group", "cuprizone > control", "cuprizone > control", "cuprizone", "control", "24", "14", "10", "20.0", "0.0136388", "-0.0445445", "0.0718221", "0.0299751", "-0.0559114", "0.478127", "0.0207724", "0.00603415", "0.0253969", "0.000199164", "2.0", "0.188618", "6.0", "0.0239148", "6.0", "", "", "", "", ""]
-              ]
+              ],
+              "columns": {
+                "measure": {
+                  "description": "the measure: ReHo, fALFF (raw ROI means; primary), their within-brain z-scored versions (sensitivity), and per-animal summaries of the Fisher-z connectivity matrix with / without global signal regression",
+                  "standard": "measure"
+                },
+                "contrast": {
+                  "description": "the test, as <test>__<level>",
+                  "standard": "contrast"
+                },
+                "contrast_label": {
+                  "description": "the contrast in words",
+                  "standard": "contrast_label"
+                },
+                "facet": {
+                  "description": "hemisphere of the summary",
+                  "standard": "facet"
+                },
+                "variable": {
+                  "description": "the summary tested"
+                },
+                "test": {
+                  "description": "which test"
+                },
+                "level": {
+                  "description": "the window (change tests) or the timepoint (cross)"
+                },
+                "test_kind": {
+                  "description": "one-sample (a group's change) or two-group",
+                  "standard": "test_kind"
+                },
+                "tested_direction": {
+                  "description": "what a positive statistic means",
+                  "standard": "tested_direction"
+                },
+                "observed_direction": {
+                  "description": "the direction the contrast estimate went",
+                  "standard": "observed_direction"
+                },
+                "group_a": {
+                  "description": "two-group tests: the group higher when the statistic is positive",
+                  "standard": "group_a"
+                },
+                "group_b": {
+                  "description": "two-group tests: the other group",
+                  "standard": "group_b"
+                },
+                "n": {
+                  "description": "animals in the test",
+                  "standard": "n"
+                },
+                "n_cuprizone": {
+                  "description": "cuprizone animals in the test"
+                },
+                "n_control": {
+                  "description": "control animals in the test"
+                },
+                "df": {
+                  "description": "error degrees of freedom of the cohort model",
+                  "standard": "df"
+                },
+                "estimate": {
+                  "description": "the contrast estimate in the measure's own units: mean within-animal change, or cuprizone minus control",
+                  "standard": "effect_size"
+                },
+                "ci95_low": {
+                  "description": "lower bound of the estimate's 95% bootstrap interval",
+                  "standard": "effect_ci_low"
+                },
+                "ci95_high": {
+                  "description": "upper bound of the estimate's 95% bootstrap interval",
+                  "standard": "effect_ci_high"
+                },
+                "se": {
+                  "description": "standard error of the estimate (cohort model)"
+                },
+                "t": {
+                  "description": "t of the contrast (cohort model)",
+                  "standard": "stat"
+                },
+                "p": {
+                  "description": "p of the contrast from the cohort model's t, uncorrected",
+                  "standard": "p_value"
+                },
+                "d": {
+                  "description": "Cohen's d, pooled SD, on per-animal values, ignoring cohort (no interval recorded)"
+                },
+                "mean_cuprizone": {
+                  "description": "mean of the cuprizone animals (empty where the test has none)"
+                },
+                "mean_control": {
+                  "description": "mean of the control animals (empty where the test has none)"
+                },
+                "d_X": {
+                  "description": "d in cuprizone cohort X against all controls"
+                },
+                "n_X": {
+                  "description": "animals in cuprizone cohort X"
+                },
+                "d_Y": {
+                  "description": "d in cuprizone cohort Y against all controls"
+                },
+                "n_Y": {
+                  "description": "animals in cuprizone cohort Y"
+                },
+                "d_Z": {
+                  "description": "d in cuprizone cohort Z against all controls"
+                },
+                "n_Z": {
+                  "description": "animals in cuprizone cohort Z"
+                },
+                "adj_estimate": {
+                  "description": "change-group tests: the estimate adjusted for each animal's baseline (change ~ cohort + baseline)"
+                },
+                "adj_se": {
+                  "description": "standard error of adj_estimate"
+                },
+                "adj_t": {
+                  "description": "t of adj_estimate"
+                },
+                "adj_p": {
+                  "description": "p of adj_estimate, uncorrected"
+                },
+                "adj_df": {
+                  "description": "degrees of freedom of adj_estimate"
+                }
+              }
             },
             {
               "filename": "roi_posthoc.csv",
@@ -780,7 +1028,108 @@
                 ["FC_homotopic_nogsr", "cross__p60", "Cuprizone vs control, p60", "pair_Posterior_Agralunar_Insular_Cortex", "cross", "p60", "two_group", "cuprizone > control", "control > cuprizone", "cuprizone", "control", "34", "24", "10", "30.0", "-0.00863023", "0.0426825", "-0.23966", "0.894298", "0.0336174", "-0.00016431", "-0.010196", "-0.0193731", "8.0", "0.0495276", "8.0", "-0.0143435", "8.0"]
               ],
               "truncated": true,
-              "total_rows": 600
+              "total_rows": 600,
+              "columns": {
+                "measure": {
+                  "description": "the measure: ReHo, fALFF (raw ROI means; primary), their within-brain z-scored versions (sensitivity), and per-animal summaries of the Fisher-z connectivity matrix with / without global signal regression",
+                  "standard": "measure"
+                },
+                "contrast": {
+                  "description": "the test, as <test>__<level>",
+                  "standard": "contrast"
+                },
+                "contrast_label": {
+                  "description": "the contrast in words",
+                  "standard": "contrast_label"
+                },
+                "element": {
+                  "description": "the ROI (node_: an ROI's mean connectivity to the rest)",
+                  "standard": "element"
+                },
+                "test": {
+                  "description": "which test"
+                },
+                "level": {
+                  "description": "the window (change tests) or the timepoint (cross)"
+                },
+                "test_kind": {
+                  "description": "one-sample (a group's change) or two-group",
+                  "standard": "test_kind"
+                },
+                "tested_direction": {
+                  "description": "what a positive statistic means",
+                  "standard": "tested_direction"
+                },
+                "observed_direction": {
+                  "description": "the direction the contrast estimate went",
+                  "standard": "observed_direction"
+                },
+                "group_a": {
+                  "description": "two-group tests: the group higher when the statistic is positive",
+                  "standard": "group_a"
+                },
+                "group_b": {
+                  "description": "two-group tests: the other group",
+                  "standard": "group_b"
+                },
+                "n": {
+                  "description": "animals in the test",
+                  "standard": "n"
+                },
+                "n_cuprizone": {
+                  "description": "cuprizone animals in the test"
+                },
+                "n_control": {
+                  "description": "control animals in the test"
+                },
+                "df": {
+                  "description": "error degrees of freedom of the cohort model",
+                  "standard": "df"
+                },
+                "estimate": {
+                  "description": "the contrast estimate in the measure's own units",
+                  "standard": "estimate"
+                },
+                "se": {
+                  "description": "standard error of the estimate (cohort model)"
+                },
+                "t": {
+                  "description": "t of the contrast (cohort model)",
+                  "standard": "stat"
+                },
+                "p": {
+                  "description": "p of the contrast from the cohort model's t, uncorrected",
+                  "standard": "p_value"
+                },
+                "d": {
+                  "description": "Cohen's d, pooled SD, on per-animal ROI values, ignoring cohort",
+                  "standard": "effect_size"
+                },
+                "mean_cuprizone": {
+                  "description": "mean of the cuprizone animals (empty where the test has none)"
+                },
+                "mean_control": {
+                  "description": "mean of the control animals (empty where the test has none)"
+                },
+                "d_X": {
+                  "description": "d in cuprizone cohort X against all controls"
+                },
+                "n_X": {
+                  "description": "animals in cuprizone cohort X"
+                },
+                "d_Y": {
+                  "description": "d in cuprizone cohort Y against all controls"
+                },
+                "n_Y": {
+                  "description": "animals in cuprizone cohort Y"
+                },
+                "d_Z": {
+                  "description": "d in cuprizone cohort Z against all controls"
+                },
+                "n_Z": {
+                  "description": "animals in cuprizone cohort Z"
+                }
+              }
             }
           ]
         },

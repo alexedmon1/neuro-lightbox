@@ -1287,3 +1287,6 @@ main {
 .spec-cluster-test { margin: 8px 0 2px; }
 .spec-clusters { margin: 0 0 8px; padding-left: 18px; }
 .spec-clusters li.spec-null { color: var(--text-secondary); }
+th.std-col { text-decoration: underline dotted var(--text-muted); text-underline-offset: 3px; }
+th[title] { cursor: help; }
+
