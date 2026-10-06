@@ -3,7 +3,7 @@
 A built gallery is **fully static** — the manifest is inlined into `index.html`
 (`window.MANIFEST = …`), every asset reference is relative, and there is no
 server-side code. So the host needs **only a static web server** — no Python, no
-`uv`, no neuro-lightbox/source-analytics. Because all paths are relative,
+`uv`, no neuro-lightbox and no analysis package. Because all paths are relative,
 galleries host cleanly under a sub-path (`/ms1/`, `/ms2/`).
 
 Either **nginx** (§2a) or **Apache 2.4** (§2b) works — both ship a ready config
@@ -12,12 +12,12 @@ mount (§1) and rebuild flow (§3) are identical, since both servers run as the
 same `www-data` user on Debian/Ubuntu.
 
 **Build vs serve are separate.** Keep *building* galleries on the machine that
-has the analysis outputs (for galleries built with the inherited profile, also
-`source-analytics` + the Allen atlas, which its brain mosaics need). The
-workstation only *serves* the finished `gallery*/` directories.
+has the analysis outputs (the montages read the maps each analysis folder lists).
+The workstation only *serves* the finished `gallery*/` directories.
 
-*The worked example below is an EEG study served from galleries built before the
-split; the hosting steps are the same for MRI galleries.*
+*The worked example below serves galleries of an earlier study, built before
+neuro-lightbox was split from source-lightbox; the hosting steps are the same for
+any static gallery.*
 
 Worked example: an Ubuntu workstation serving MS1 (`gallery/`) and MS2
 (`gallery_treatment/`) from a mounted FORGE drive, LAN-only.

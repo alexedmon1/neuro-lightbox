@@ -4,7 +4,7 @@
 //
 // Visits each route the app offers — overview, every nav item, every analysis
 // under every source (and "Compare All"), source and study-design pages, the
-// localization pages, a few searches — and opens what the app renders lazily
+// profile's inputs pages if it has any, a few searches — and opens what the app renders lazily
 // (each table, each domain pill, each subject). Prints, per route, the page title,
 // breadcrumb, source selector and content, one tag per line so two snapshots diff
 // as pages. The sidebar is printed once.
@@ -89,7 +89,7 @@ async function main() {
   const M = window.MANIFEST;
   const routes = ["#/overview"];
   doc.querySelectorAll("#sidebar-nav a.nav-item").forEach((a) => routes.push(a.getAttribute("href")));
-  // Sources with analytics data: the others (localization pipelines) appear in
+  // Sources with analytics data: the others (a profile's inputs) appear in
   // M.sources but no link leads to an analytics page for them.
   const hasData = (src) => Object.values(M.paradigms).some((analyses) =>
     Object.values(analyses).some((a) => (a.figures[src] || []).length || (a.tables[src] || []).length));
@@ -112,8 +112,9 @@ async function main() {
       }
     }
   }
-  routes.push("#/localization");
-  for (const q of ["alpha", "psd", "rescue", "motor", "outlier", "qc", "sub-90", "nbs", "gm"]) {
+  const inputs = ((window.PROFILE || {}).vocabulary || {}).inputs || {};
+  if (inputs.route) routes.push("#/" + inputs.route);
+  for (const q of ["fa", "md", "reho", "change", "corpus", "cluster", "qc", "gm"]) {
     routes.push("#/search/" + encodeURIComponent(q));
   }
   const seen = new Set();

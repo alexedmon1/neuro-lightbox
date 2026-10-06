@@ -1,4 +1,0 @@
-contrast,band,vertex_idx,hedges_g,p_fdr
-disease_effect,Alpha,0,0,0.5
-disease_effect,Alpha,1,0.1,0.5
-disease_effect,Alpha,2,0.2,0.5

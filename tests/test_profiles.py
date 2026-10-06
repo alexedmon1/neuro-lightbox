@@ -35,9 +35,14 @@ def _results(root: Path) -> Path:
     return root
 
 
-def test_the_default_profile_is_eeg():
-    assert get_profile().name == "eeg"
-    assert get_profile(None) is get_profile("eeg")
+def test_the_default_profile_is_mri():
+    assert get_profile().name == "mri"
+    assert get_profile(None) is get_profile("mri")
+
+
+def test_the_eeg_profile_points_to_source_lightbox():
+    with pytest.raises(ValueError, match="source-lightbox"):
+        get_profile("eeg")
 
 
 def test_an_unknown_profile_is_a_clean_error(tmp_path):
@@ -52,13 +57,6 @@ def test_the_study_config_selects_the_profile(tmp_path):
     res = CliRunner().invoke(main, ["build", "--config", str(cfg)])
     assert res.exit_code == 1
     assert "unknown profile 'from_the_study'" in res.output
-
-
-def test_an_option_of_another_profile_is_refused(plain, tmp_path):
-    res = CliRunner().invoke(main, ["build", "--profile", "plain", "--output", str(tmp_path),
-                                    "--localization", str(tmp_path)])
-    assert res.exit_code == 1
-    assert "--localization is not an option of the plain profile" in res.output
 
 
 def test_installed_profiles_are_discovered(monkeypatch):

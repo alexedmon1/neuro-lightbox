@@ -1,5 +1,0 @@
-contrast,band,metric,cluster_id,n_vertices,peak_t,cluster_stat,p_corrected
-disease_effect,Alpha,relative,1,50,-3.13218,-25.0574,0.00137428
-disease_effect,Low Gamma,relative,2,60,0.871159,6.96927,0.423711
-hd_icv_rescue,Alpha,relative,3,70,-3.2163,-25.7304,0.00137428
-hd_icv_rescue,Low Gamma,relative,4,80,-0.700309,-5.60247,0.423711

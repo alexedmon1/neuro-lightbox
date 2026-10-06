@@ -11,8 +11,6 @@ Phase 0). Each case builds a gallery through the CLI from a fixture under
   and profile vocabulary, normalised out);
 - ``files.txt`` — every file the build wrote, with a hash for everything that is
   copied rather than drawn, and for the manifest;
-- ``sa_calls.jsonl`` — what the gallery asked the source-analytics workers to
-  draw (cases with the stand-in interpreter);
 - ``figures.sha256`` — the rendered figures, compared only under the
   matplotlib / numpy / Pillow versions that recorded them.
 
@@ -34,15 +32,8 @@ import pytest
 FIXTURES = Path(__file__).parent / "fixtures"
 GOLDEN = Path(__file__).parent / "golden"
 
-# name -> (fixture folder, extra CLI args). "{missing}" is an interpreter path
-# that does not exist: the build then runs as on a machine without
-# source-analytics (no mosaics, no circos, no analysis metadata). Every case
-# names its interpreter, so a source-analytics venv at the default location
-# cannot change a golden build.
+# name -> (fixture folder, extra CLI args).
 CASES = {
-    "eeg": ("eeg", []),
-    "eeg_no_sa": ("eeg", ["--brain-python", "{missing}"]),
-    "eeg_legacy": ("eeg_legacy", ["--brain-python", "{missing}"]),
     "mri_h1c": ("mri_h1c", []),
     "mri_spec": ("mri_spec", []),
 }
@@ -85,14 +76,11 @@ def _build(case: str, root: Path) -> dict:
     fixture_name, extra = CASES[case]
     fixture = FIXTURES / fixture_name
     if not (fixture / "study.yaml").is_file():
-        pytest.skip(f"fixture {fixture_name}/ not generated (tests/fixtures/make_fixtures.py)")
+        pytest.skip(f"fixture {fixture_name}/ has no study.yaml")
     out = root / "gallery"
-    log = root / "sa_calls.jsonl"
-    args = [a.replace("{missing}", str(root / "no-such-python")) for a in extra]
     res = CliRunner().invoke(
         main, ["build", "--config", str(fixture / "study.yaml"), "--output", str(out),
-               "--quiet", *args],
-        env={"FAKE_SA_LOG": str(log)}, catch_exceptions=False)
+               "--quiet", *extra], catch_exceptions=False)
     assert res.exit_code == 0, res.output
 
     manifest = (out / "data" / "manifest.json").read_text(encoding="utf-8")
@@ -117,17 +105,10 @@ def _build(case: str, root: Path) -> dict:
         if rel.startswith("figures/analytics/"):
             figures.append(f"{rel}  {_sha(p)}")
 
-    calls = []
-    if log.exists():
-        for line in log.read_text().splitlines():
-            line = line.replace(str(out), "<gallery>").replace(str(fixture), "<fixture>")
-            calls.append(json.dumps(json.loads(line), sort_keys=True))
-
     return {
         "manifest.json": _readable(json.loads(manifest)) + "\n",
         "index.html": html,
         "files.txt": "\n".join(files) + "\n",
-        "sa_calls.jsonl": "".join(f"{c}\n" for c in sorted(calls)),
         "figures.sha256": f"# {_versions()}\n" + "\n".join(figures) + "\n",
         "_gallery": out,
     }
@@ -137,10 +118,7 @@ def compare_golden(case: str, name: str, actual: str, update: bool) -> None:
     path = GOLDEN / case / name
     if update:
         path.parent.mkdir(parents=True, exist_ok=True)
-        if name == "sa_calls.jsonl" and not actual:
-            path.unlink(missing_ok=True)
-        else:
-            path.write_text(actual, encoding="utf-8")
+        path.write_text(actual, encoding="utf-8")
         return
     expected = path.read_text(encoding="utf-8") if path.exists() else ""
     if actual == expected:
@@ -154,7 +132,7 @@ def compare_golden(case: str, name: str, actual: str, update: bool) -> None:
 
 
 @pytest.mark.parametrize("case", sorted(CASES))
-@pytest.mark.parametrize("name", ["manifest.json", "index.html", "files.txt", "sa_calls.jsonl"])
+@pytest.mark.parametrize("name", ["manifest.json", "index.html", "files.txt"])
 def test_gallery_matches_golden(golden_build, request, case, name):
     compare_golden(case, name, golden_build(case)[name],
                    request.config.getoption("--update-golden"))

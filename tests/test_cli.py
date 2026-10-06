@@ -35,11 +35,9 @@ def test_normalize_study_contrasts_from_hypotheses():
     assert out[0]["group"] == "confirmatory"
 
 
-# ---- the study's atlas and category map reach the build ----------------------
-# Without them the render workers could only guess, and for allen26 data the guess
-# was allen32's partition (see test_worker_atlas.py).
+# ---- which profile reads the study -----------------------------------------
 
-def _config_from_study(tmp_path, monkeypatch, study: dict):
+def _invoke(tmp_path, monkeypatch, study: dict, *args):
     import yaml
     from click.testing import CliRunner
 
@@ -50,34 +48,18 @@ def _config_from_study(tmp_path, monkeypatch, study: dict):
     monkeypatch.setattr(builder, "build", lambda config, verbose=True: seen.setdefault("config", config))
     cfg = tmp_path / "study.yaml"
     cfg.write_text(yaml.safe_dump({"paths": {"gallery": str(tmp_path / "gallery")}, **study}))
-    res = CliRunner().invoke(main, ["build", "--config", str(cfg)])
+    res = CliRunner().invoke(main, ["build", "--config", str(cfg), *args])
+    return res, seen.get("config")
+
+
+def test_a_study_without_a_profile_is_read_as_mri(tmp_path, monkeypatch):
+    res, config = _invoke(tmp_path, monkeypatch, {})
     assert res.exit_code == 0, res.output
-    return seen["config"]
+    assert config.profile == "mri"
 
 
-def test_study_atlas_and_inline_categories_reach_the_build(tmp_path, monkeypatch):
-    cats = {"Deep Subcortical": ["Thalamus", "Cerebellum"], "Motor": ["Motor_L", "Motor_R"]}
-    config = _config_from_study(tmp_path, monkeypatch,
-                                {"pipeline": {"atlas": "allen26"}, "roi_categories": cats})
-    assert config.options.atlas == "allen26"
-    assert config.options.roi_categories == cats
-
-
-def test_a_profile_build_uses_the_profile_categories(tmp_path, monkeypatch):
-    config = _config_from_study(tmp_path, monkeypatch, {
-        "pipeline": {"atlas": "allen26"},
-        "roi_categories": {"Motor": ["Motor_L", "Motor_R"], "Deep": ["Thalamus"]},
-        "gallery_profile": "external",
-        "external": {"roi_categories": {"Motor": ["Motor_L", "Motor_R"]}},
-    })
-    assert config.options.roi_categories == {"Motor": ["Motor_L", "Motor_R"]}
-
-
-def test_an_explicit_categories_path_still_wins(tmp_path, monkeypatch):
-    path = tmp_path / "cats.yaml"
-    path.write_text("roi_categories: {Motor: [Motor_L]}\n")
-    config = _config_from_study(tmp_path, monkeypatch, {
-        "paths": {"gallery": str(tmp_path / "gallery"), "roi_categories": str(path)},
-        "roi_categories": {"Other": ["Thalamus"]},
-    })
-    assert config.options.roi_categories == str(path)
+def test_the_eeg_profile_says_where_eeg_galleries_are_built(tmp_path, monkeypatch):
+    for study, args in (({"profile": "eeg"}, ()), ({}, ("--profile", "eeg"))):
+        res, config = _invoke(tmp_path, monkeypatch, study, *args)
+        assert res.exit_code == 1 and config is None
+        assert "source-lightbox" in res.output and "Traceback" not in res.output

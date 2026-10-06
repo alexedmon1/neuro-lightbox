@@ -1,338 +1,127 @@
 # neuro-lightbox
 
-*Derived from **source-lightbox**, for MRI. neuro-lightbox is the gallery for
-MRI study results (neurofaune outputs); EEG galleries stay with
-[source-lightbox](https://github.com/alexedmon1/source-lightbox), which is
-developed on its own. The `source-lightbox` command and `source_lightbox` import
-are no longer provided here, so the two install side by side. See
+A static gallery for MRI study results. It reads results written to
+**neurofaune's results specification** — by neurofaune itself, by neurovrai, or
+by a study's own scripts — and builds one folder of HTML, figures and tables that
+opens from disk (`file://`) or from any web server ([`DEPLOY.md`](DEPLOY.md)).
+
+*Derived from source-lightbox. EEG galleries are built by
+[source-lightbox](https://github.com/alexedmon1/source-lightbox), developed on its
+own; asking neuro-lightbox for its old `eeg` profile says so and stops. See
 [`NEURO_LIGHTBOX_PLAN.md`](NEURO_LIGHTBOX_PLAN.md).*
-
-**Transitional state (2026-10-06).** The MRI profile does not exist yet (plan,
-Phase 4); it will read the results output specification neurofaune is to write
-(Phase S). Until then the package still contains the profile it inherited from
-source-lightbox, and that profile is what this README documents below: it reads
-source-analytics' table layout, and it is what builds the MRI test fixture
-(`tests/fixtures/mri_h1c`, an export in that layout). The inherited profile, its
-documentation and its test cases are removed in Phase 4, when the MRI profile
-replaces them.
-
-Static gallery builder for EEG source-analysis results (its `eeg` profile,
-below). It turns the output
-folders of [`source-localization`](../source-localization) and
-[`source-analytics`](../source-analytics) into a single self-contained website —
-figures, sortable stat tables, per-subject QC, and at-a-glance overview figures
-**rendered from the stat tables at build time** (no pre-generated PNGs needed).
-
-The finished gallery is fully static (one folder of HTML/JS/PNG, manifest inlined)
-so it hosts on any web server — see [`DEPLOY.md`](DEPLOY.md).
 
 ---
 
 ## Quick start
 
 ```bash
-# 1. install (editable; one-time)
-cd ~/sandbox/neuro-lightbox && uv sync
-
-# 2. build a gallery from your study config, and preview it
+cd ~/sandbox/neuro-lightbox && uv sync                 # install (one-time)
 neuro-lightbox build --config /path/to/study.yaml --serve
-#   → builds the gallery folder named in the config, then serves it at
-#     http://localhost:5500  (Ctrl+C to stop)
+#   builds the gallery folder named in the config, then serves it at
+#   http://localhost:5500 (Ctrl+C to stop)
 ```
 
-That's the whole happy path. The one input is a **`study.yaml`** whose `paths:`
-block points at your folders — the *same* config file you already give
-`source-analytics`. Everything else (output location, title, contrasts,
-connectivity metrics) is read from it.
-
-If you don't want to keep the server running, build and serve separately:
+Or without a config:
 
 ```bash
-neuro-lightbox build --config study.yaml      # writes the gallery folder
-neuro-lightbox serve  ./gallery_treatment      # serve it later, any time
-neuro-lightbox info   ./gallery_treatment      # print figure/table counts
+neuro-lightbox build --results /path/to/results --label "TBSS" -o ./gallery
+neuro-lightbox serve ./gallery        # serve it later
+neuro-lightbox info  ./gallery        # what it holds
 ```
+
+A minimal `study.yaml`:
+
+```yaml
+name: My study
+profile: mri              # the default; the only built-in profile
+paths:
+  results: ./results      # a results root (or a list of {path, label})
+  gallery: ./gallery
+```
+
+Paths are resolved relative to the config file.
 
 ---
 
-## Your folders → the gallery
+## What it reads
 
-A study produces three kinds of folder. You don't pass them one by one — you
-name them once in the config's `paths:` block, and the builder wires them up:
+The **results specification** is owned by neurofaune —
+`docs/RESULTS_SPEC.md` (the format) and `docs/RESULTS_PRODUCERS.md` (how
+neurofaune, neurovrai and study scripts write it) in
+[neurofaune](https://github.com/alexedmon1/neurofaune). An analysis folder holds:
 
-| Your folder | What's in it | Config key | Shows up as |
-|---|---|---|---|
-| **Localization output** | per-subject source reconstruction + `qc/` (from `source-localization`) | `paths.localizations` | **Localization → Subjects / QC** |
-| **Results** | `tables/<paradigm>/<analysis>/*.csv` (from `source-analytics`) | `paths.results` | **Analytics** — overview figures + tables |
-| **Analytics working dir** | `<paradigm>/roi_connectivity/data/*_edges.csv` | `paths.analytics` | per-subject edge CSVs the circos chords are averaged from (the **Summary** tab is a digest generated from the tables) |
+- `analysis.json` — what the analysis is: its type, measures and role
+  (confirmatory / exploratory / …), the design, the inference, **the correction
+  and what it is over**, the effect measure and its definition, every table with
+  what one row of it is, every map, caveats;
+- `provenance.json` — what produced it (package, version, commit), when, and
+  whether the run finished;
+- tables (CSV / TSV), each with a column dictionary beside it that maps its
+  columns to a standard vocabulary (`effect_size`, `p_value` with its kind, …).
 
-Key idea — **two source namespaces, kept separate**:
+The gallery reads exactly what each `analysis.json` lists; nothing is inferred
+from a column name, a filename or a folder. Every analysis folder under a results
+root becomes one analysis of the gallery, grouped by its `analysis_type`. A
+folder written to a specification version this reader does not know is skipped
+with a warning. Check a folder before building with neurofaune's
+`neurofaune results check <folder>`.
 
-- **Localization sources** (`localizations`) are reconstruction pipelines (ROI,
-  Shell, …). They drive the Subjects/QC browser and never appear under Analytics.
-- **Analytics sources** (`results`) are the `source-analytics` output trees. They
-  populate the Analytics section.
+A results tree that is *not* written to the specification is still read by its
+folder layout (`tables/<group>/<analysis>/*.csv`, `figures/<group>/<analysis>/`),
+but gets its tables and figures only — no summary, because nothing in it says
+what its columns mean.
 
-The Analytics nav is derived from which sources actually contain figures/tables,
-so a localization-only pipeline never shows up as an empty Analytics folder, and
-a single analytics source renders its paradigms directly with no redundant header.
+---
 
-### Each localization card says what built it
+## What each analysis shows
 
-Two galleries can look identical and report different measurements. So each
-localization card shows the settings that decide the numbers — atlas, head
-model, source space, inverse method and **sampling mode** — read from the
-`data/config_resolved.yaml` that source-localization 0.4.2+ writes beside its
-outputs. A pipeline localized before that reads "not recorded" rather than being
-guessed at.
-
-Two cases are called out in the card rather than left to be noticed:
-
-- **Monte Carlo sampling** (`source_sampling: monte_carlo`) averages the ROI
-  operator over many source draws instead of solving one grid, so the pipeline
-  has parcel time series only — there is no vertex-level output for it, by
-  construction.
-- **Subjects that disagree.** If the cohort's subjects differ on any of those
-  settings, the card names which, because pooling them compares different
-  measurements. source-analytics refuses such a cohort outright; the gallery
-  shows it, since a frozen study may already contain one.
-
-### Each analysis says what produced its tables
-
-source-analytics v0.8.2+ writes a `provenance.json` beside each analysis's
-tables. The gallery reads it and shows it on the analysis page:
-
-- **Monte Carlo parcel caveats appear open**, above the tabs. A parcel the
-  montage cannot separate from its neighbour, or one the run rarely sampled,
-  produces an ordinary-looking table row — there is otherwise nothing in the
-  gallery to distinguish it.
-- **The rest is a collapsed "What produced this" strip** — the localization
-  description (atlas, geometry, inverse, sampling mode), the source-localization
-  and source-analytics versions, the plugin if the analysis came from one, the
-  subject and group counts, and when the run happened.
-
-An older results tree has no such file, and then the strip says so — "What
-produced this — not recorded" — rather than guessing. The record's full
-subject-id list and lifecycle steps are dropped on the way in: the manifest is
-inlined into `index.html`, once per analysis.
-
-### Each digest reports every comparison, honestly
-
-The Summary tab lists **every comparison the study ran**, in the study config's
-order (tiers, then contrasts), whether or not it reached significance. For each:
-
-- **what ▲ means** for that test — "▲ = KO Vehicle > WT Vehicle" for a
-  two-group contrast (from the table's `group_a`/`group_b`, else the study's
-  `weights`), "omnibus test, no direction", an equivalence test's TOST outcome,
-  or that the direction is not recorded;
-- **its magnitude, with its measure** — the measure is the table's own
-  (`effect_size_type`: g, ω²ₚ, β…), and an effect whose measure the table does
-  not record reads as "effect = …", never as g; 95% CIs where the table has the
-  effect's own interval;
-- **a null result's largest effect** — "n.s. — largest: Theta Motor_L ▲ g =
-  0.31, q = .40; 54 tests" — instead of a bare "no significant effects".
-
-The lead opens with the **confirmatory** contrast's result (its `role:`), or else
-the largest effect, named as the largest of how many tests (it was selected for
-being largest). Counts follow, with their denominator and **the correction as the
-tables record it**: "FDR (BH) q < 0.05" from source-analytics' `q_value` and
-`fdr_family`; "p < 0.05, correction not recorded" for a table with only a p —
-never an assumed FDR. Heatmap colour bars name the measure plotted, titles say
-what ★ marks, and rows follow the study's order.
-
-### The retired vertex analyses
-
-The vertex analyses left source-analytics in v0.8.0 for the unmaintained
-`source-analytics-vertex` plugin: a vertex map describes one arbitrary source
-placement, and the ROI analyses over Monte Carlo operators replaced them. An
-older results tree still carries their tables and figures, so the gallery
-**skips them** and logs what it skipped, rather than publishing them beside
-current results with nothing to mark them as retired. Pass `--include-retired`
-(or set `include_retired: true` in the study config) to publish them anyway.
+- **Summary.** The role, design, inference, the correction as the analysis states
+  it and what it is corrected over, the effect and its definition, caveats and any
+  decision rule. Then **every test that was run, significant or not**: effect with
+  its interval, the direction it went, extent (for voxelwise tests), p with its
+  kind, and n — significant rows in bold, nulls listed beside them. Clusters and
+  elements are summarised largest first, with their count and a pointer to the full
+  table; a cluster's effect is marked as selected.
+- **Effect overview.** Tests by measure, each cell the test's effect, outlined
+  where it is significant under the analysis's own correction and hatched wherever
+  its interval includes 0 (the two are independent: a voxelwise test can pass while
+  its whole-mask effect's interval spans 0).
+- **Montages** (MRI profile). For every test with significant voxels, axial
+  slices through their extent, the statistic on the analysis's background image
+  (else its mask); a TBSS skeleton is thickened for display. A p map that does not
+  say whether it holds p or 1 − p is not thresholded.
+- **Tables**, sortable, with the full CSV and its column dictionary in the
+  gallery's `tables/` folder.
+- **What produced this** — the provenance strip; a run that did not finish is
+  flagged.
 
 ---
 
 ## Profiles
 
-What a kind of study brings to the gallery — its inputs side, its column names
-and category axis, its renderers and digests, the words the app shows — is a
-**profile** (`src/neuro_lightbox/profiles/`). The core (scanning, the manifest,
-rendering and digest machinery, the static app) knows no domain; a test fails
-if it names one. Today there is one profile, **`eeg`** — everything this README
-describes — and it is the default, so a `study.yaml` written for source-lightbox
-builds unchanged. Select another with `profile:` in the study config or
-`--profile`; packages can add one through the `neuro_lightbox.profiles` entry
-point. (`gallery_profile:` / `paths.results_profile` are a different thing:
-source-analytics' own run profiles, read by the `eeg` profile.)
-
-The app takes the profile's vocabulary from `data/profile.json` (also inlined in
-`index.html` beside the manifest) and its page behaviour from the profile's
-script, `assets/js/eeg.js`.
+The core (scanning, reading the specification, summaries, the effect overview,
+the manifest, the app) knows no domain; a **profile** adds one. The built-in
+profile is `mri`: measure definitions, display names of the analysis types, and
+montages. A package can add a profile through the `neuro_lightbox.profiles`
+entry-point group, naming a `neuro_lightbox.profiles.Profile` subclass; select it
+with `profile:` in the study config or `--profile`.
 
 ---
 
-## The config the gallery reads
+## Development
 
-neuro-lightbox reads a **subset** of the study config — if you already run
-`source-analytics` from a `study.yaml`, point the gallery at the same file. Only
-these keys are consulted:
-
-```yaml
-name: "FORGE — Treatment (MS2)"      # gallery title
-
-paths:
-  results:    ./results_treatment    # source-analytics tables/  (Analytics)
-  analytics:  ./analytics_treatment  # source-analytics working tree (edge CSVs for circos)
-  # results_profile: external        # read results/<profile>/ + analytics/<profile>/ (SA --profile runs)
-  gallery:    ./gallery_treatment    # OUTPUT dir the gallery is written to
-  localizations:                     # reconstruction pipelines (Subjects/QC)
-    - {path: ./localization/rest_roi,   label: "Allen ROI"}
-    - {path: ./localization/rest_shell, label: "Shell"}
-  # optional:
-  roi_categories: ./allen_roi_categories_proposed.yaml   # optional override; default = the study's roi_categories: map
-  source_analytics_python: ~/sandbox/source-analytics/.venv/bin/python   # ~ is expanded
-
-# groups drive the treatment-group chips / labels on the Localization pages
-groups: {WT_VEH: "WT Vehicle", KO_VEH: "KO Vehicle", KO_HD_ICV: "KO HD-ICV"}
-group_order: [WT_VEH, KO_VEH, KO_HD_ICV]
-
-# contrasts drive: digest labels, heatmap axes, brain-mosaic titles, circos pairs
-contrasts:
-  - {name: disease_effect, label: "KO vs WT", group: "Disease effect",
-     group_a: KO_VEH, group_b: WT_VEH}
-  - {name: hd_icv_rescue,  label: "HD-ICV rescue", group: "Treatment rescue",
-     group_a: KO_HD_ICV, group_b: KO_VEH}
-
-circos_metrics: [imag_coherence, dwpli, pli, aec, coherence]   # connectivity chords
-
-# the atlas the ROI data were extracted with (the source-analytics `pipeline:` block):
-# brain mosaics and circos use its own parcels and categories
-pipeline: {atlas: allen26}
-roi_categories: {...}               # the study's own category map, if it declares one
+```bash
+.venv/bin/python -m pytest -q                   # the suite, golden builds included
+.venv/bin/python -m pytest -q --update-golden   # accept an intended change; review git diff tests/golden/
 ```
 
-Paths are resolved relative to the config file. `results` and `localizations`
-each accept **either** a scalar path **or** a labeled list (see *Comparing
-reconstructions* below). Everything except `paths.results`/`paths.gallery` is
-optional — omit `contrasts`/`circos_metrics` and you simply get fewer
-study-specific figures.
-
-> Anything the config doesn't cover can still be passed as an explicit flag
-> (`--results … --label …`, `--output …`, `--title …`); CLI flags override the
-> config. Run `neuro-lightbox build --help` for the full set.
-
----
-
-## What gets rendered (the figure standard)
-
-`source-analytics` writes stat **tables** but leaves `figures/` empty by
-convention. At build time neuro-lightbox renders **one canonical overview
-figure per analysis module** straight from the tables — the goal is a gallery a
-reader can absorb (a handful of high-signal figures, not hundreds). Disable with
-`--no-render-figures`.
-
-Renderers are **column-driven**: each fires on which columns a table has, not on
-the module name, so any study following the `source-analytics` schema gets the
-same overview set with zero per-study configuration.
-
-| Table has columns (subset) | Overview figure |
-|---|---|
-| `hypothesis`, `band`/`freq_pair`, `effect_size` | Contrast × band effect-size heatmap (★ = significant) |
-| `hypothesis`, `spatial`, `band`, `effect_size` | Per-ROI effect-size heatmap (preferred contrast) |
-| `hypothesis`, `spatial`, `band`, `graph_metric`, `stat` | Per-ROI graph-metric *t* heatmaps (degree/clustering/betweenness) |
-| `band` + `auc`/`accuracy` + `ci_*` | Contrast × band decoding heatmap (centered at chance) |
-| `band`, `max_abs_hedges_g` | Contrast × band effect-size summary heatmap |
-| `band`, `cluster_stat`, `p_corrected` | Contrast × band cluster-strength heatmap |
-| `key`, `component`, `n_edges`, `p_corrected` | NBS largest-component heatmap, per connectivity metric |
-
-Column names are the native `source-analytics` hypothesis schema; the legacy
-aliases (`contrast`, `roi`, `hedges_g`, `t`, `p_fdr`, `power_type`) are still
-read. Per-row significance precedence: `significant` flag → `q_value` → `p_corrected`
-→ `p_fdr` → `p_value` (threshold 0.05). Bands order Delta, Theta, Alpha, Beta,
-Low Gamma, High Gamma (unknown bands appended). Per-vertex raw tables
-(`vertex_idx`) are skipped — their `*_summary` carries the overview. A module
-whose tables match no renderer simply contributes no figure; its tables stay in
-the gallery as sortable CSVs. To add a figure type, append a renderer to
-`REGISTRY` in `src/neuro_lightbox/profiles/eeg/render.py`.
-
-> Per-subject localization figures are **not** analysis figures — they live under
-> **Localization → Subjects** (one subject at a time) and **→ QC**, separate from
-> this overview set.
-
-### Brain mosaics and connectivity circos (optional, anatomy-aware)
-
-Two module types get a richer figure than a heatmap, delegated to
-`source-analytics` (its atlas data) via a subprocess to its venv — so
-neuro-lightbox itself stays lightweight. If that interpreter isn't found, both
-fall back to a heatmap.
-
-- **Brain mosaics** — ROI modules with a `*_posthoc_roi` table get ROI effect
-  sizes painted on mouse-brain anatomy, one mosaic per `(contrast, band)` with
-  ≥1 FDR-significant ROI (aperiodic tables facet on `dv` — exponent / offset —
-  instead of band). The mosaics are drawn on the study's atlas (`pipeline.atlas`)
-  when source-analytics supports it (the release with `resolve_atlas`); an older
-  one draws allen32, and the build warns if that leaves the study's parcels blank.
-- **Connectivity circos** — NBS modules (`roi_nbs`) with a
-  `*_subnetwork_edges.csv` table (written by `source-analytics` next to
-  `roi_nbs_hypotheses.csv`; it lists the edges of every NBS component) get
-  significance chord diagrams (the study's ROIs, grouped by its categories) alongside
-  the NBS component heatmap, one per `circos_metrics` entry × contrast × band
-  with an FDR-significant subnetwork. The chords are group-mean differences
-  from `roi_connectivity`'s per-subject edge CSV under `paths.analytics`.
-
-**ROI categories**, first match wins: `--roi-categories` / `paths.roi_categories`;
-the study's own `roi_categories:` map (a profile's narrowed map when building a
-profile subtree); the atlas's own category file; and only then a best-overlap
-guess across the atlas data. The guess used to be the only route and could see
-only files named exactly `roi_categories.yaml`, which for allen26 data picked
-allen32's partition and dropped six parcels from every circos. ROIs the chosen
-categories do not cover are now reported in the build log instead of vanishing.
-
-Both are curated by the config (`contrasts:` / `hypotheses:`, `circos_metrics:`,
-`pipeline.atlas`, `roi_categories:`, `paths.source_analytics_python`). Override on the CLI with
-`--roi-categories`, `--brain-python`, or `--no-brain`. If the source-analytics
-interpreter is missing or cannot import, the build prints a warning and falls
-back to heatmaps. The nav grouping (analysis domains) then comes from a copy of
-source-analytics v0.8.2's metadata bundled with the `eeg` profile; an analysis it
-does not know is listed under its own name.
-
----
-
-## Comparing reconstructions (Shell ↔ Cartesian, ROI ↔ Shell, …)
-
-To compare the same analysis across two reconstructions, give each `results`
-tree a label and match it to a localization label:
-
-```yaml
-paths:
-  results:
-    - {path: ./results_vertex_shell,     label: "Shell"}
-    - {path: ./results_vertex_cartesian, label: "Cartesian"}
-  localizations:
-    - {path: ./localization/rest_shell,     label: "Shell"}
-    - {path: ./localization/rest_cartesian, label: "Cartesian"}
-```
-
-The analysis pages then show a **Shell ↔ Cartesian** source toggle, and each
-source's QC/subjects line up with its analytics.
-
----
-
-## Features
-
-- Lightbox image viewer with zoom, pan, keyboard navigation
-- Sortable stat tables with significance highlighting
-- Overview figures rendered from tables at build time (column-driven)
-- Domain-grouped Analytics nav with secondary analyses nested under their primary
-- Per-subject localization browser + tabbed QC with outlier flags
-- Dark/light theme, full-text figure search, lazy thumbnails (500+ figures)
-- Fully static — drop the folder on any web server
-
----
+Golden builds (`tests/golden/`) are whole galleries built from the fixtures in
+`tests/fixtures/` (see its README). **This repository is public and the studies
+behind the fixtures are unpublished: every value in a fixture is synthetic, and
+no real value or local path is ever committed.** `tests/test_core_purity.py`
+keeps any one domain out of the core and EEG out of the package.
 
 ## More
 
 - **Hosting on a LAN/workstation (nginx):** [`DEPLOY.md`](DEPLOY.md)
-- **Design rationale (source model, figure curation, QC, UX):**
-  [`DESIGN_NOTES.md`](DESIGN_NOTES.md) — read this before changing rendering behavior.
-</content>
+- **Design notes:** [`DESIGN_NOTES.md`](DESIGN_NOTES.md)

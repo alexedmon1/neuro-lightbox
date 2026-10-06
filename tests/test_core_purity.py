@@ -53,4 +53,27 @@ def test_the_scan_covers_the_core():
                      "profiles/__init__.py", "static/js/app.js", "static/css/main.css",
                      "templates/index.html.j2"):
         assert expected in names
-    assert not any(n.startswith("profiles/eeg/") for n in names)
+    assert not (PROFILES / "eeg").exists()
+
+
+#: EEG's words, kept out of the whole package -- profiles included -- since
+#: neuro-lightbox is MRI only (NEURO_LIGHTBOX_PLAN.md, decision 2026-10-04). The
+#: one exception is the message that sends an EEG study to source-lightbox.
+EEG = {"EEG": r"(?<![a-z])eeg(?![a-z])", "frequency bands": FORBIDDEN["frequency bands"],
+       "the Allen atlas": FORBIDDEN["the Allen atlas"], "source-analytics": FORBIDDEN["source-analytics"],
+       "localization": FORBIDDEN["localization"]}
+
+
+def test_the_package_names_no_eeg():
+    hits = []
+    for path in sorted(PACKAGE.rglob("*")):
+        if not path.is_file() or path.suffix not in SUFFIXES or ".min." in path.name:
+            continue
+        lines = path.read_text(encoding="utf-8").splitlines()
+        for lineno, line in enumerate(lines, 1):
+            if "source-lightbox" in " ".join(lines[max(0, lineno - 2):lineno + 1]):
+                continue
+            for what, pattern in EEG.items():
+                if re.search(pattern, line, re.IGNORECASE):
+                    hits.append(f"{path.relative_to(PACKAGE)}:{lineno}: {what}: {line.strip()[:100]}")
+    assert not hits, "the package mentions EEG:\n" + "\n".join(hits)

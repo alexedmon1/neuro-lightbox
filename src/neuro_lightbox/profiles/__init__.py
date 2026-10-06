@@ -7,9 +7,8 @@ category axis, its column names, its inputs, its file conventions or the words a
 reader expects. A profile supplies those.
 
 A study selects its profile with ``profile:`` in study.yaml (or ``--profile``);
-without one it gets ``eeg``, so every study config written before profiles
-existed builds as it did. Built-in profiles are listed below; a package can add
-one through the ``neuro_lightbox.profiles`` entry-point group, naming a
+without one it gets ``mri``, the one built-in profile. A package can add one
+through the ``neuro_lightbox.profiles`` entry-point group, naming a
 :class:`Profile` subclass.
 
 The hooks below are the whole interface. Each has a neutral default, so a
@@ -22,10 +21,13 @@ import importlib
 from importlib import metadata
 from pathlib import Path
 
-DEFAULT = "eeg"
+DEFAULT = "mri"
 ENTRY_POINT_GROUP = "neuro_lightbox.profiles"
-_BUILTIN = {"eeg": "neuro_lightbox.profiles.eeg:EegProfile",
-            "mri": "neuro_lightbox.profiles.mri:MriProfile"}
+_BUILTIN = {"mri": "neuro_lightbox.profiles.mri:MriProfile"}
+#: Profiles this package no longer has, and where their studies are built now.
+_MOVED = {"eeg": "neuro-lightbox no longer builds EEG galleries; use source-lightbox "
+                 "(https://github.com/alexedmon1/source-lightbox), which reads "
+                 "source-analysis result trees."}
 
 
 class Profile:
@@ -175,6 +177,8 @@ def get_profile(name: str | None = None) -> Profile:
     name = name or DEFAULT
     if name not in _LOADED:
         target = available().get(name)
+        if target is None and name in _MOVED:
+            raise ValueError(f"profile {name!r}: {_MOVED[name]}")
         if target is None:
             raise ValueError(f"unknown profile {name!r}; available: {', '.join(sorted(available()))}")
         module, _, attr = target.partition(":")

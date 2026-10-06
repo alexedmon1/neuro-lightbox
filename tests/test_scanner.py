@@ -1,39 +1,10 @@
 """Tests for scanner module."""
 
-import csv
 from pathlib import Path
 
 import pytest
 
-from neuro_lightbox.profiles.eeg.inputs import LocalizationScanner
 from neuro_lightbox.scanner import ResultsScanner, _slugify
-
-
-@pytest.fixture
-def tmp_localization(tmp_path):
-    """Create a mock localization directory structure."""
-    # Per-subject figures
-    sub_dir = tmp_path / "derivatives" / "sub-AUT01" / "pipeline" / "figures"
-    sub_dir.mkdir(parents=True)
-    (sub_dir / "step1_registration.png").write_bytes(b"PNG")
-    (sub_dir / "step2_source_space.png").write_bytes(b"PNG")
-
-    # QC figures
-    qc_figs = tmp_path / "qc" / "figures"
-    qc_figs.mkdir(parents=True)
-    (qc_figs / "qc_summary.png").write_bytes(b"PNG")
-
-    # QC metrics CSV
-    qc_csv = tmp_path / "qc" / "qc_metrics.csv"
-    with open(qc_csv, "w", newline="") as f:
-        w = csv.writer(f)
-        w.writerow(["subject", "snr", "gof"])
-        w.writerow(["sub-AUT01", "5.2", "0.85"])
-
-    # QC report
-    (tmp_path / "qc" / "qc_report.html").write_text("<html>report</html>")
-
-    return tmp_path
 
 
 @pytest.fixture
@@ -56,24 +27,6 @@ def tmp_results(tmp_path):
 def test_slugify():
     assert _slugify("Allen ROI") == "allen_roi"
     assert _slugify("Hello World!") == "hello_world"
-
-
-def test_localization_scanner(tmp_localization):
-    scanner = LocalizationScanner(tmp_localization, "Test Source")
-    result = scanner.scan()
-
-    assert len(result.figures) == 3  # 2 subject + 1 QC
-    assert len(result.qc_entries) == 1
-
-    sub_figs = [f for f in result.figures if f.subject]
-    assert len(sub_figs) == 2
-    assert sub_figs[0].subject == "sub-AUT01"
-
-    qc_figs = [f for f in result.figures if not f.subject]
-    assert len(qc_figs) == 1
-
-    assert result.qc_entries[0].metrics_path is not None
-    assert result.qc_entries[0].report_path is not None
 
 
 def test_results_scanner(tmp_results):

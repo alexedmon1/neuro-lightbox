@@ -1,9 +1,11 @@
 # neuro-lightbox — plan
 
-**Status (2026-10-06): Phases 0–3 done (Phase 3 not yet reviewed by the author).
-Phase 3b partly done — the aliases are gone and the docs are MRI-framed; removing
-the EEG profile moved into Phase 4 (see Phase 3b). Next: Phase S in neurofaune
-for the randomise-based analyses, then Phase 4 for the same.** Written 2026-10-02
+**Status (2026-10-06): Phases 0–3, 3b and S (randomise-based analyses, in
+neurofaune) done; Phase 4 done for the randomise-based analyses and the H1c ROI
+fixture — the core reads the results specification, the MRI profile is the only
+built-in and the default, EEG is gone (see Phase 4's status). Phase 3 was never
+reviewed by the author; its EEG part left with the EEG profile. Next: Phase 5
+(cuprizone adoption), and Phase 4's open items.** Written 2026-10-02
 from a cuprizone (rat MRI) session, after a feasibility test built one MRI
 analysis into a source-lightbox gallery; revised the same day with the author's
 two principles (§1); scope changed to MRI only on 2026-10-04; order and the
@@ -61,7 +63,7 @@ What this keeps and what it undoes:
   `profiles/eeg/reading.py`) is the implementation to port from — it stays in
   this repository's history after the EEG profile is removed.
 
-### Phase 3b — split: remove EEG (partly done 2026-10-06; the rest moves into Phase 4)
+### Phase 3b — split: remove EEG (done 2026-10-06; steps 2 and 3 in Phase 4, step 2)
 
 **Done 2026-10-06** (`2735eb7`, `ffdea96`): step 1 — the `source-lightbox`
 console script, `cli.deprecated_main`, the `source_lightbox` shim and
@@ -588,6 +590,26 @@ failing one. Phases S and 0 can run in parallel.
 - **Accept:** a neurofaune fixture (the TBSS read-out) and a study-orchestrator
   fixture (H1c, §2) build with the MRI profile, with none of §2's defects;
   nothing in the package mentions EEG, source-analytics or localization.
+
+**Status 2026-10-06** (`8d3208d`, `90759ce`; step 2: see `plans/2026-10-06_phase4.md`):
+- *Done.* The core reads results-specification folders (`spec.py`; `SpecScanner`),
+  writes each analysis's summary from what the folder states (`spec_digest.py`) and
+  draws a test × measure effect overview (`spec_render.py`). The MRI profile draws
+  montages of every test with significant voxels from the maps the folder lists,
+  on its background image or its mask (reader-side, so producers draw nothing).
+  Fixtures: `mri_spec` (TBSS + VBM, written by neurofaune's writer) and `mri_h1c`
+  (the H1c export rewritten in the specification). MRI is the default and only
+  built-in profile; `profile: eeg` stops with a pointer to source-lightbox;
+  `profiles/eeg`, its fixtures, golden cases and tests are deleted; the purity test
+  keeps EEG out of the whole package (bar that pointer).
+- *Not done.* Per-cohort consistency (the specification has no cohort columns yet);
+  NBS components and network distance (no producer writes them to the
+  specification yet); the inputs side (link to neurofaune's preprocessing QC
+  index); montages of uncorrected maps; SIGMA ROI mosaics.
+- *Open for the author.* Whether the pre-specification folder-layout reader
+  (`ResultsScanner`, tables and figures only, no summary) stays; whether
+  `summarize.py` / `contract.py` (digest helpers a profile can call; nothing calls
+  them now) stay.
 
 ### Phase 5 — study adoption (each study's own side; cuprizone first)
 - A study's own orchestration scripts (cuprizone's `h1_*` analyses are

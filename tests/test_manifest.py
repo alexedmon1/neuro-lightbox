@@ -10,7 +10,7 @@ from neuro_lightbox.scanner import FigureEntry, ScanResult, TableEntry
 
 @pytest.fixture
 def tmp_csv(tmp_path):
-    """Create a temporary effect-size CSV (drives the significance digest)."""
+    """A table in a tree not written to the results specification."""
     csv = tmp_path / "psd_posthoc_global.csv"
     csv.write_text(
         "contrast,band,hedges_g,significant\n"
@@ -49,7 +49,9 @@ def test_build_manifest_basic(tmp_csv):
     assert "psd" in manifest["paradigms"]["resting"]
     assert manifest["stats"]["total_figures"] == 1
     assert manifest["stats"]["total_tables"] == 1
-    assert manifest["stats"]["total_summaries"] == 1
+    # A table the specification does not describe gets no summary from the core,
+    # and the MRI profile writes none for it.
+    assert manifest["stats"]["total_summaries"] == 0
 
     psd = manifest["paradigms"]["resting"]["psd"]
 
@@ -65,9 +67,7 @@ def test_build_manifest_basic(tmp_csv):
     assert len(tbl["rows"]) == 2
     assert tbl["rows"][0] == ["disease_effect", "Low Gamma", "1.20", "TRUE"]
 
-    # Summary is now a generated significance digest (not the verbatim md)
-    assert "sig-summary" in psd["summary"]
-    assert "disease_effect" in psd["summary"]
+    assert psd["summary"] is None
 
 
 def test_build_manifest_multi_source(tmp_csv):
@@ -109,7 +109,7 @@ def test_build_manifest_empty():
     assert manifest["stats"]["paradigm_count"] == 0
 
 
-def test_manifest_carries_group_display_and_role_badges(tmp_csv):
+def test_manifest_carries_group_display(tmp_csv):
     scan = ScanResult()
     scan.tables.append(TableEntry(src_path=tmp_csv, source_label="ROI", paradigm="resting",
                                   analysis="psd", filename="psd_posthoc_global.csv"))
@@ -122,5 +122,4 @@ def test_manifest_carries_group_display_and_role_badges(tmp_csv):
     )
     assert manifest["group_labels"] == {"WT_VEH": "WT Vehicle"}
     assert manifest["group_order"] == ["WT_VEH", "KO_VEH"]
-    digest = manifest["paradigms"]["resting"]["psd"]["summary"]
-    assert '<span class="sig-contrast">KO vs WT</span><span class="sig-role sig-role-confirmatory">' in digest
+    assert manifest["contrast_meta"]["disease_effect"]["role"] == "confirmatory"

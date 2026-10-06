@@ -1,9 +1,0 @@
-subject_id,group,n_channels,sfreq,n_sources,forward_condition_number,forward_leadfield_norm_mean,forward_leadfield_norm_std,stc_n_sources,stc_n_times,stc_amp_min,stc_amp_max,stc_amp_mean,stc_amp_std,stc_amp_median,n_rois,roi_amp_mean,roi_amp_std,sources_per_roi_mean,sources_per_roi_std,sources_per_roi_min,sources_per_roi_max,processing_time_sec,outlier_flag
-901,WT_VEH,30,1000.0,201,70.7042,,,201,332658,,1.4493e-09,1.5443e-09,1.28743e-09,,26,2.16384e-09,,,,,,41.2231,False
-902,WT_VEH,30,1000.0,201,70.3588,,,201,341738,,1.38783e-09,1.38179e-09,1.25308e-09,,26,2.3502e-09,,,,,,42.5987,False
-903,KO_VEH,30,1000.0,201,129.187,,,201,346750,,1.37346e-09,1.49526e-09,1.23036e-09,,26,1.69735e-09,,,,,,43.3728,False
-904,KO_VEH,30,1000.0,201,67.8069,,,201,313136,,1.43066e-09,1.39509e-09,1.37984e-09,,26,1.61382e-09,,,,,,41.4056,False
-905,KO_HD_ICV,30,1000.0,201,70.1138,,,201,383737,,1.09274e-09,1.74179e-09,1.55042e-09,,26,1.15737e-09,,,,,,44.3897,False
-906,KO_HD_ICV,30,1000.0,201,69.7648,,,201,387787,,1.21825e-09,1.5778e-09,1.30152e-09,,26,1.65078e-09,,,,,,41.7827,False
-907,KO_HD_IV,30,1000.0,201,71.9046,,,201,318563,,1.64351e-09,1.17111e-09,9.99497e-10,,26,1.49055e-09,,,,,,43.5984,False
-908,KO_LD_IV_ICV,30,1000.0,201,69.7554,,,201,324875,,1.5735e-09,1.41867e-09,1.24755e-09,,26,1.53575e-09,,,,,,44.8643,False
