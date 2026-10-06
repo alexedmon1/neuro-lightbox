@@ -11,6 +11,17 @@ analysis into a source-lightbox gallery; revised the same day with the author's
 two principles (§1); scope changed to MRI only on 2026-10-04; order and the
 specification's home decided 2026-10-06.
 
+## Decision 2026-10-06 (later) — keep the folder-layout path
+
+**Decided by the author:** keep `ResultsScanner` (folder-layout reading), `render.py`
+(the table-renderer registry), `summarize.py`, `contract.py` and the profile hooks that
+only they call (`digest`, `descriptive_digest`, `render_before` / `render_after`,
+`table_priority`, `renderers`), with their tests. Nothing produces that layout today, but
+neurofaune is expected to export more data in a similar form before it writes the
+specification for everything. Keep the path working (its tests stay green); do not
+propose removing it again without a new reason. The study config's contrast labels and
+order are to be wired into the specification summary as well.
+
 ## Decision 2026-10-06 — order of work; the specification lives in neurofaune
 
 **Decided by the author** (cuprizone session, 2026-10-06), on top of the
