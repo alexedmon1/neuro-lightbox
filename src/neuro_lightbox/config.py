@@ -56,6 +56,10 @@ class BuildConfig:
     # build never carries a dead ../index.html).
     home_link: str | None = None
     home_label: str = "Home"
+    # Pages beside the results a reader should reach from the gallery (e.g. the
+    # preprocessing QC index): [{label, path}] with absolute paths; the sidebar links
+    # them relative to the gallery (study.yaml `links:`).
+    links: list[dict] | None = None
     # Analyses to omit from the gallery entirely (figures, tables, summaries, nav).
     # None = the profile's default; a study can override via `exclude_analyses:`.
     exclude_analyses: list[str] | None = None

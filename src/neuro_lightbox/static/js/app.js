@@ -217,6 +217,13 @@
 
     // Overview
     html += '<a class="nav-item" href="#/overview" data-route="/overview">Overview</a>';
+    // Pages beside the results (study.yaml links:), opened in their own tab
+    if (M.links && M.links.length) {
+      M.links.forEach(function (l) {
+        html += '<a class="nav-item nav-external" href="' + escapeHtml(l.href) +
+          '" target="_blank" rel="noopener">' + escapeHtml(l.label) + ' &#8599;</a>';
+      });
+    }
 
     // Inputs — section title (matching Analytics), nested per source
     var locSources = Object.keys(INPUT_DATA);

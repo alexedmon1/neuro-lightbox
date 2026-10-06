@@ -164,6 +164,18 @@ def build(config: BuildConfig, verbose: bool = True) -> Path:
         contrast_order=config.contrasts,
         contrast_design=config.contrast_design,
     )
+    # Pages beside the results (e.g. the preprocessing QC index), linked relative to the
+    # gallery so the pair can move together.
+    if config.links:
+        import os
+
+        manifest["links"] = []
+        for link in config.links:
+            target = Path(link["path"])
+            if not target.exists():
+                _log(f"  WARNING: link {link['label']!r}: {target} does not exist; linked anyway")
+            manifest["links"].append({"label": link["label"],
+                                      "href": os.path.relpath(target, out.resolve())})
     manifest_json = json.dumps(manifest, indent=2)
     data_dir = out / "data"
     data_dir.mkdir(parents=True, exist_ok=True)

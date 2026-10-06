@@ -287,6 +287,7 @@ def build(
     def _warn(message):
         click.echo(message, err=True)
 
+    links = None
     # If --config provided, read paths from unified study.yaml
     if study_cfg is not None:
         paths = study_cfg.get("paths", {})
@@ -315,6 +316,9 @@ def build(
                      or study_cfg.get("name", profile.default_title))
         if output is None:
             output = _resolve(paths.get("gallery"), "./gallery")
+        links = [{"label": str(entry["label"]), "path": _resolve(entry["path"], "")}
+                 for entry in (study_cfg.get("links") or [])
+                 if isinstance(entry, dict) and entry.get("label") and entry.get("path")] or None
 
         # Study contrasts drive which per-contrast figures get rendered.
         if not contrasts:
@@ -380,6 +384,7 @@ def build(
         group_order=group_order,
         home_link=home_link,
         home_label=home_label,
+        links=links,
         # CLI flag > study-config `exclude_analyses:` > the profile's default.
         exclude_analyses=(list(exclude_analyses) if exclude_analyses
                           else list(cfg_exclude) if cfg_exclude is not None

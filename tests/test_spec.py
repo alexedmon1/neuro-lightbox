@@ -185,3 +185,21 @@ def test_study_names_label_and_order_tests():
     keys = [("change_group", "p60_to_p90"), ("x", "y"), ("cross p90", "cuprizone>control")]
     assert sorted(keys, key=lambda k: n.rank(*k)) == [("cross p90", "cuprizone>control"),
                                                       ("change_group", "p60_to_p90"), ("x", "y")]
+
+
+def test_study_links_reach_the_sidebar_relative_to_the_gallery(tmp_path):
+    from click.testing import CliRunner
+
+    from neuro_lightbox.cli import main
+
+    qc = tmp_path / "preprocessing" / "qc" / "index.html"
+    qc.parent.mkdir(parents=True)
+    qc.write_text("<html></html>")
+    study = tmp_path / "analyses" / "study.yaml"
+    study.parent.mkdir()
+    study.write_text(f"name: demo\nprofile: mri\npaths:\n  results: {RESULTS}\n  gallery: ./gallery\n"
+                     "links:\n  - label: Preprocessing QC\n    path: ../preprocessing/qc/index.html\n")
+    res = CliRunner().invoke(main, ["build", "--config", str(study), "--quiet"])
+    assert res.exit_code == 0, res.output
+    m = json.loads((tmp_path / "analyses" / "gallery" / "data" / "manifest.json").read_text())
+    assert m["links"] == [{"label": "Preprocessing QC", "href": "../../preprocessing/qc/index.html"}]
