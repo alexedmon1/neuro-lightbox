@@ -135,14 +135,6 @@ def main():
     pass
 
 
-def deprecated_main():
-    """The ``source-lightbox`` command: neuro-lightbox under its old name, for the
-    scripts that still call it. Says so once, on stderr, then runs as usual."""
-    click.echo("source-lightbox is now neuro-lightbox; the old command name will be "
-               "removed in a future release.", err=True)
-    main()
-
-
 @main.command()
 @click.option(
     "--config",

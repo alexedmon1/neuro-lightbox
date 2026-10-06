@@ -23,8 +23,6 @@ dev = ["pytest>=7.0"]
 
 [project.scripts]
 neuro-lightbox = "neuro_lightbox.cli:main"
-# The old name, for scripts that still call it (deprecated; says so on stderr).
-source-lightbox = "neuro_lightbox.cli:deprecated_main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
