@@ -1,0 +1,121 @@
+{
+  "spec": "neurofaune.results",
+  "spec_version": "0.1.0",
+  "id": "vbm/demo_change",
+  "title": "VBM: GM change (synthetic)",
+  "description": "Does GM change within treated animals? (synthetic)",
+  "analysis_type": "vbm",
+  "measures": [
+    "GM"
+  ],
+  "role": "exploratory",
+  "design": {
+    "n": 12,
+    "groups": {
+      "treated": 12
+    },
+    "test_kinds": [
+      "one_sample"
+    ],
+    "records": [
+      "design.json"
+    ]
+  },
+  "inference": {
+    "method": "FSL randomise, 3-D TFCE, 5000 permutations",
+    "n_permutations": 5000,
+    "correction": {
+      "p_kind": "fwe",
+      "alpha": 0.05,
+      "family": "voxels in the brain mask, per contrast and measure",
+      "statement": "3-D TFCE, FWE p < 0.05 by 5000 permutations, per contrast over the brain mask"
+    }
+  },
+  "effect": {
+    "measure": "d",
+    "ci_level": 0.95,
+    "scope": "whole mask, unselected (tests); cluster mean, selected (clusters)",
+    "definition": "contrast estimate over the residual SD of each subject's mean over the voxels: pooled-SD Cohen's d for two groups without covariates, mean / SD for one sample; 95% CI exact under normal residuals"
+  },
+  "tables": [
+    {
+      "path": "tests.csv",
+      "role": "tests",
+      "headline": true,
+      "n_rows": 2,
+      "rows": "one t-contrast on one measure, significant or not",
+      "description": "every test with its whole-mask effect, CI, extent and peak"
+    },
+    {
+      "path": "clusters.csv",
+      "role": "clusters",
+      "n_rows": 1,
+      "rows": "one cluster of one test",
+      "description": "clusters with extent, peak, named regions and the (selected) cluster effect"
+    }
+  ],
+  "maps": [
+    {
+      "path": "randomise_GM/randomise_tstat1.nii.gz",
+      "kind": "stat",
+      "space": "SIGMA",
+      "measure": "GM",
+      "contrast": "increase",
+      "description": "t statistic, increase on GM"
+    },
+    {
+      "path": "randomise_GM/randomise_tfce_corrp_tstat1.nii.gz",
+      "kind": "p_corrected",
+      "space": "SIGMA",
+      "measure": "GM",
+      "contrast": "increase",
+      "description": "1 - FWE-corrected p (randomise's convention), increase on GM",
+      "values": "one_minus_p"
+    },
+    {
+      "path": "randomise_GM/randomise_tfce_p_tstat1.nii.gz",
+      "kind": "p_uncorrected",
+      "space": "SIGMA",
+      "measure": "GM",
+      "contrast": "increase",
+      "description": "1 - uncorrected p (randomise's convention), increase on GM",
+      "values": "one_minus_p"
+    },
+    {
+      "path": "randomise_GM/randomise_tstat2.nii.gz",
+      "kind": "stat",
+      "space": "SIGMA",
+      "measure": "GM",
+      "contrast": "decrease",
+      "description": "t statistic, decrease on GM"
+    },
+    {
+      "path": "randomise_GM/randomise_tfce_corrp_tstat2.nii.gz",
+      "kind": "p_corrected",
+      "space": "SIGMA",
+      "measure": "GM",
+      "contrast": "decrease",
+      "description": "1 - FWE-corrected p (randomise's convention), decrease on GM",
+      "values": "one_minus_p"
+    },
+    {
+      "path": "randomise_GM/randomise_tfce_p_tstat2.nii.gz",
+      "kind": "p_uncorrected",
+      "space": "SIGMA",
+      "measure": "GM",
+      "contrast": "decrease",
+      "description": "1 - uncorrected p (randomise's convention), decrease on GM",
+      "values": "one_minus_p"
+    },
+    {
+      "path": "mask.nii.gz",
+      "kind": "mask",
+      "space": "SIGMA",
+      "description": "the brain mask"
+    }
+  ],
+  "modality": "anat",
+  "caveats": [
+    "Synthetic fixture: every subject, group and value is invented, and the effects were planted by tests/fixtures/make_mri_spec.py."
+  ]
+}

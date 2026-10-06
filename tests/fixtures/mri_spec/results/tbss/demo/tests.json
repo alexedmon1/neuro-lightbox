@@ -1,0 +1,142 @@
+{
+  "metric": {
+    "Description": "the measure tested",
+    "Standard": "measure"
+  },
+  "contrast": {
+    "Description": "contrast number in design.con (1-based)"
+  },
+  "contrast_name": {
+    "Description": "contrast name, from the design record or design.con",
+    "Standard": "contrast"
+  },
+  "contrast_vector": {
+    "Description": "the contrast weights, one per design column"
+  },
+  "design": {
+    "Description": "how the contrast reads in the design",
+    "Levels": {
+      "two-group": "+1/-1 on two indicator columns",
+      "one-sample": "a weight on a constant column",
+      "single-column": "the sign of one column's coefficient",
+      "general": "any other weighting, written out"
+    }
+  },
+  "tested_direction": {
+    "Description": "what a positive statistic means, in the design's terms (randomise tests each contrast one-sided, t > 0)",
+    "Standard": "tested_direction"
+  },
+  "contrast_tests": {
+    "Description": "what the contrast tests, in words, from the design record (empty when the design has no record)",
+    "Standard": "contrast_label"
+  },
+  "n": {
+    "Description": "rows (subjects) in the design",
+    "Standard": "n"
+  },
+  "df": {
+    "Description": "error degrees of freedom, n - rank(X)",
+    "Standard": "df"
+  },
+  "mask_voxels": {
+    "Description": "voxels in the analysis mask",
+    "Units": "voxels"
+  },
+  "n_vox_fwe": {
+    "Description": "voxels with FWE-corrected p below alpha",
+    "Units": "voxels",
+    "Standard": "n_significant",
+    "PKind": "fwe"
+  },
+  "frac_mask_fwe": {
+    "Description": "n_vox_fwe as a fraction of the mask",
+    "Standard": "frac_significant",
+    "PKind": "fwe"
+  },
+  "min_p_fwe": {
+    "Description": "smallest FWE-corrected voxel p in the map",
+    "Standard": "p_value",
+    "PKind": "fwe",
+    "PScope": "minimum over the mask"
+  },
+  "n_vox_uncorr": {
+    "Description": "voxels with uncorrected p below alpha (empty when randomise wrote no uncorrected maps)",
+    "Units": "voxels",
+    "PKind": "uncorrected"
+  },
+  "frac_mask_uncorr": {
+    "Description": "n_vox_uncorr as a fraction of the mask",
+    "PKind": "uncorrected"
+  },
+  "min_p_uncorr": {
+    "Description": "smallest uncorrected voxel p in the map",
+    "PKind": "uncorrected"
+  },
+  "peak_t": {
+    "Description": "largest t in the map",
+    "Standard": "stat",
+    "StatName": "t",
+    "StatScope": "peak"
+  },
+  "cluster_definition": {
+    "Description": "how clusters were formed for this test"
+  },
+  "n_clusters": {
+    "Description": "clusters under cluster_definition"
+  },
+  "largest_cluster_vox": {
+    "Description": "voxels in the largest cluster",
+    "Units": "voxels"
+  },
+  "significant_fwe": {
+    "Description": "any voxel with FWE-corrected p below alpha",
+    "Standard": "significant"
+  },
+  "whole_effect_n": {
+    "Description": "subjects with a finite whole-mask mean"
+  },
+  "whole_effect_df": {
+    "Description": "degrees of freedom of the whole-mask effect"
+  },
+  "whole_estimate": {
+    "Description": "the contrast estimate c'b on each subject's mean over the whole mask, in the measure's units",
+    "Standard": "estimate"
+  },
+  "whole_d": {
+    "Description": "c'b / residual SD on each subject's mean over the whole mask: pooled-SD Cohen's d for two groups without covariates, mean / SD for one sample; never selected",
+    "Standard": "effect_size",
+    "EffectMeasure": "d",
+    "EffectScope": "whole mask, unselected"
+  },
+  "whole_d_ci_low": {
+    "Description": "lower bound of whole_d (exact, noncentral t)",
+    "Standard": "effect_ci_low"
+  },
+  "whole_d_ci_high": {
+    "Description": "upper bound of whole_d (exact, noncentral t)",
+    "Standard": "effect_ci_high"
+  },
+  "whole_d_raw": {
+    "Description": "whole-mask d without covariate adjustment (pooled-SD for two groups, mean / SD for one sample)"
+  },
+  "whole_mean_pos": {
+    "Description": "whole-mask mean of the group weighted +1",
+    "Standard": "mean_a"
+  },
+  "whole_mean_neg": {
+    "Description": "whole-mask mean of the group weighted -1",
+    "Standard": "mean_b"
+  },
+  "whole_n_pos": {
+    "Description": "subjects in the group weighted +1",
+    "Standard": "n_a"
+  },
+  "whole_n_neg": {
+    "Description": "subjects in the group weighted -1",
+    "Standard": "n_b"
+  },
+  "whole_observed_direction": {
+    "Description": "the direction the whole-mask effect went",
+    "Standard": "observed_direction"
+  }
+}

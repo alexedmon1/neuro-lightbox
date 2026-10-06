@@ -1,0 +1,8 @@
+# Golden-build fixture: two synthetic analyses in neurofaune's results specification,
+# written by neurofaune's own writer (tests/fixtures/make_mri_spec.py). Every value
+# is synthetic.
+name: MRI results specification (synthetic)
+profile: mri
+paths:
+  results: ./results
+  gallery: ./gallery

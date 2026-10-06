@@ -1,0 +1,234 @@
+{
+  "spec": "neurofaune.results",
+  "spec_version": "0.1.0",
+  "id": "tbss/demo",
+  "title": "TBSS: demo (synthetic)",
+  "description": "Do treated animals differ from controls on the skeleton? (synthetic)",
+  "analysis_type": "tbss",
+  "measures": [
+    "FA",
+    "MD",
+    "MK"
+  ],
+  "role": "confirmatory",
+  "design": {
+    "n": 22,
+    "groups": {
+      "treated": 12,
+      "control": 10
+    },
+    "test_kinds": [
+      "two_group"
+    ],
+    "records": [
+      "design.json"
+    ]
+  },
+  "inference": {
+    "method": "FSL randomise, 2-D TFCE, 5000 permutations",
+    "n_permutations": 5000,
+    "correction": {
+      "p_kind": "fwe",
+      "alpha": 0.05,
+      "family": "voxels in the TBSS skeleton, per contrast and measure",
+      "statement": "2-D TFCE, FWE p < 0.05 by 5000 permutations, per contrast over the TBSS skeleton"
+    }
+  },
+  "effect": {
+    "measure": "d",
+    "ci_level": 0.95,
+    "scope": "whole mask, unselected (tests); cluster mean, selected (clusters)",
+    "definition": "contrast estimate over the residual SD of each subject's mean over the voxels: pooled-SD Cohen's d for two groups without covariates, mean / SD for one sample; 95% CI exact under normal residuals"
+  },
+  "tables": [
+    {
+      "path": "tests.csv",
+      "role": "tests",
+      "headline": true,
+      "n_rows": 6,
+      "rows": "one t-contrast on one measure, significant or not",
+      "description": "every test with its whole-mask effect, CI, extent and peak"
+    },
+    {
+      "path": "clusters.csv",
+      "role": "clusters",
+      "n_rows": 3,
+      "rows": "one cluster of one test",
+      "description": "clusters with extent, peak, named regions and the (selected) cluster effect"
+    }
+  ],
+  "maps": [
+    {
+      "path": "randomise_FA/randomise_tstat1.nii.gz",
+      "kind": "stat",
+      "space": "SIGMA",
+      "measure": "FA",
+      "contrast": "treated>control",
+      "description": "t statistic, treated>control on FA"
+    },
+    {
+      "path": "randomise_FA/randomise_tfce_corrp_tstat1.nii.gz",
+      "kind": "p_corrected",
+      "space": "SIGMA",
+      "measure": "FA",
+      "contrast": "treated>control",
+      "description": "1 - FWE-corrected p (randomise's convention), treated>control on FA",
+      "values": "one_minus_p"
+    },
+    {
+      "path": "randomise_FA/randomise_tfce_p_tstat1.nii.gz",
+      "kind": "p_uncorrected",
+      "space": "SIGMA",
+      "measure": "FA",
+      "contrast": "treated>control",
+      "description": "1 - uncorrected p (randomise's convention), treated>control on FA",
+      "values": "one_minus_p"
+    },
+    {
+      "path": "randomise_FA/randomise_tstat2.nii.gz",
+      "kind": "stat",
+      "space": "SIGMA",
+      "measure": "FA",
+      "contrast": "control>treated",
+      "description": "t statistic, control>treated on FA"
+    },
+    {
+      "path": "randomise_FA/randomise_tfce_corrp_tstat2.nii.gz",
+      "kind": "p_corrected",
+      "space": "SIGMA",
+      "measure": "FA",
+      "contrast": "control>treated",
+      "description": "1 - FWE-corrected p (randomise's convention), control>treated on FA",
+      "values": "one_minus_p"
+    },
+    {
+      "path": "randomise_FA/randomise_tfce_p_tstat2.nii.gz",
+      "kind": "p_uncorrected",
+      "space": "SIGMA",
+      "measure": "FA",
+      "contrast": "control>treated",
+      "description": "1 - uncorrected p (randomise's convention), control>treated on FA",
+      "values": "one_minus_p"
+    },
+    {
+      "path": "randomise_MD/randomise_tstat1.nii.gz",
+      "kind": "stat",
+      "space": "SIGMA",
+      "measure": "MD",
+      "contrast": "treated>control",
+      "description": "t statistic, treated>control on MD"
+    },
+    {
+      "path": "randomise_MD/randomise_tfce_corrp_tstat1.nii.gz",
+      "kind": "p_corrected",
+      "space": "SIGMA",
+      "measure": "MD",
+      "contrast": "treated>control",
+      "description": "1 - FWE-corrected p (randomise's convention), treated>control on MD",
+      "values": "one_minus_p"
+    },
+    {
+      "path": "randomise_MD/randomise_tfce_p_tstat1.nii.gz",
+      "kind": "p_uncorrected",
+      "space": "SIGMA",
+      "measure": "MD",
+      "contrast": "treated>control",
+      "description": "1 - uncorrected p (randomise's convention), treated>control on MD",
+      "values": "one_minus_p"
+    },
+    {
+      "path": "randomise_MD/randomise_tstat2.nii.gz",
+      "kind": "stat",
+      "space": "SIGMA",
+      "measure": "MD",
+      "contrast": "control>treated",
+      "description": "t statistic, control>treated on MD"
+    },
+    {
+      "path": "randomise_MD/randomise_tfce_corrp_tstat2.nii.gz",
+      "kind": "p_corrected",
+      "space": "SIGMA",
+      "measure": "MD",
+      "contrast": "control>treated",
+      "description": "1 - FWE-corrected p (randomise's convention), control>treated on MD",
+      "values": "one_minus_p"
+    },
+    {
+      "path": "randomise_MD/randomise_tfce_p_tstat2.nii.gz",
+      "kind": "p_uncorrected",
+      "space": "SIGMA",
+      "measure": "MD",
+      "contrast": "control>treated",
+      "description": "1 - uncorrected p (randomise's convention), control>treated on MD",
+      "values": "one_minus_p"
+    },
+    {
+      "path": "randomise_MK/randomise_tstat1.nii.gz",
+      "kind": "stat",
+      "space": "SIGMA",
+      "measure": "MK",
+      "contrast": "treated>control",
+      "description": "t statistic, treated>control on MK"
+    },
+    {
+      "path": "randomise_MK/randomise_tfce_corrp_tstat1.nii.gz",
+      "kind": "p_corrected",
+      "space": "SIGMA",
+      "measure": "MK",
+      "contrast": "treated>control",
+      "description": "1 - FWE-corrected p (randomise's convention), treated>control on MK",
+      "values": "one_minus_p"
+    },
+    {
+      "path": "randomise_MK/randomise_tfce_p_tstat1.nii.gz",
+      "kind": "p_uncorrected",
+      "space": "SIGMA",
+      "measure": "MK",
+      "contrast": "treated>control",
+      "description": "1 - uncorrected p (randomise's convention), treated>control on MK",
+      "values": "one_minus_p"
+    },
+    {
+      "path": "randomise_MK/randomise_tstat2.nii.gz",
+      "kind": "stat",
+      "space": "SIGMA",
+      "measure": "MK",
+      "contrast": "control>treated",
+      "description": "t statistic, control>treated on MK"
+    },
+    {
+      "path": "randomise_MK/randomise_tfce_corrp_tstat2.nii.gz",
+      "kind": "p_corrected",
+      "space": "SIGMA",
+      "measure": "MK",
+      "contrast": "control>treated",
+      "description": "1 - FWE-corrected p (randomise's convention), control>treated on MK",
+      "values": "one_minus_p"
+    },
+    {
+      "path": "randomise_MK/randomise_tfce_p_tstat2.nii.gz",
+      "kind": "p_uncorrected",
+      "space": "SIGMA",
+      "measure": "MK",
+      "contrast": "control>treated",
+      "description": "1 - uncorrected p (randomise's convention), control>treated on MK",
+      "values": "one_minus_p"
+    },
+    {
+      "path": "mask.nii.gz",
+      "kind": "mask",
+      "space": "SIGMA",
+      "description": "the TBSS skeleton"
+    },
+    {
+      "path": "background.nii.gz",
+      "kind": "background",
+      "space": "SIGMA",
+      "description": "image the maps are drawn on"
+    }
+  ],
+  "modality": "dwi",
+  "caveats": [
+    "Synthetic fixture: every subject, group and value is invented, and the effects were planted by tests/fixtures/make_mri_spec.py."
+  ]
+}

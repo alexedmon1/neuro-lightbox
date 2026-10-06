@@ -1,0 +1,7 @@
+/ContrastName1 treated>control
+/ContrastName2 control>treated
+/NumWaves 2
+/NumContrasts 2
+/Matrix
+1 -1
+-1 1

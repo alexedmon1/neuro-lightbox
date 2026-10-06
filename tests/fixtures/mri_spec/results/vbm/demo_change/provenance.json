@@ -1,0 +1,43 @@
+{
+  "spec": "neurofaune.results",
+  "spec_version": "0.1.0",
+  "generated_by": [
+    {
+      "Name": "neurofaune",
+      "Version": "0.11.0a0",
+      "DateTime": "2026-10-06T00:00:00+00:00"
+    },
+    {
+      "Name": "FSL",
+      "Version": "6.0.7.19",
+      "Description": "randomise"
+    }
+  ],
+  "run": {
+    "status": "completed",
+    "start": "2026-10-06T00:00:00+00:00",
+    "end": "2026-10-06T00:00:00+00:00"
+  },
+  "environment": {
+    "python": "3.10.12",
+    "platform": "Linux"
+  },
+  "inputs": [
+    {
+      "path": "all_GM_change.nii.gz",
+      "role": "GM change (synthetic)"
+    }
+  ],
+  "subjects": {
+    "n": 12,
+    "groups": {
+      "treated": 12
+    }
+  },
+  "settings": {
+    "n_permutations": 5000,
+    "cluster_threshold": 0.95,
+    "min_cluster_size": 10,
+    "seed": 2026
+  }
+}

@@ -9,9 +9,13 @@ compared and how to accept an intended change (`--update-golden`).
 | `eeg/` | The FORGE treatment study's source-analytics tree (analyses-v2, v0.7.1): three paradigms, 13 analyses, two localization pipelines with QC. | `eeg` (with the stand-in source-analytics interpreter), `eeg_no_sa` (without one) |
 | `eeg_legacy/` | Output neither real tree has: the retired vertex modules published with `include_retired`, legacy column names, plugin provenance, two results trees compared side by side. Written from nothing. | `eeg_legacy` |
 | `mri_h1c/` | The cuprizone H1c export the source-lightbox feasibility test built (NEURO_LIGHTBOX_PLAN.md §2), with `export_h1c.py`, the column mapping it used. | `mri_h1c` |
+| `mri_spec/` | Two analyses in neurofaune's results specification (0.1.0): `tbss/demo` (two groups, FA / MD / MK, planted corpus-callosum and internal-capsule effects, FA null, with a background image) and `vbm/demo_change` (one-sample GM change, one planted blob, no background). Wholly synthetic — invented subjects, planted effects — and written by neurofaune's own writer (`read_randomise` + `write_readout_results`, strict), so it conforms by construction. | — |
 
-`make_fixtures.py` wrote all three and says how; rerunning it needs the source
-trees, and is only for changing what the fixtures contain.
+`make_fixtures.py` wrote the first three and says how; rerunning it needs the
+source trees, and is only for changing what the fixtures contain.
+`make_mri_spec.py` writes `mri_spec/` from nothing, deterministically, with
+neurofaune's environment (`~/sandbox/neurofaune/.venv/bin/python
+tests/fixtures/make_mri_spec.py`); its docstring lists the planted truth.
 
 **The numbers are synthetic.** Both studies are unpublished and this repository
 is public. The fixtures keep each tree's structure — layout, file and column

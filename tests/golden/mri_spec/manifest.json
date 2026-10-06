@@ -1,0 +1,242 @@
+{
+  "title": "MRI results specification (synthetic)",
+  "paradigms": {
+    "tbss": {
+      "tbss_demo": {
+        "figures": {
+          "results": [
+            {
+              "path": "figures/analytics/results/tbss/tbss_demo/effects_1_tests.png",
+              "thumb": "figures/thumbs/analytics/results/tbss/tbss_demo/effects_1_tests.jpg",
+              "filename": "effects_1_tests.png"
+            },
+            {
+              "path": "figures/analytics/results/tbss/tbss_demo/montage_md_treated_control.png",
+              "thumb": "figures/thumbs/analytics/results/tbss/tbss_demo/montage_md_treated_control.jpg",
+              "filename": "montage_md_treated_control.png"
+            },
+            {
+              "path": "figures/analytics/results/tbss/tbss_demo/montage_mk_control_treated.png",
+              "thumb": "figures/thumbs/analytics/results/tbss/tbss_demo/montage_mk_control_treated.jpg",
+              "filename": "montage_mk_control_treated.png"
+            }
+          ]
+        },
+        "tables": {
+          "results": [
+            {
+              "filename": "tests.csv",
+              "csv": "tables/tbss/tbss_demo/tests.csv",
+              "headers": ["metric", "contrast", "contrast_name", "contrast_vector", "design", "tested_direction", "contrast_tests", "n", "df", "mask_voxels", "n_vox_fwe", "frac_mask_fwe", "min_p_fwe", "n_vox_uncorr", "frac_mask_uncorr", "min_p_uncorr", "peak_t", "cluster_definition", "n_clusters", "largest_cluster_vox", "significant_fwe", "whole_effect_n", "whole_effect_df", "whole_estimate", "whole_d", "whole_d_ci_low", "whole_d_ci_high", "whole_d_raw", "whole_mean_pos", "whole_mean_neg", "whole_n_pos", "whole_n_neg", "whole_observed_direction"],
+              "rows": [
+                ["FA", "1", "treated>control", "1 -1", "two-group", "treated > control", "treated mean > control mean", "22", "20", "666", "0", "0.0", "0.7999999970197678", "3", "0.0045045045045045045", "0.029999971389770508", "2.3429999351501465", "fwe p < 0.05, 26-connected, >= 10 voxels", "0", "0", "False", "22", "20", "-0.0008704408302202538", "-0.038816791176888174", "-0.8776264424901626", "0.8009566508890312", "-0.03881679117689065", "0.44933336850878464", "0.45020380933900495", "12", "10", "control > treated"],
+                ["FA", "2", "control>treated", "-1 1", "two-group", "control > treated", "control mean > treated mean", "22", "20", "666", "0", "0.0", "0.7999999970197678", "0", "0.0", "0.5", "2.8980000019073486", "fwe p < 0.05, 26-connected, >= 10 voxels", "0", "0", "False", "22", "20", "0.0008704408302202538", "0.038816791176888174", "-0.8009566508890317", "0.877626442490163", "0.03881679117689065", "0.45020380933900495", "0.44933336850878464", "10", "12", "control > treated"],
+                ["MD", "1", "treated>control", "1 -1", "two-group", "treated > control", "treated mean > control mean", "22", "20", "666", "126", "0.1891891891891892", "0.009999990463256836", "126", "0.1891891891891892", "0.001999974250793457", "7.5229997634887695", "fwe p < 0.05, 26-connected, >= 10 voxels", "1", "126", "True", "22", "20", "1.4577028236130007e-05", "0.5603933521322633", "-0.3030510515937402", "1.4104724513629365", "0.5603933521322674", "0.0007145583111449268", "0.0006999812829087967", "12", "10", "treated > control"],
+                ["MD", "2", "control>treated", "-1 1", "two-group", "control > treated", "control mean > treated mean", "22", "20", "666", "0", "0.0", "0.6500000059604645", "0", "0.0", "0.5", "2.871000051498413", "fwe p < 0.05, 26-connected, >= 10 voxels", "0", "0", "False", "22", "20", "-1.4577028236130007e-05", "-0.5603933521322633", "-1.4104724513629365", "0.30305105159374", "-0.5603933521322674", "0.0006999812829087967", "0.0007145583111449268", "10", "12", "treated > control"],
+                ["MK", "1", "treated>control", "1 -1", "two-group", "treated > control", "treated mean > control mean", "22", "20", "666", "0", "0.0", "0.6500000059604645", "0", "0.0", "0.5", "1.9759999513626099", "fwe p < 0.05, 26-connected, >= 10 voxels", "0", "0", "False", "22", "20", "-0.03909744393300496", "-0.7876979377375237", "-1.6522050433967916", "0.09489706664906726", "-0.7876979377375193", "0.9615212352843852", "1.00061867921739", "12", "10", "control > treated"],
+                ["MK", "2", "control>treated", "-1 1", "two-group", "control > treated", "control mean > treated mean", "22", "20", "666", "171", "0.25675675675675674", "0.009999990463256836", "171", "0.25675675675675674", "0.001999974250793457", "9.057000160217285", "fwe p < 0.05, 26-connected, >= 10 voxels", "2", "126", "True", "22", "20", "0.03909744393300496", "0.7876979377375237", "-0.09489706664906702", "1.6522050433967912", "0.7876979377375193", "1.00061867921739", "0.9615212352843852", "10", "12", "control > treated"]
+              ]
+            },
+            {
+              "filename": "clusters.csv",
+              "csv": "tables/tbss/tbss_demo/clusters.csv",
+              "headers": ["metric", "contrast", "contrast_name", "contrast_vector", "design", "tested_direction", "contrast_tests", "n", "df", "cluster", "n_voxels", "mm3", "peak_t", "peak_ijk", "peak_xyz_mm", "cog_xyz_mm", "min_p_fwe", "min_p_uncorr", "fwe_significant", "peak_region", "top_region", "regions", "n_regions", "outside_atlas_vox", "crosses_midline", "effect_n", "effect_df", "estimate", "d", "d_ci_low", "d_ci_high", "d_raw", "mean_pos", "mean_neg", "n_pos", "n_neg", "observed_direction", "effect_selected"],
+              "rows": [
+                ["MD", "1", "treated>control", "1 -1", "two-group", "treated > control", "treated mean > control mean", "22", "20", "1", "126", "3.402000405550019", "7.5229997634887695", "14 28 14", "-1.65 1.35 0.75", "0.00 0.15 0.96", "0.009999990463256836", "0.001999974250793457", "True", "Corpus.Callosum.and.Associated.Subcortical.White.Matter.L", "Corpus.Callosum.and.Associated.Subcortical.White.Matter.L", "Corpus.Callosum.and.Associated.Subcortical.White.Matter.L:63; Corpus.Callosum.and.Associated.Subcortical.White.Matter.R:63", "2", "0", "True", "22", "20", "7.502973451871658e-05", "2.8961337396360785", "1.6546930489533929", "4.103050853322682", "2.8961337396360745", "0.0007750274851488901", "0.0006999977506301736", "12", "10", "treated > control", "True"],
+                ["MK", "2", "control>treated", "-1 1", "two-group", "control > treated", "control mean > treated mean", "22", "20", "1", "126", "3.402000405550019", "8.019000053405762", "25 28 14", "1.65 1.35 0.75", "0.00 0.15 0.96", "0.009999990463256836", "0.001999974250793457", "True", "Corpus.Callosum.and.Associated.Subcortical.White.Matter.R", "Corpus.Callosum.and.Associated.Subcortical.White.Matter.L", "Corpus.Callosum.and.Associated.Subcortical.White.Matter.L:63; Corpus.Callosum.and.Associated.Subcortical.White.Matter.R:63", "2", "0", "True", "22", "20", "0.15183229363626904", "2.9475190328822287", "1.694539295391716", "4.165992995821622", "2.947519032882231", "1.0022278350970102", "0.850395541460741", "10", "12", "control > treated", "True"],
+                ["MK", "2", "control>treated", "-1 1", "two-group", "control > treated", "control mean > treated mean", "22", "20", "2", "45", "1.2150001448392926", "9.057000160217285", "27 25 9", "2.25 0.45 -0.75", "2.25 0.15 -1.05", "0.009999990463256836", "0.001999974250793457", "True", "Internal.Capsule.R", "Internal.Capsule.R", "Internal.Capsule.R:45", "1", "0", "False", "22", "20", "0.15058564490742166", "3.188456294783132", "1.8802337270550664", "4.462371097240774", "3.1884562947831285", "0.9982914117972056", "0.847705766889784", "10", "12", "control > treated", "True"]
+              ]
+            }
+          ]
+        },
+        "summary": "<div class=\"spec-digest\"><div class=\"analysis-warn\"><b>Caveats</b><ul><li>Synthetic fixture: every subject, group and value is invented, and the effects were planted by tests/fixtures/make_mri_spec.py.</li></ul></div><dl class=\"spec-facts\"><dt>Role</dt><dd>confirmatory</dd><dt>Design</dt><dd>n = 22 (treated 12, control 10)</dd><dt>Inference</dt><dd>FSL randomise, 2-D TFCE, 5000 permutations</dd><dt>Correction</dt><dd>2-D TFCE, FWE p &lt; 0.05 by 5000 permutations, per contrast over the TBSS skeleton</dd><dt>Corrected over</dt><dd>voxels in the TBSS skeleton, per contrast and measure</dd><dt>Effect</dt><dd>d — contrast estimate over the residual SD of each subject&#x27;s mean over the voxels: pooled-SD Cohen&#x27;s d for two groups without covariates, mean / SD for one sample; 95% CI exact under normal residuals</dd></dl><p class=\"spec-lead\">6 tests (one t-contrast on one measure, significant or not); 2 reach fwe p &lt; 0.05. Every test is listed, significant or not.</p><h4 class=\"spec-test\">treated&gt;control <span class=\"spec-direction\">tests treated &gt; control</span></h4><p class=\"spec-label\">treated mean &gt; control mean</p><table class=\"spec-tests\"><thead><tr><th>Measure</th><th>d [CI]</th><th>Observed</th><th>Extent</th><th>p (fwe, minimum over the mask)</th><th>n</th></tr></thead><tbody><tr class=\"spec-null\"><td>FA</td><td>-0.04 [-0.88, 0.80]</td><td>control &gt; treated</td><td>0.0% (0)</td><td>0.800</td><td>22</td></tr><tr class=\"spec-sig\"><td>MD</td><td>0.56 [-0.30, 1.41]</td><td>treated &gt; control</td><td>18.9% (126)</td><td>0.010</td><td>22</td></tr><tr class=\"spec-null\"><td>MK</td><td>-0.79 [-1.65, 0.09]</td><td>control &gt; treated</td><td>0.0% (0)</td><td>0.650</td><td>22</td></tr></tbody></table><h4 class=\"spec-test\">control&gt;treated <span class=\"spec-direction\">tests control &gt; treated</span></h4><p class=\"spec-label\">control mean &gt; treated mean</p><table class=\"spec-tests\"><thead><tr><th>Measure</th><th>d [CI]</th><th>Observed</th><th>Extent</th><th>p (fwe, minimum over the mask)</th><th>n</th></tr></thead><tbody><tr class=\"spec-null\"><td>FA</td><td>0.04 [-0.80, 0.88]</td><td>control &gt; treated</td><td>0.0% (0)</td><td>0.800</td><td>22</td></tr><tr class=\"spec-null\"><td>MD</td><td>-0.56 [-1.41, 0.30]</td><td>treated &gt; control</td><td>0.0% (0)</td><td>0.650</td><td>22</td></tr><tr class=\"spec-sig\"><td>MK</td><td>0.79 [-0.09, 1.65]</td><td>control &gt; treated</td><td>25.7% (171)</td><td>0.010</td><td>22</td></tr></tbody></table><h4 class=\"spec-test\">Clusters</h4><p class=\"spec-lead\">3 clusters (one cluster of one test) over 2 tests; per test the 5 largest are shown — every cluster is in the table clusters.csv.</p><p class=\"spec-cluster-test\"><b>MD · treated&gt;control</b> — 1 cluster</p><ul class=\"spec-clusters\"><li class=\"spec-sig\">126 voxels; 3.4 mm³; peak in Corpus.Callosum.and.Associated.Subcortical.White.Matter.L; at (-1.65 1.35 0.75) SIGMA; peak t 7.52; d 2.90 (selected, inflated); fwe p 0.010; crosses the midline</li></ul><p class=\"spec-cluster-test\"><b>MK · control&gt;treated</b> — 2 clusters</p><ul class=\"spec-clusters\"><li class=\"spec-sig\">126 voxels; 3.4 mm³; peak in Corpus.Callosum.and.Associated.Subcortical.White.Matter.R; at (1.65 1.35 0.75) SIGMA; peak t 8.02; d 2.95 (selected, inflated); fwe p 0.010; crosses the midline</li><li class=\"spec-sig\">45 voxels; 1.2 mm³; peak in Internal.Capsule.R; at (2.25 0.45 -0.75) SIGMA; peak t 9.06; d 3.19 (selected, inflated); fwe p 0.010</li></ul></div>",
+        "meta": {
+          "domain": null,
+          "supplements": null,
+          "description": "Do treated animals differ from controls on the skeleton? (synthetic)",
+          "about": "Do treated animals differ from controls on the skeleton? (synthetic)",
+          "display_name": "TBSS: demo (synthetic)"
+        },
+        "spec": {
+          "id": "tbss/demo",
+          "title": "TBSS: demo (synthetic)",
+          "role": "confirmatory",
+          "analysis_type": "tbss",
+          "modality": "dwi",
+          "measures": ["FA", "MD", "MK"]
+        },
+        "provenance": {
+          "spec": "neurofaune.results",
+          "spec_version": "0.1.0",
+          "generated_by": [
+            {
+              "Name": "neurofaune",
+              "Version": "0.11.0a0",
+              "DateTime": "2026-10-06T00:00:00+00:00"
+            },
+            {
+              "Name": "FSL",
+              "Version": "6.0.7.19",
+              "Description": "randomise"
+            }
+          ],
+          "run": {
+            "status": "completed",
+            "start": "2026-10-06T00:00:00+00:00",
+            "end": "2026-10-06T00:00:00+00:00"
+          },
+          "environment": {
+            "python": "3.10.12",
+            "platform": "Linux"
+          },
+          "inputs": [
+            {
+              "path": "all_FA_skeletonised.nii.gz",
+              "role": "skeletonised FA (synthetic)"
+            },
+            {
+              "path": "all_MD_skeletonised.nii.gz",
+              "role": "skeletonised MD (synthetic)"
+            },
+            {
+              "path": "all_MK_skeletonised.nii.gz",
+              "role": "skeletonised MK (synthetic)"
+            }
+          ],
+          "subjects": {
+            "n": 22,
+            "groups": {
+              "treated": 12,
+              "control": 10
+            }
+          },
+          "settings": {
+            "n_permutations": 5000,
+            "tfce": true,
+            "cluster_threshold": 0.95,
+            "min_cluster_size": 10,
+            "seed": 2026
+          }
+        }
+      }
+    },
+    "vbm": {
+      "vbm_demo_change": {
+        "figures": {
+          "results": [
+            {
+              "path": "figures/analytics/results/vbm/vbm_demo_change/effects_1_tests.png",
+              "thumb": "figures/thumbs/analytics/results/vbm/vbm_demo_change/effects_1_tests.jpg",
+              "filename": "effects_1_tests.png"
+            },
+            {
+              "path": "figures/analytics/results/vbm/vbm_demo_change/montage_gm_increase.png",
+              "thumb": "figures/thumbs/analytics/results/vbm/vbm_demo_change/montage_gm_increase.jpg",
+              "filename": "montage_gm_increase.png"
+            }
+          ]
+        },
+        "tables": {
+          "results": [
+            {
+              "filename": "tests.csv",
+              "csv": "tables/vbm/vbm_demo_change/tests.csv",
+              "headers": ["metric", "contrast", "contrast_name", "contrast_vector", "design", "tested_direction", "contrast_tests", "n", "df", "mask_voxels", "n_vox_fwe", "frac_mask_fwe", "min_p_fwe", "n_vox_uncorr", "frac_mask_uncorr", "min_p_uncorr", "peak_t", "cluster_definition", "n_clusters", "largest_cluster_vox", "significant_fwe", "whole_effect_n", "whole_effect_df", "whole_estimate", "whole_d", "whole_d_ci_low", "whole_d_ci_high", "whole_d_raw", "whole_mean", "whole_observed_direction"],
+              "rows": [
+                ["GM", "1", "increase", "1", "one-sample", "mean > 0", "mean GM change > 0 in treated animals", "12", "11", "3872", "136", "0.03512396694214876", "0.009999990463256836", "136", "0.03512396694214876", "0.001999974250793457", "8.708999633789062", "fwe p < 0.05, 26-connected, >= 10 voxels", "1", "136", "True", "12", "11", "0.0036861994119034708", "0.058971561325710166", "-0.5086658873325746", "0.6239671883020091", "0.058971561325710194", "0.0036861994119034725", "mean > 0"],
+                ["GM", "2", "decrease", "-1", "one-sample", "mean < 0", "mean GM change < 0 in treated animals", "12", "11", "3872", "0", "0.0", "0.7999999970197678", "0", "0.0", "0.699999988079071", "2.7260000705718994", "fwe p < 0.05, 26-connected, >= 10 voxels", "0", "0", "False", "12", "11", "-0.0036861994119034708", "-0.058971561325710166", "-0.6239671883020095", "0.508665887332575", "-0.058971561325710194", "0.0036861994119034725", "mean > 0"]
+              ]
+            },
+            {
+              "filename": "clusters.csv",
+              "csv": "tables/vbm/vbm_demo_change/clusters.csv",
+              "headers": ["metric", "contrast", "contrast_name", "contrast_vector", "design", "tested_direction", "contrast_tests", "n", "df", "cluster", "n_voxels", "mm3", "peak_t", "peak_ijk", "peak_xyz_mm", "cog_xyz_mm", "min_p_fwe", "min_p_uncorr", "fwe_significant", "peak_region", "top_region", "regions", "n_regions", "outside_atlas_vox", "crosses_midline", "effect_n", "effect_df", "estimate", "d", "d_ci_low", "d_ci_high", "d_raw", "mean", "observed_direction", "effect_selected"],
+              "rows": [
+                ["GM", "1", "increase", "1", "one-sample", "mean > 0", "mean GM change > 0 in treated animals", "12", "11", "1", "136", "3.6720004377365285", "8.708999633789062", "15 18 7", "1.05 1.35 -0.15", "1.50 0.60 0.00", "0.009999990463256836", "0.001999974250793457", "True", "Striatum.R", "Striatum.R", "Striatum.R:110; Cortex.R:26", "2", "0", "False", "12", "11", "0.0991166918892166", "1.5919252046771564", "0.7102291729132035", "2.443577046724824", "1.5919252046771561", "0.09911669188921658", "mean > 0", "True"]
+              ]
+            }
+          ]
+        },
+        "summary": "<div class=\"spec-digest\"><div class=\"analysis-warn\"><b>Caveats</b><ul><li>Synthetic fixture: every subject, group and value is invented, and the effects were planted by tests/fixtures/make_mri_spec.py.</li></ul></div><dl class=\"spec-facts\"><dt>Role</dt><dd>exploratory</dd><dt>Design</dt><dd>n = 12 (treated 12)</dd><dt>Inference</dt><dd>FSL randomise, 3-D TFCE, 5000 permutations</dd><dt>Correction</dt><dd>3-D TFCE, FWE p &lt; 0.05 by 5000 permutations, per contrast over the brain mask</dd><dt>Corrected over</dt><dd>voxels in the brain mask, per contrast and measure</dd><dt>Effect</dt><dd>d — contrast estimate over the residual SD of each subject&#x27;s mean over the voxels: pooled-SD Cohen&#x27;s d for two groups without covariates, mean / SD for one sample; 95% CI exact under normal residuals</dd></dl><p class=\"spec-lead\">2 tests (one t-contrast on one measure, significant or not); 1 reach fwe p &lt; 0.05. Every test is listed, significant or not.</p><h4 class=\"spec-test\">increase <span class=\"spec-direction\">tests mean &gt; 0</span></h4><p class=\"spec-label\">mean GM change &gt; 0 in treated animals</p><table class=\"spec-tests\"><thead><tr><th>Measure</th><th>d [CI]</th><th>Observed</th><th>Extent</th><th>p (fwe, minimum over the mask)</th><th>n</th></tr></thead><tbody><tr class=\"spec-sig\"><td>GM</td><td>0.06 [-0.51, 0.62]</td><td>mean &gt; 0</td><td>3.5% (136)</td><td>0.010</td><td>12</td></tr></tbody></table><h4 class=\"spec-test\">decrease <span class=\"spec-direction\">tests mean &lt; 0</span></h4><p class=\"spec-label\">mean GM change &lt; 0 in treated animals</p><table class=\"spec-tests\"><thead><tr><th>Measure</th><th>d [CI]</th><th>Observed</th><th>Extent</th><th>p (fwe, minimum over the mask)</th><th>n</th></tr></thead><tbody><tr class=\"spec-null\"><td>GM</td><td>-0.06 [-0.62, 0.51]</td><td>mean &gt; 0</td><td>0.0% (0)</td><td>0.800</td><td>12</td></tr></tbody></table><h4 class=\"spec-test\">Clusters</h4><p class=\"spec-lead\">1 clusters (one cluster of one test) over 1 tests; per test the 5 largest are shown — every cluster is in the table clusters.csv.</p><p class=\"spec-cluster-test\"><b>GM · increase</b> — 1 cluster</p><ul class=\"spec-clusters\"><li class=\"spec-sig\">136 voxels; 3.7 mm³; peak in Striatum.R; at (1.05 1.35 -0.15) SIGMA; peak t 8.71; d 1.59 (selected, inflated); fwe p 0.010</li></ul></div>",
+        "meta": {
+          "domain": null,
+          "supplements": null,
+          "description": "Does GM change within treated animals? (synthetic)",
+          "about": "Does GM change within treated animals? (synthetic)",
+          "display_name": "VBM: GM change (synthetic)"
+        },
+        "spec": {
+          "id": "vbm/demo_change",
+          "title": "VBM: GM change (synthetic)",
+          "role": "exploratory",
+          "analysis_type": "vbm",
+          "modality": "anat",
+          "measures": ["GM"]
+        },
+        "provenance": {
+          "spec": "neurofaune.results",
+          "spec_version": "0.1.0",
+          "generated_by": [
+            {
+              "Name": "neurofaune",
+              "Version": "0.11.0a0",
+              "DateTime": "2026-10-06T00:00:00+00:00"
+            },
+            {
+              "Name": "FSL",
+              "Version": "6.0.7.19",
+              "Description": "randomise"
+            }
+          ],
+          "run": {
+            "status": "completed",
+            "start": "2026-10-06T00:00:00+00:00",
+            "end": "2026-10-06T00:00:00+00:00"
+          },
+          "environment": {
+            "python": "3.10.12",
+            "platform": "Linux"
+          },
+          "inputs": [
+            {
+              "path": "all_GM_change.nii.gz",
+              "role": "GM change (synthetic)"
+            }
+          ],
+          "subjects": {
+            "n": 12,
+            "groups": {
+              "treated": 12
+            }
+          },
+          "settings": {
+            "n_permutations": 5000,
+            "cluster_threshold": 0.95,
+            "min_cluster_size": 10,
+            "seed": 2026
+          }
+        }
+      }
+    }
+  },
+  "paradigm_meta": {
+    "tbss": {
+      "label": "TBSS"
+    },
+    "vbm": {
+      "label": "VBM"
+    }
+  },
+  "contrast_meta": {},
+  "contrast_labels": {},
+  "contrast_order": [],
+  "group_labels": {},
+  "group_order": [],
+  "sources": ["results"],
+  "stats": {
+    "total_figures": 5,
+    "total_tables": 4,
+    "total_summaries": 2,
+    "paradigm_count": 2
+  }
+}

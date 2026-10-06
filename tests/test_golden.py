@@ -44,6 +44,7 @@ CASES = {
     "eeg_no_sa": ("eeg", ["--brain-python", "{missing}"]),
     "eeg_legacy": ("eeg_legacy", ["--brain-python", "{missing}"]),
     "mri_h1c": ("mri_h1c", ["--brain-python", "{missing}"]),
+    "mri_spec": ("mri_spec", []),
 }
 
 _VERSIONS = ("matplotlib", "numpy", "PIL")

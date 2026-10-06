@@ -1,0 +1,61 @@
+{
+  "schema": "neurofaune.design/1",
+  "summary": "Does GM change within treated animals? (synthetic)",
+  "n": 12,
+  "rows": {
+    "ids": [
+      "sub-01",
+      "sub-02",
+      "sub-03",
+      "sub-04",
+      "sub-05",
+      "sub-06",
+      "sub-07",
+      "sub-08",
+      "sub-09",
+      "sub-10",
+      "sub-11",
+      "sub-12"
+    ]
+  },
+  "data": {
+    "file": "all_GM_change.nii.gz",
+    "meaning": "each treated animal's synthetic GM change, later minus earlier"
+  },
+  "groups": {
+    "treated": 12
+  },
+  "columns": [
+    {
+      "index": 1,
+      "name": "intercept",
+      "meaning": "1 for every treated animal: the mean change",
+      "kind": "intercept"
+    }
+  ],
+  "contrasts": [
+    {
+      "index": 1,
+      "name": "increase",
+      "vector": [
+        1.0
+      ],
+      "tests": "mean GM change > 0 in treated animals",
+      "test_kind": "one_sample"
+    },
+    {
+      "index": 2,
+      "name": "decrease",
+      "vector": [
+        -1.0
+      ],
+      "tests": "mean GM change < 0 in treated animals",
+      "test_kind": "one_sample"
+    }
+  ],
+  "written": "2026-10-06T00:00:00+00:00",
+  "written_by": {
+    "Name": "neurofaune",
+    "Version": "0.11.0a0"
+  }
+}

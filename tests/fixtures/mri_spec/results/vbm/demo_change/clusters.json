@@ -1,0 +1,147 @@
+{
+  "metric": {
+    "Description": "the measure tested",
+    "Standard": "measure"
+  },
+  "contrast": {
+    "Description": "contrast number in design.con (1-based)"
+  },
+  "contrast_name": {
+    "Description": "contrast name, from the design record or design.con",
+    "Standard": "contrast"
+  },
+  "contrast_vector": {
+    "Description": "the contrast weights, one per design column"
+  },
+  "design": {
+    "Description": "how the contrast reads in the design",
+    "Levels": {
+      "two-group": "+1/-1 on two indicator columns",
+      "one-sample": "a weight on a constant column",
+      "single-column": "the sign of one column's coefficient",
+      "general": "any other weighting, written out"
+    }
+  },
+  "tested_direction": {
+    "Description": "what a positive statistic means, in the design's terms (randomise tests each contrast one-sided, t > 0)",
+    "Standard": "tested_direction"
+  },
+  "contrast_tests": {
+    "Description": "what the contrast tests, in words, from the design record (empty when the design has no record)",
+    "Standard": "contrast_label"
+  },
+  "n": {
+    "Description": "rows (subjects) in the design",
+    "Standard": "n"
+  },
+  "df": {
+    "Description": "error degrees of freedom, n - rank(X)",
+    "Standard": "df"
+  },
+  "cluster": {
+    "Description": "cluster id within its test",
+    "Standard": "element"
+  },
+  "n_voxels": {
+    "Description": "cluster extent",
+    "Units": "voxels",
+    "Standard": "n_voxels"
+  },
+  "mm3": {
+    "Description": "cluster extent",
+    "Units": "mm^3",
+    "Standard": "volume_mm3"
+  },
+  "peak_t": {
+    "Description": "largest t in the cluster",
+    "Standard": "stat",
+    "StatName": "t",
+    "StatScope": "peak"
+  },
+  "peak_ijk": {
+    "Description": "peak voxel indices, 'i j k'"
+  },
+  "peak_xyz_mm": {
+    "Description": "peak coordinate, 'x y z' in mm (image affine)",
+    "Standard": "peak_xyz_mm",
+    "Space": "SIGMA"
+  },
+  "cog_xyz_mm": {
+    "Description": "centre of gravity, 'x y z' in mm"
+  },
+  "min_p_fwe": {
+    "Description": "smallest FWE-corrected p in the cluster",
+    "Standard": "p_value",
+    "PKind": "fwe",
+    "PScope": "minimum within the cluster"
+  },
+  "min_p_uncorr": {
+    "Description": "smallest uncorrected p in the cluster",
+    "PKind": "uncorrected"
+  },
+  "fwe_significant": {
+    "Description": "the cluster holds a voxel with FWE-corrected p below alpha",
+    "Standard": "significant"
+  },
+  "peak_region": {
+    "Description": "atlas region at the peak",
+    "Standard": "peak_region"
+  },
+  "top_region": {
+    "Description": "atlas region with the most cluster voxels"
+  },
+  "regions": {
+    "Description": "every region the cluster covers, 'name:voxels; ...', largest first",
+    "Standard": "regions"
+  },
+  "n_regions": {
+    "Description": "regions the cluster covers"
+  },
+  "outside_atlas_vox": {
+    "Description": "cluster voxels with no atlas label",
+    "Units": "voxels"
+  },
+  "crosses_midline": {
+    "Description": "the cluster covers left and right regions",
+    "Standard": "crosses_midline"
+  },
+  "effect_n": {
+    "Description": "subjects with a finite cluster mean"
+  },
+  "effect_df": {
+    "Description": "degrees of freedom of the cluster effect"
+  },
+  "estimate": {
+    "Description": "the contrast estimate on each subject's mean over the cluster",
+    "Standard": "estimate"
+  },
+  "d": {
+    "Description": "d on each subject's mean over the cluster -- computed on voxels chosen for significance, so inflated",
+    "Standard": "effect_size",
+    "EffectMeasure": "d",
+    "EffectScope": "cluster mean, selected"
+  },
+  "d_ci_low": {
+    "Description": "lower bound of d (does not hold its coverage: selected)",
+    "Standard": "effect_ci_low"
+  },
+  "d_ci_high": {
+    "Description": "upper bound of d (does not hold its coverage: selected)",
+    "Standard": "effect_ci_high"
+  },
+  "d_raw": {
+    "Description": "cluster d without covariate adjustment"
+  },
+  "mean": {
+    "Description": "cluster mean (one-sample tests)",
+    "Standard": "mean"
+  },
+  "observed_direction": {
+    "Description": "the direction the cluster effect went",
+    "Standard": "observed_direction"
+  },
+  "effect_selected": {
+    "Description": "the effect was computed on voxels chosen for significance",
+    "Standard": "effect_selected"
+  }
+}
