@@ -1,0 +1,75 @@
+{
+  "spec": "neurofaune.results",
+  "spec_version": "0.1.0",
+  "id": "roi/h1c_function_trajectory",
+  "title": "H1c: functional change over grey-matter ROIs (synthetic)",
+  "description": "Within-animal change in ReHo, fALFF and functional connectivity summaries over the atlas grey matter, and the group difference in that change, over three windows, with the cross-sectional contrasts as diagnostics.",
+  "analysis_type": "roi",
+  "modality": "func",
+  "measures": [
+    "ReHo",
+    "fALFF",
+    "FC_mean_gsr",
+    "FC_homotopic_gsr",
+    "ReHo_zscore",
+    "fALFF_zscore",
+    "FC_mean_nogsr",
+    "FC_homotopic_nogsr"
+  ],
+  "role": "confirmatory",
+  "design": {
+    "n": 34,
+    "groups": {
+      "cuprizone": 24,
+      "control": 10
+    },
+    "test_kinds": [
+      "one_sample",
+      "two_group"
+    ]
+  },
+  "inference": {
+    "method": "per test, a linear model with the cuprizone cohort modelled (size-weighted); t test of the contrast",
+    "correction": {
+      "p_kind": "uncorrected",
+      "alpha": 0.05,
+      "family": "none: each test on its own; the ROI rows are post hoc",
+      "statement": "p per test from the cohort model's t, uncorrected across tests, measures and ROIs"
+    }
+  },
+  "effect": {
+    "measure": "contrast estimate",
+    "ci_level": 0.95,
+    "scope": "grey-matter-wide and hemisphere summaries (tests); one ROI (ROI rows: d)",
+    "definition": "the contrast in the measure's own units (mean change, or cuprizone minus control) with a 95% bootstrap interval; Cohen's d (pooled SD, ignoring cohort) is beside it, without an interval"
+  },
+  "tables": [
+    {
+      "path": "tests_grey_matter.csv",
+      "role": "tests",
+      "headline": true,
+      "n_rows": 96,
+      "rows": "one measure's grey-matter-wide summary in one contrast",
+      "description": "every measure and contrast, significant or not"
+    },
+    {
+      "path": "tests_by_hemisphere.csv",
+      "role": "tests",
+      "n_rows": 144,
+      "rows": "one measure's left or right summary in one contrast",
+      "description": "the same tests, per hemisphere"
+    },
+    {
+      "path": "roi_posthoc.csv",
+      "role": "elements",
+      "n_rows": 600,
+      "rows": "one ROI in one measure and contrast (post hoc)",
+      "description": "post hoc ROI rows"
+    }
+  ],
+  "caveats": [
+    "Every value is synthetic (tests/fixtures/mri_h1c/make_spec.py); only the structure is the H1c export's.",
+    "Only the group difference in change over p60\u2192p120 is the registered test; the other contrasts are descriptive.",
+    "Cohen's d carries no interval in this export, so the summary reports the contrast estimate with its bootstrap interval."
+  ]
+}

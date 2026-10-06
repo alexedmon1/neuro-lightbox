@@ -10,10 +10,14 @@ everything else. A profile adds its own figures (e.g. maps) through
 
 from __future__ import annotations
 
+import textwrap
 from pathlib import Path
 
 from .scanner import FigureEntry, _slugify
 from .spec import SpecAnalysis, SpecTable, as_bool, as_float
+
+#: Effect measures on a standardised scale (the colour scale gets a floor of 0.5).
+STANDARDISED = {"d", "g", "cohen's d", "hedges' g", "r", "z", "z_diff"}
 
 
 def _significant(row, std, alpha):
@@ -62,9 +66,12 @@ def effect_heatmap(spec: SpecAnalysis, table: SpecTable, out_path: Path, dpi: in
         hi = as_float(r.get(std.get("effect_ci_high", ""), None))
         spans_zero[i, j] = lo is not None and hi is not None and lo <= 0 <= hi
 
+    em = table.qualifier("effect_size", "EffectMeasure") or "effect"
     vmax = float(np.nanmax(np.abs(mat))) if np.isfinite(mat).any() else 1.0
-    vmax = max(vmax, 0.5)
-    w = 1.6 + 0.62 * len(measures)
+    # A standardised effect gets a floor, so a page of small d's is not painted as
+    # large; an effect in a measure's own units is scaled to what it is.
+    vmax = max(vmax, 0.5) if em.lower() in STANDARDISED else (vmax or 1.0)
+    w = 1.6 + 0.8 * len(measures)
     h = 1.4 + 0.36 * len(tests)
     fig, ax = plt.subplots(figsize=(max(w, 4.5), max(h, 2.2)))
     im = ax.imshow(mat, cmap="RdBu_r", vmin=-vmax, vmax=vmax, aspect="auto")
@@ -72,7 +79,7 @@ def effect_heatmap(spec: SpecAnalysis, table: SpecTable, out_path: Path, dpi: in
         for j in range(len(measures)):
             v = mat[i, j]
             if np.isfinite(v):
-                ax.text(j, i, f"{v:+.2f}", ha="center", va="center", fontsize=7,
+                ax.text(j, i, f"{v:+.2g}", ha="center", va="center", fontsize=7,
                         color="white" if abs(v) > 0.6 * vmax else "black",
                         fontweight="bold" if sig[i, j] else "normal")
             if spans_zero[i, j]:                       # independent of significance: a test
@@ -83,15 +90,16 @@ def effect_heatmap(spec: SpecAnalysis, table: SpecTable, out_path: Path, dpi: in
                                            ec="black"))
     ax.set_xticks(range(len(measures)), measures, rotation=45, ha="right", fontsize=8)
     ax.set_yticks(range(len(tests)), [" · ".join(x for x in t if x) for t in tests], fontsize=8)
-    em = table.qualifier("effect_size", "EffectMeasure") or "effect"
     scope = table.qualifier("effect_size", "EffectScope")
     pk = table.qualifier("p_value", "PKind") or "p"
     pscope = table.qualifier("p_value", "PScope")
     cb = fig.colorbar(im, ax=ax, fraction=0.04, pad=0.02)
     cb.set_label(em, fontsize=8)
-    ax.set_title(f"{spec.record.get('title', spec.id)}\n{em}{' (' + scope + ')' if scope else ''} per test; "
-                 f"hatched: its interval includes 0\noutlined: {pk} p < {spec.alpha:g}"
-                 f"{' (' + pscope + ')' if pscope else ''}", fontsize=8)
+    width = max(30, int(9 * max(w, 4.5)))           # characters a title line can hold
+    lines = [str(spec.record.get("title", spec.id)),
+             f"{em}{' (' + scope + ')' if scope else ''} per test; hatched: its interval includes 0",
+             f"outlined: {pk} p < {spec.alpha:g}{' (' + pscope + ')' if pscope else ''}"]
+    ax.set_title("\n".join(textwrap.fill(x, width) for x in lines), fontsize=8)
     fig.tight_layout()
     out_path.parent.mkdir(parents=True, exist_ok=True)
     fig.savefig(out_path, dpi=dpi)

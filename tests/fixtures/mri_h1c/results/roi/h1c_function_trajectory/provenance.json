@@ -1,0 +1,30 @@
+{
+  "spec": "neurofaune.results",
+  "spec_version": "0.1.0",
+  "generated_by": [
+    {
+      "Name": "h1_function_trajectory.py",
+      "Version": "study 9958868",
+      "Description": "the study's own orchestration"
+    },
+    {
+      "Name": "neurofaune",
+      "Version": "8ba584e"
+    }
+  ],
+  "run": {
+    "status": "completed",
+    "start": "2026-10-02T09:16:28-04:00",
+    "end": "2026-10-02T09:16:28-04:00"
+  },
+  "environment": {
+    "platform": "Linux"
+  },
+  "subjects": {
+    "n": 34,
+    "groups": {
+      "cuprizone": 24,
+      "control": 10
+    }
+  }
+}

@@ -9,6 +9,7 @@ and a pointer to the full table, which the gallery also embeds.
 
 from __future__ import annotations
 
+import math
 from html import escape
 
 from .spec import SpecAnalysis, SpecTable, as_bool, as_float
@@ -17,11 +18,16 @@ CLUSTERS_SHOWN = 5
 
 
 def _fmt(x: float | None, digits: int = 2) -> str:
+    """Two decimals, or two significant figures below 0.1 (plain notation down to
+    1e-6), so a small estimate keeps its precision and a column reads alike."""
     if x is None:
         return "—"
-    if x != 0 and (abs(x) < 10 ** -digits or abs(x) >= 1e5):
-        return f"{x:.{digits}g}" if abs(x) >= 1e5 else f"{x:.1e}"
-    return f"{x:.{digits}f}"
+    if abs(x) >= 1e5 or (x != 0 and abs(x) < 1e-6):
+        return f"{x:.{digits}g}"
+    if x == 0 or abs(x) >= 0.1:
+        return f"{x:.{digits}f}"
+    decimals = digits - 1 - math.floor(math.log10(abs(x)))
+    return f"{x:.{decimals}f}"
 
 
 def _p(x: float | None) -> str:

@@ -1,6 +1,7 @@
-# Golden-build fixture: the cuprizone H1c feasibility export (plan §2),
-# copied by tests/fixtures/make_fixtures.py; numbers are synthetic.
-name: cuprizone — H1c feasibility (source-lightbox)
+# Golden-build fixture: the cuprizone H1c feasibility export (plan §2), rewritten in
+# neurofaune's results specification by make_spec.py; every value is synthetic.
+name: cuprizone — H1c (results specification)
+profile: mri
 paths:
   results: ./results
   gallery: ./gallery
