@@ -48,6 +48,8 @@ class TableEntry:
     paradigm: str
     analysis: str
     filename: str
+    #: The column dictionary beside a specification table (``<table>.json``), copied with it.
+    dictionary: Path | None = None
 
     @property
     def gallery_rel_path(self) -> str:
@@ -74,6 +76,9 @@ class ScanResult:
     runs: dict = field(default_factory=dict)
     #: (paradigm, analysis) -> the provenance.json beside those tables.
     provenance: dict = field(default_factory=dict)
+    #: (paradigm, analysis) -> its :class:`~neuro_lightbox.spec.SpecAnalysis`, for
+    #: results written to the results specification.
+    spec: dict = field(default_factory=dict)
 
 
 def _slugify(text: str) -> str:
@@ -187,3 +192,53 @@ def qc_csv_to_json(csv_path: Path) -> list[dict]:
         for row in reader:
             rows.append(row)
     return rows
+
+
+class SpecScanner:
+    """Scan a results root written to the results specification (:mod:`.spec`).
+
+    Every analysis folder under the root becomes one analysis of the gallery:
+    grouped by its ``analysis_type``, named by its ``id``, with exactly the tables
+    and figures its ``analysis.json`` lists — nothing is picked up by filename.
+    """
+
+    def __init__(self, path: Path, label: str, warn=lambda msg: None):
+        self.path = Path(path)
+        self.label = label
+        self.warn = warn
+
+    def scan(self) -> ScanResult:
+        from .spec import find_analyses, load_analysis
+
+        result = ScanResult()
+        for folder in find_analyses(self.path):
+            spec = load_analysis(folder, self.warn)
+            if spec is None:
+                continue
+            paradigm, analysis = _slugify(spec.analysis_type), _slugify(spec.id)
+            key = (paradigm, analysis)
+            if key in result.spec:
+                self.warn(f"  WARNING: two analyses with id {spec.id!r}; {folder} skipped")
+                continue
+            result.spec[key] = spec
+            if spec.provenance is not None:
+                result.provenance[key] = spec.provenance
+            seen = set()
+            for tbl in spec.tables:
+                name = "__".join(tbl.path.relative_to(folder).parts)
+                seen.add(name)
+                result.tables.append(TableEntry(
+                    src_path=tbl.path, source_label=self.label, paradigm=paradigm,
+                    analysis=analysis, filename=name,
+                    dictionary=tbl.path.with_suffix(".json") if tbl.columns else None))
+            for fig in spec.figures():
+                path = spec.file(str(fig.get("path", "")))
+                if path is None or not _is_image(path):
+                    self.warn(f"  WARNING: {folder}: figure {fig.get('path')!r} is not an image "
+                              "in the folder")
+                    continue
+                result.figures.append(FigureEntry(
+                    src_path=path, category="analytics", source_label=self.label,
+                    paradigm=paradigm, analysis=analysis,
+                    filename="__".join(path.relative_to(folder).parts)))
+        return result

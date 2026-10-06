@@ -12,7 +12,8 @@ import jinja2
 from .config import BuildConfig
 from .manifest import build_manifest
 from .profiles import get_profile
-from .scanner import ResultsScanner, ScanResult, _slugify
+from .scanner import ResultsScanner, ScanResult, SpecScanner, _slugify
+from .spec import find_analyses
 from .thumbnails import generate_thumbnails
 
 
@@ -34,7 +35,12 @@ def build(config: BuildConfig, verbose: bool = True) -> Path:
 
     for res_input in config.results:
         _log(f"  Results: {res_input.path} [{res_input.label}]")
-        scanner = ResultsScanner(res_input.path, res_input.label)
+        # A tree written to the results specification is read by what its
+        # analysis.json files list; any other tree by its folder layout.
+        if find_analyses(res_input.path):
+            scanner = SpecScanner(res_input.path, res_input.label, warn=_log)
+        else:
+            scanner = ResultsScanner(res_input.path, res_input.label)
         partial = scanner.scan()
         _merge_scan(scan, partial)
 
@@ -71,12 +77,20 @@ def build(config: BuildConfig, verbose: bool = True) -> Path:
     # 2b. Render standardized figures from tables (staged, then treated like any
     #     other discovered figure by the copy/thumbnail/manifest steps below).
     staging_dir = out / ".rendered"
-    if config.render_figures and scan.tables:
+    legacy_tables = [t for t in scan.tables if (t.paradigm, t.analysis) not in scan.spec]
+    if config.render_figures and scan.spec:
+        _log("Rendering figures of specification analyses...")
+        from .spec_render import render_spec_figures
+
+        rendered = render_spec_figures(scan, staging_dir, config.figure_dpi, profile, _log)
+        scan.figures.extend(rendered)
+        _log(f"  Rendered {len(rendered)} figures for {len(scan.spec)} analyses")
+    if config.render_figures and legacy_tables:
         _log("Rendering figures from tables...")
         from .render import render_table_figures
 
         rendered = render_table_figures(
-            scan.tables, staging_dir, dpi=config.figure_dpi, log=_log, profile=profile,
+            legacy_tables, staging_dir, dpi=config.figure_dpi, log=_log, profile=profile,
             state=profile.render_setup(config, options, _log),
             contrast_labels=config.contrast_labels, contrast_order=config.contrasts,
         )
@@ -97,6 +111,8 @@ def build(config: BuildConfig, verbose: bool = True) -> Path:
         dst = out / tbl.gallery_rel_path
         dst.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy2(tbl.src_path, dst)
+        if tbl.dictionary is not None:                 # the column dictionary travels with it
+            shutil.copy2(tbl.dictionary, dst.with_suffix(".json"))
 
     # 4. Process QC report (a full self-contained HTML page). Namespace by source
     #    slug so multiple input sources (e.g. two pipelines) don't collide.
@@ -186,6 +202,7 @@ def _merge_scan(target: ScanResult, source: ScanResult):
     target.qc_entries.extend(source.qc_entries)
     target.runs.update(source.runs)
     target.provenance.update(source.provenance)
+    target.spec.update(source.spec)
 
 
 def _render_html(out: Path, manifest_json: str, title: str = "Gallery",

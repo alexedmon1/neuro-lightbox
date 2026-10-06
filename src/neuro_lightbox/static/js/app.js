@@ -461,8 +461,11 @@
         return "<li>" + escapeHtml(String(c)) + "</li>";
       }).join("") + "</ul></div>";
     }
-    var tools = (prov.tools || []).map(function (t) {
-      return [t.name, t.version, t.commit ? "(" + String(t.commit).slice(0, 7) + ")" : ""]
+    // The specification's generated_by (BIDS GeneratedBy: Name / Version / CommitID),
+    // else an older record's tools (name / version / commit).
+    var tools = (prov.generated_by || prov.tools || []).map(function (t) {
+      var commit = t.CommitID || t.commit;
+      return [t.Name || t.name, t.Version || t.version, commit ? "(" + String(commit).slice(0, 7) + ")" : ""]
         .filter(Boolean).join(" ");
     });
     var bits = [["tools", tools.length ? tools.join("; ") : "not recorded"]];
@@ -484,7 +487,9 @@
     if (prov.inputs) {
       var inputs = Array.isArray(prov.inputs) ? prov.inputs : [prov.inputs];
       bits.push(["inputs", inputs.map(function (i) {
-        return typeof i === "string" ? i : (i.label || i.path || JSON.stringify(i));
+        if (typeof i === "string") return i;
+        var name = String(i.label || i.path || JSON.stringify(i)).split("/").pop();
+        return i.role ? i.role + ": " + name : name;
       }).join("; ")]);
     }
     html += '<details class="analysis-prov"><summary>What produced this — ' +

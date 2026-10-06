@@ -16,6 +16,7 @@ dependencies = [
     "click>=8.0",
     "matplotlib>=3.7",
     "numpy>=1.24",
+    "nibabel>=5.0",
 ]
 
 [project.optional-dependencies]

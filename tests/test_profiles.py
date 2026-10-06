@@ -67,11 +67,11 @@ def test_installed_profiles_are_discovered(monkeypatch):
             self.name, self.value = name, value
 
     monkeypatch.setattr(profiles.metadata, "entry_points",
-                        lambda group=None: [EP("mri", "pkg.lightbox:MriProfile"),
-                                            EP("eeg", "elsewhere:Other")])
+                        lambda group=None: [EP("pet", "pkg.lightbox:PetProfile"),
+                                            EP("mri", "elsewhere:Other")])
     found = profiles.available()
-    assert found["mri"] == "pkg.lightbox:MriProfile"
-    assert found["eeg"] == "neuro_lightbox.profiles.eeg:EegProfile", "a built-in is not replaced"
+    assert found["pet"] == "pkg.lightbox:PetProfile"
+    assert found["mri"] == "neuro_lightbox.profiles.mri:MriProfile", "a built-in is not replaced"
 
 
 def test_a_profile_that_knows_nothing_still_builds_a_gallery(plain, tmp_path):

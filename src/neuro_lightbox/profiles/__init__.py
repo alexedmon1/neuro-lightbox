@@ -24,7 +24,8 @@ from pathlib import Path
 
 DEFAULT = "eeg"
 ENTRY_POINT_GROUP = "neuro_lightbox.profiles"
-_BUILTIN = {"eeg": "neuro_lightbox.profiles.eeg:EegProfile"}
+_BUILTIN = {"eeg": "neuro_lightbox.profiles.eeg:EegProfile",
+            "mri": "neuro_lightbox.profiles.mri:MriProfile"}
 
 
 class Profile:
@@ -101,7 +102,18 @@ class Profile:
         """Figures drawn after the overview, alongside it."""
         return []
 
+    def render_spec(self, spec, dest: Path, dpi: int, log) -> list:
+        """Figures of one analysis read from the results specification
+        (:class:`~neuro_lightbox.spec.SpecAnalysis`), drawn after the core's
+        effect overview; paths of PNGs written under ``dest``."""
+        return []
+
     # -- manifest ------------------------------------------------------------
+    def paradigm_labels(self) -> dict:
+        """Display names of analysis groups (for specification results: the
+        ``analysis_type`` values), unless the study config names them."""
+        return {}
+
     def analysis_meta(self, options, log) -> dict:
         """Per-analysis metadata: ``{name: {domain, supplements, description, about,
         display_name}}``."""

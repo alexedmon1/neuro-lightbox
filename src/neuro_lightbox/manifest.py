@@ -9,11 +9,11 @@ from .scanner import ScanResult
 
 
 def _read_csv(path: Path) -> dict:
-    """Read a CSV file and return {headers: [...], rows: [[...], ...]}."""
+    """Read a CSV (or, by extension, TSV) file: {headers: [...], rows: [[...], ...]}."""
     rows = []
     headers = []
     with open(path, newline="", encoding="utf-8") as f:
-        reader = csv.reader(f)
+        reader = csv.reader(f, delimiter="\t" if Path(path).suffix.lower() == ".tsv" else ",")
         for i, row in enumerate(reader):
             if i == 0:
                 headers = row
@@ -64,7 +64,7 @@ def build_manifest(scan: ScanResult, title: str, max_table_rows: int = 500,
         "title": title,
         "paradigms": {},
         # Per-paradigm nav display: paradigm key -> {group, label}. Empty = flat nav.
-        "paradigm_meta": paradigm_display or {},
+        "paradigm_meta": dict(paradigm_display or {}),
         # Per-contrast hypothesis metadata: name -> {role, test, gate_on}.
         "contrast_meta": contrast_meta or {},
         # Per-contrast readable labels: name -> label. Also serves as the
@@ -173,6 +173,22 @@ def build_manifest(scan: ScanResult, title: str, max_table_rows: int = 500,
             full = bool(module_tables)
             if not module_tables:  # fall back to embedded copies if a read failed
                 module_tables = [t for src in entry["tables"].values() for t in src]
+            spec = (getattr(scan, "spec", None) or {}).get((paradigm, analysis))
+            if spec is not None:
+                from .spec_digest import spec_digest
+
+                entry["summary"] = spec_digest(spec)
+                n_summaries += 1
+                entry["meta"] = {"domain": None, "supplements": None,
+                                 "description": spec.record.get("description"),
+                                 "about": spec.record.get("description"),
+                                 "display_name": spec.record.get("title")}
+                entry["spec"] = {k: spec.record.get(k) for k in
+                                 ("id", "title", "role", "analysis_type", "modality", "measures")}
+                record = (getattr(scan, "provenance", None) or {}).get((paradigm, analysis))
+                if record:
+                    entry["provenance"] = profile.trim_provenance(record)
+                continue
             summary_html = profile.digest(module_tables, full, contrast_labels,
                                           contrast_groups, contrast_meta,
                                           contrast_order=contrast_order,
@@ -207,6 +223,11 @@ def build_manifest(scan: ScanResult, title: str, max_table_rows: int = 500,
             if record:
                 entry["provenance"] = profile.trim_provenance(record)
 
+    # Display names of the specification's analysis types, from the profile, under
+    # whatever the study config says.
+    for key, label in (profile.paradigm_labels() or {}).items():
+        if key in manifest["paradigms"]:
+            manifest["paradigm_meta"].setdefault(key, {"label": label})
     if profile.inputs_key:
         profile.add_inputs(manifest[profile.inputs_key], scan)
 

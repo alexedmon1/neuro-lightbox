@@ -681,7 +681,7 @@ main {
   font-size: 13px;
   line-height: 1.55;
   color: var(--text-secondary);
-  background: var(--surface, #f7f8fa);
+  background: var(--bg-secondary);
   border-left: 3px solid var(--accent, #4a7de0);
   border-radius: 4px;
   padding: 10px 14px;
@@ -713,7 +713,7 @@ main {
 .analysis-prov {
   font-size: 12.5px;
   color: var(--text-secondary);
-  background: var(--surface, #f7f8fa);
+  background: var(--bg-secondary);
   border-left: 3px solid var(--border, #d4d7dd);
   border-radius: 4px;
   padding: 8px 14px;
@@ -737,7 +737,7 @@ main {
 /* Connectivity metric-definitions glossary (collapsible) */
 .metric-glossary {
   font-size: 13px;
-  background: var(--surface, #f7f8fa);
+  background: var(--bg-secondary);
   border-left: 3px solid var(--accent, #4a7de0);
   border-radius: 4px;
   padding: 4px 14px;
@@ -1267,3 +1267,23 @@ main {
   letter-spacing: 0.04em; text-transform: uppercase; color: var(--text-muted);
 }
 .search-sub { color: var(--text-muted); font-size: 12px; margin-left: 6px; }
+
+/* ── Summaries of analyses read from the results specification ── */
+.spec-digest { font-size: 13px; line-height: 1.5; }
+.spec-facts { display: grid; grid-template-columns: max-content 1fr; gap: 2px 14px; margin: 4px 0 12px; }
+.spec-facts dt { color: var(--text-secondary); font-weight: 600; }
+.spec-facts dd { margin: 0; color: var(--text-primary); }
+.spec-decision { margin: 8px 0 12px; padding: 6px 10px; border-left: 3px solid var(--accent-color);
+  background: var(--bg-secondary); border-radius: 4px; }
+.spec-lead { color: var(--text-secondary); margin: 10px 0 6px; }
+.spec-test { margin: 14px 0 4px; font-size: 14px; }
+.spec-direction { font-weight: normal; color: var(--text-secondary); font-size: 12px; margin-left: 6px; }
+.spec-label { margin: 0 0 6px; color: var(--text-secondary); }
+.spec-tests { border-collapse: collapse; margin: 4px 0 10px; font-variant-numeric: tabular-nums; }
+.spec-tests th, .spec-tests td { padding: 3px 10px; border-bottom: 1px solid var(--border-color); text-align: left; }
+.spec-tests th { background: var(--table-header-bg); font-weight: 600; font-size: 12px; }
+.spec-tests tr.spec-sig td { font-weight: 600; color: var(--text-primary); }
+.spec-tests tr.spec-null td { color: var(--text-secondary); }
+.spec-cluster-test { margin: 8px 0 2px; }
+.spec-clusters { margin: 0 0 8px; padding-left: 18px; }
+.spec-clusters li.spec-null { color: var(--text-secondary); }
