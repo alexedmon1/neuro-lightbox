@@ -1,7 +1,57 @@
-# neuro-lightbox (formerly source-lightbox) — design notes
+# neuro-lightbox — design notes
 
 Running record of the design decisions behind the gallery, so they aren't
-re-litigated. Newest sections at the bottom.
+re-litigated. The current design comes first; the notes from source-lightbox's EEG
+era follow as history (that code left this repository in Phase 4, 2026-10-06; it
+lives on in source-lightbox).
+
+## Current design (MRI, 2026-10-06)
+
+**Input: the results specification.** Analysis folders written to neurofaune's
+results specification (`neurofaune/docs/RESULTS_SPEC.md`): `analysis.json`,
+`provenance.json`, tables with column dictionaries. The core reads them
+(`spec.py`, `SpecScanner`) by what each `analysis.json` lists — never by filename.
+A results tree with no analysis folder goes through the older folder-layout path
+(`ResultsScanner`, `render.py`, `summarize.py`, `contract.py`), kept by the author's
+decision for neurofaune exports that are not yet in the specification.
+
+**Grouping.** Analyses are grouped by `analysis_type` (TBSS, VBM, ...; display names
+from the MRI profile) and named by `analysis.json`'s title. The study config's
+contrast labels and order (`contrasts:`) name and order the tests (`StudyNames`).
+
+**Summary** (`spec_digest.py`): the analysis's own statements first — role, design,
+inference, the correction and what it is over, the effect and its definition, caveats,
+decision — then every test, significant or not, with effect [interval], observed
+direction, extent, p with its kind and n; clusters / elements largest first, with the
+count and a pointer to the full table.
+
+**Figures** (`spec_render.py`, core; montages in the MRI profile):
+- *Effect overview*: tests × measures. The two one-sided tests of a comparison share a
+  row (▲ / ▼ mark which passed). Outlined = significant under the analysis's own
+  correction; hatched = the interval includes 0 — independent marks, because a map can
+  pass somewhere while its whole-mask effect is null. Standardised effects share one
+  colour scale (floor 0.5); effects in a measure's own units are coloured per measure.
+- *Subgroup overview*: each subgroup's effect (`subgroup_effect`) beside the test's own,
+  one panel per measure; subgroups under 3 hollow and off the axis range.
+- *Montages*: slices through the significant voxels of each passing test, on the atlas's
+  intensity template (`background`), oriented by the **declared** `axes` and cut in the
+  declared `display.plane` — rodent headers often follow the scanner, not the animal (on
+  the first real study they put the brain dorsal-down and mirrored).
+
+**Tables**: each specification table's dictionary travels with it; standard columns
+first in reading order; every header carries its description, units and role.
+
+**Study config** (`study.yaml`): `profile: mri` (the default and only profile),
+`paths.results`, `contrasts:` (labels, order), `links:` (pages beside the results, e.g.
+neurofaune's preprocessing QC index, linked relative to the gallery).
+
+**Rules that hold**: no study, workflow tool or domain words in the core (the purity
+test); a reader reports what is missing, never guesses; every number shown can be traced
+to a table in the gallery.
+
+---
+
+# History: the EEG-era design (source-lightbox)
 
 ## Source model: two namespaces
 
