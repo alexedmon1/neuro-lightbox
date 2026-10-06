@@ -105,8 +105,11 @@ def montage(stat_path: Path, p_path: Path, values: str, background_path: Path | 
 
 def montages(spec, dest: Path, dpi: int, log) -> list[Path]:
     """One montage per test with significant voxels (see module docstring)."""
-    stats = {(m.get("measure", ""), m.get("contrast", "")): m for m in spec.maps("stat")}
-    pmaps = {(m.get("measure", ""), m.get("contrast", "")): m for m in spec.maps("p_corrected")}
+    def key(m):
+        return (m.get("facet", ""), m.get("measure", ""), m.get("contrast", ""))
+
+    stats = {key(m): m for m in spec.maps("stat")}
+    pmaps = {key(m): m for m in spec.maps("p_corrected")}
     background = next((spec.file(m["path"]) for m in spec.maps("background")
                        if spec.file(m.get("path", ""))), None)
     mask = next((spec.file(m["path"]) for m in spec.maps("mask") if spec.file(m.get("path", ""))), None)
@@ -115,21 +118,23 @@ def montages(spec, dest: Path, dpi: int, log) -> list[Path]:
     pkind = (tests[0].qualifier("p_value", "PKind") if tests else None) or "corrected"
     out = []
     order = {m: i for i, m in enumerate(spec.measures)}
-    for key in sorted(stats, key=lambda k: (order.get(k[0], len(order)), k)):
-        pm = pmaps.get(key)
+    for k in sorted(stats, key=lambda k: (k[0], order.get(k[1], len(order)), k)):
+        pm = pmaps.get(k)
         if pm is None or pm.get("values") not in ("p", "one_minus_p"):
             if pm is not None:
                 log(f"  WARNING: {spec.id}: {pm.get('path')} does not say whether it holds p or "
                     "1 - p; not thresholded")
             continue
-        stat_path, p_path = spec.file(stats[key].get("path", "")), spec.file(pm.get("path", ""))
+        stat_path, p_path = spec.file(stats[k].get("path", "")), spec.file(pm.get("path", ""))
         if stat_path is None or p_path is None:
             continue
-        measure, contrast = key
-        title = (f"{measure} · {contrast}: voxels at {pkind} p < {spec.alpha:g}, statistic shown"
+        facet, measure, contrast = k
+        title = (" · ".join(x for x in (facet, measure, contrast) if x)
+                 + f": voxels at {pkind} p < {spec.alpha:g}, statistic shown"
                  + ("; skeleton thickened for display" if thicken else ""))
+        name = "_".join(_slug(x) for x in (facet, measure, contrast) if x)
         path = montage(stat_path, p_path, pm["values"], background, mask, spec.alpha, title,
-                       dest / f"montage_{_slug(measure)}_{_slug(contrast)}.png", dpi, thicken)
+                       dest / f"montage_{name}.png", dpi, thicken)
         if path is not None:
             out.append(path)
     return out
