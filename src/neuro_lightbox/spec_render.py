@@ -19,7 +19,7 @@ import textwrap
 from pathlib import Path
 
 from .scanner import FigureEntry, _slugify
-from .spec import SpecAnalysis, SpecTable, as_bool, as_float
+from .spec import SpecAnalysis, SpecTable, StudyNames, as_bool, as_float
 
 #: Subgroups smaller than this are drawn hollow and do not set the axis range.
 MIN_SUBGROUP_N = 3
@@ -62,7 +62,7 @@ def _pairs(keys, cell, measures, std) -> dict:
     return partner
 
 
-def _layout(spec: SpecAnalysis, table: SpecTable):
+def _layout(spec: SpecAnalysis, table: SpecTable, names: StudyNames | None = None):
     """(measures, test rows, first -> opposite contrast, (facet, contrast, measure) -> row),
     with the two one-sided tests of a comparison sharing a row; None without effects."""
     std = table.standard()
@@ -90,15 +90,19 @@ def _layout(spec: SpecAnalysis, table: SpecTable):
         cell[key + (measure_of(r),)] = r
     partner = _pairs(keys, cell, measures, std)               # second contrast -> first
     tests = [k for k in keys if k not in partner]
+    if names is not None:                                      # the study's order, if it gives one
+        tests = sorted(tests, key=lambda k: names.rank(*k))
     flipped = {v: k for k, v in partner.items()}               # first -> its opposite
     return measures, tests, flipped, cell
 
 
-def _row_label(t, flipped) -> str:
-    return " · ".join(x for x in t if x) + (f"  (▼ {flipped[t][1]})" if t in flipped else "")
+def _row_label(t, flipped, names: StudyNames | None = None) -> str:
+    names = names or StudyNames()
+    return names.label(*t) + (f"  (▼ {names.contrast(flipped[t][1])})" if t in flipped else "")
 
 
-def subgroup_dots(spec: SpecAnalysis, table: SpecTable, out_path: Path, dpi: int = 150) -> Path | None:
+def subgroup_dots(spec: SpecAnalysis, table: SpecTable, out_path: Path, dpi: int = 150,
+                  names: StudyNames | None = None) -> Path | None:
     """Each subgroup's effect beside the test's own: one panel per measure, tests as rows."""
     import matplotlib
 
@@ -113,7 +117,7 @@ def subgroup_dots(spec: SpecAnalysis, table: SpecTable, out_path: Path, dpi: int
                 groups[str(meta["Subgroup"])] = col
             elif meta.get("Standard") == "subgroup_n":
                 sizes[str(meta["Subgroup"])] = col
-    layout = _layout(spec, table)
+    layout = _layout(spec, table, names)
     if not groups or layout is None:
         return None
     std = table.standard()
@@ -157,7 +161,7 @@ def subgroup_dots(spec: SpecAnalysis, table: SpecTable, out_path: Path, dpi: int
         ax.set_title(m, fontsize=8)
         ax.tick_params(axis="x", labelsize=6)
         ax.grid(axis="y", color="#eeeeee", lw=0.5)
-    axes[0][0].set_yticks(range(len(tests)), [_row_label(t, flipped) for t in tests], fontsize=7)
+    axes[0][0].set_yticks(range(len(tests)), [_row_label(t, flipped, names) for t in tests], fontsize=7)
     axes[0][0].invert_yaxis()
     handles = [plt.Line2D([], [], marker="o", ls="", color=colours[k % len(colours)], label=g)
                for k, g in enumerate(groups)]
@@ -177,7 +181,8 @@ def subgroup_dots(spec: SpecAnalysis, table: SpecTable, out_path: Path, dpi: int
     return out_path
 
 
-def effect_heatmap(spec: SpecAnalysis, table: SpecTable, out_path: Path, dpi: int = 150) -> Path | None:
+def effect_heatmap(spec: SpecAnalysis, table: SpecTable, out_path: Path, dpi: int = 150,
+                   names: StudyNames | None = None) -> Path | None:
     import matplotlib
 
     matplotlib.use("Agg")
@@ -185,7 +190,7 @@ def effect_heatmap(spec: SpecAnalysis, table: SpecTable, out_path: Path, dpi: in
     import numpy as np
 
     std = table.standard()
-    layout = _layout(spec, table)
+    layout = _layout(spec, table, names)
     if layout is None:
         return None
     measures, tests, flipped, cell = layout
@@ -208,14 +213,23 @@ def effect_heatmap(spec: SpecAnalysis, table: SpecTable, out_path: Path, dpi: in
             spans_zero[i, j] = lo is not None and hi is not None and lo <= 0 <= hi
 
     em = table.qualifier("effect_size", "EffectMeasure") or "effect"
-    vmax = float(np.nanmax(np.abs(mat))) if np.isfinite(mat).any() else 1.0
-    # A standardised effect gets a floor, so a page of small d's is not painted as
-    # large; an effect in a measure's own units is scaled to what it is.
-    vmax = max(vmax, 0.5) if em.lower() in STANDARDISED else (vmax or 1.0)
+    standardised = em.lower() in STANDARDISED
+    if standardised:
+        # One scale for every measure, with a floor so a page of small d's is not
+        # painted as large.
+        vmax = float(np.nanmax(np.abs(mat))) if np.isfinite(mat).any() else 1.0
+        vmax, shade = max(vmax, 0.5), mat
+    else:
+        # In each measure's own units the columns are not comparable: each is coloured
+        # against its own largest |effect|; the printed values stay as they are.
+        colmax = np.nanmax(np.where(np.isfinite(mat), np.abs(mat), np.nan), axis=0) \
+            if np.isfinite(mat).any() else np.ones(mat.shape[1])
+        colmax = np.where(np.isfinite(colmax) & (colmax > 0), colmax, 1.0)
+        vmax, shade = 1.0, mat / colmax[None, :]
     w = 1.6 + 0.8 * len(measures)
     h = 1.4 + 0.36 * len(tests)
     fig, ax = plt.subplots(figsize=(max(w, 4.5), max(h, 2.2)))
-    im = ax.imshow(mat, cmap="RdBu_r", vmin=-vmax, vmax=vmax, aspect="auto")
+    im = ax.imshow(shade, cmap="RdBu_r", vmin=-vmax, vmax=vmax, aspect="auto")
     for i in range(len(tests)):
         for j in range(len(measures)):
             v = mat[i, j]
@@ -223,7 +237,7 @@ def effect_heatmap(spec: SpecAnalysis, table: SpecTable, out_path: Path, dpi: in
             marks = ("▲" if paired and sig[i, j] else "") + ("▼" if sig_opposite[i, j] else "")
             if np.isfinite(v):
                 ax.text(j, i, f"{v:+.2g}{marks}", ha="center", va="center", fontsize=7,
-                        color="white" if abs(v) > 0.6 * vmax else "black",
+                        color="white" if abs(shade[i, j]) > 0.6 * vmax else "black",
                         fontweight="bold" if sig[i, j] or sig_opposite[i, j] else "normal")
             if spans_zero[i, j]:                       # independent of significance: a test
                 ax.add_patch(plt.Rectangle((j - 0.45, i - 0.45), 0.9, 0.9, fill=False, lw=0,
@@ -232,16 +246,18 @@ def effect_heatmap(spec: SpecAnalysis, table: SpecTable, out_path: Path, dpi: in
                 ax.add_patch(plt.Rectangle((j - 0.45, i - 0.45), 0.9, 0.9, fill=False, lw=2.2,
                                            ec="black"))
     ax.set_xticks(range(len(measures)), measures, rotation=45, ha="right", fontsize=8)
-    labels = [_row_label(t, flipped) for t in tests]
+    labels = [_row_label(t, flipped, names) for t in tests]
     ax.set_yticks(range(len(tests)), labels, fontsize=8)
     scope = table.qualifier("effect_size", "EffectScope")
     pk = table.qualifier("p_value", "PKind") or "p"
     pscope = table.qualifier("p_value", "PScope")
     cb = fig.colorbar(im, ax=ax, fraction=0.04, pad=0.02)
-    cb.set_label(em, fontsize=8)
+    cb.set_label(em if standardised else f"{em} / the measure's largest |{em}|", fontsize=8)
     width = max(30, int(9 * max(w, 4.5)))           # characters a title line can hold
     lines = [str(spec.record.get("title", spec.id)),
-             f"{em}{' (' + scope + ')' if scope else ''} per test; hatched: its interval includes 0",
+             f"{em}{' (' + scope + ')' if scope else ''} per test"
+             + ("" if standardised else ", in each measure's own units (colour scaled per measure)")
+             + "; hatched: its interval includes 0",
              f"outlined: {pk} p < {spec.alpha:g}{' (' + pscope + ')' if pscope else ''}"
              + ("; ▲ the row's own direction, ▼ the opposite one (named in the row)" if flipped else "")]
     ax.set_title("\n".join(textwrap.fill(x, width) for x in lines), fontsize=8)
@@ -252,7 +268,8 @@ def effect_heatmap(spec: SpecAnalysis, table: SpecTable, out_path: Path, dpi: in
     return out_path
 
 
-def render_spec_figures(scan, staging_dir: Path, dpi: int, profile, log) -> list[FigureEntry]:
+def render_spec_figures(scan, staging_dir: Path, dpi: int, profile, log,
+                        names: StudyNames | None = None) -> list[FigureEntry]:
     """The overview heatmaps of every specification analysis, then the profile's figures."""
     figures = []
     sources = {(t.paradigm, t.analysis): t.source_label for t in scan.tables}
@@ -264,14 +281,16 @@ def render_spec_figures(scan, staging_dir: Path, dpi: int, profile, log) -> list
         paths = []
         for k, table in enumerate(spec.tables_with_role("tests")):
             try:
-                p = effect_heatmap(spec, table, dest / f"effects_{k + 1}_{_slugify(table.path.stem)}.png", dpi)
+                p = effect_heatmap(spec, table, dest / f"effects_{k + 1}_{_slugify(table.path.stem)}.png", dpi,
+                                   names)
             except Exception as exc:  # noqa: BLE001
                 log(f"  WARNING: effect overview failed for {spec.id}: {exc}")
                 p = None
             if p:
                 paths.append(p)
             try:
-                p = subgroup_dots(spec, table, dest / f"subgroups_{k + 1}_{_slugify(table.path.stem)}.png", dpi)
+                p = subgroup_dots(spec, table, dest / f"subgroups_{k + 1}_{_slugify(table.path.stem)}.png", dpi,
+                                  names)
             except Exception as exc:  # noqa: BLE001
                 log(f"  WARNING: subgroup overview failed for {spec.id}: {exc}")
                 p = None

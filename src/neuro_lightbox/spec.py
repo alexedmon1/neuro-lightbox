@@ -175,3 +175,40 @@ def as_float(value) -> float | None:
 def as_bool(value) -> bool | None:
     s = str(value).strip().lower()
     return True if s in ("true", "1") else False if s in ("false", "0") else None
+
+
+@dataclass
+class StudyNames:
+    """The study config's names and order for tests (study.yaml ``contrasts``).
+
+    A test is (facet, contrast). Its label is looked up as ``"facet · contrast"``, then
+    ``"facet__contrast"`` (a whole-test label), else the facet and the contrast are each
+    relabelled on their own; anything without a label keeps its own name. Tests the
+    config lists come in its order, the rest after, in their own order.
+    """
+
+    labels: dict = field(default_factory=dict)
+    order: list = field(default_factory=list)
+
+    def _whole(self, facet: str, contrast: str) -> str | None:
+        for key in (f"{facet} · {contrast}", f"{facet}__{contrast}"):
+            if facet and key in self.labels:
+                return key
+        return None
+
+    def label(self, facet: str, contrast: str) -> str:
+        whole = self._whole(facet, contrast)
+        if whole:
+            return str(self.labels[whole])
+        parts = [self.labels.get(facet, facet), self.labels.get(contrast, contrast)]
+        return " · ".join(str(p) for p in parts if p)
+
+    def contrast(self, contrast: str) -> str:
+        return str(self.labels.get(contrast, contrast))
+
+    def rank(self, facet: str, contrast: str) -> int:
+        rank = {n: i for i, n in enumerate(self.order)}
+        for key in (f"{facet} · {contrast}", f"{facet}__{contrast}", contrast, facet):
+            if key in rank:
+                return rank[key]
+        return len(self.order)

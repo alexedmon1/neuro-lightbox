@@ -189,9 +189,11 @@ def build_manifest(scan: ScanResult, title: str, max_table_rows: int = 500,
                 module_tables = [t for src in entry["tables"].values() for t in src]
             spec = (getattr(scan, "spec", None) or {}).get((paradigm, analysis))
             if spec is not None:
+                from .spec import StudyNames
                 from .spec_digest import spec_digest
 
-                entry["summary"] = spec_digest(spec)
+                entry["summary"] = spec_digest(spec, StudyNames(dict(contrast_labels or {}),
+                                                                list(contrast_order or [])))
                 n_summaries += 1
                 entry["meta"] = {"domain": None, "supplements": None,
                                  "description": spec.record.get("description"),

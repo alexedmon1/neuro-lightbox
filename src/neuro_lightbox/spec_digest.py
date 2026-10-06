@@ -12,7 +12,7 @@ from __future__ import annotations
 import math
 from html import escape
 
-from .spec import SpecAnalysis, SpecTable, as_bool, as_float
+from .spec import SpecAnalysis, SpecTable, StudyNames, as_bool, as_float
 
 CLUSTERS_SHOWN = 5
 
@@ -100,7 +100,7 @@ def _header(spec: SpecAnalysis) -> str:
     return "".join(html)
 
 
-def _tests_html(spec: SpecAnalysis, table: SpecTable) -> str:
+def _tests_html(spec: SpecAnalysis, table: SpecTable, names: StudyNames) -> str:
     std = table.standard()
     _cols, rows = table.read()
     alpha = spec.alpha
@@ -114,13 +114,16 @@ def _tests_html(spec: SpecAnalysis, table: SpecTable) -> str:
             f'{n_sig} reach {escape(pkind)} p &lt; {alpha:g}. Every test is listed, '
             f'significant or not.</p>']
     keys = _order([_test_key(r, std) for r in rows], [])
+    keys = sorted(keys, key=lambda k: names.rank(*k))            # the study's order, if it gives one
     for facet, contrast in keys:
         sel = [r for r in rows if _test_key(r, std) == (facet, contrast)]
         first = sel[0]
         direction = first.get(std["tested_direction"], "") if "tested_direction" in std else ""
         label = first.get(std["contrast_label"], "") if "contrast_label" in std else ""
-        title = " · ".join(x for x in (facet, contrast) if x)
+        title = names.label(facet, contrast)
+        raw = " · ".join(x for x in (facet, contrast) if x)
         html.append(f'<h4 class="spec-test">{escape(title)}'
+                    + (f' <span class="spec-direction">({escape(raw)})</span>' if title != raw else "")
                     + (f' <span class="spec-direction">tests {escape(direction)}</span>' if direction else "")
                     + "</h4>")
         if label:
@@ -225,13 +228,15 @@ def _elements_html(spec: SpecAnalysis, table: SpecTable) -> str:
     return "".join(html) + "</ul>"
 
 
-def spec_digest(spec: SpecAnalysis) -> str:
-    """The summary HTML of one analysis (see module docstring)."""
+def spec_digest(spec: SpecAnalysis, names: StudyNames | None = None) -> str:
+    """The summary HTML of one analysis (see module docstring); tests are named and
+    ordered by the study config where it says (``names``)."""
+    names = names or StudyNames()
     parts = [_header(spec)]
     tests = spec.tables_with_role("tests")
     tests = sorted(tests, key=lambda t: not t.headline)
     for t in tests:
-        parts.append(_tests_html(spec, t))
+        parts.append(_tests_html(spec, t, names))
     for t in spec.tables_with_role("clusters"):
         parts.append(_clusters_html(spec, t))
     for t in spec.tables_with_role("elements"):

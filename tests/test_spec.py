@@ -171,3 +171,17 @@ def test_subgroup_overview_draws_each_subgroup_and_survives_tiny_ones(tmp_path):
     assert out is not None and out.stat().st_size > 0             # B (n = 2, d = 40) drawn, not fatal
     plain = load_analysis(RESULTS / "tbss" / "demo")
     assert subgroup_dots(plain, plain.tables_with_role("tests")[0], tmp_path / "t.png", 72) is None
+
+
+def test_study_names_label_and_order_tests():
+    from neuro_lightbox.spec import StudyNames
+
+    n = StudyNames(labels={"change_group__p60_to_p90": "Group, early", "cuprizone>control": "cpz > ctl",
+                           "cross p90": "At p90"},
+                   order=["cross p90", "change_group__p60_to_p90"])
+    assert n.label("change_group", "p60_to_p90") == "Group, early"           # whole-test label
+    assert n.label("cross p90", "cuprizone>control") == "At p90 · cpz > ctl"  # facet and contrast apart
+    assert n.label("", "other") == "other"                                    # no label: own name
+    keys = [("change_group", "p60_to_p90"), ("x", "y"), ("cross p90", "cuprizone>control")]
+    assert sorted(keys, key=lambda k: n.rank(*k)) == [("cross p90", "cuprizone>control"),
+                                                      ("change_group", "p60_to_p90"), ("x", "y")]

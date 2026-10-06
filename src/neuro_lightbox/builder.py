@@ -82,7 +82,10 @@ def build(config: BuildConfig, verbose: bool = True) -> Path:
         _log("Rendering figures of specification analyses...")
         from .spec_render import render_spec_figures
 
-        rendered = render_spec_figures(scan, staging_dir, config.figure_dpi, profile, _log)
+        from .spec import StudyNames
+
+        names = StudyNames(dict(config.contrast_labels or {}), list(config.contrasts or []))
+        rendered = render_spec_figures(scan, staging_dir, config.figure_dpi, profile, _log, names)
         scan.figures.extend(rendered)
         _log(f"  Rendered {len(rendered)} figures for {len(scan.spec)} analyses")
     if config.render_figures and legacy_tables:
