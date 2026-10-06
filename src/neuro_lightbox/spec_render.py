@@ -6,6 +6,11 @@ with its value, outlined where the test is significant under the analysis's own
 correction, and hatched where the interval includes zero. Nulls are drawn like
 everything else. A profile adds its own figures (e.g. maps) through
 :meth:`~neuro_lightbox.profiles.Profile.render_spec`.
+
+Two contrasts of one facet whose effects are exact negatives on every measure are the
+two one-sided tests of one comparison (A > B and B > A; mean > 0 and mean < 0). They
+share a row: the first contrast's effect, outlined if either test passes, marked ▲ where
+the row's own direction passes and ▼ where the opposite one does.
 """
 
 from __future__ import annotations
@@ -29,6 +34,31 @@ def _significant(row, std, alpha):
     return p is not None and p < alpha
 
 
+def _pairs(keys, cell, measures, std) -> dict:
+    """Second contrast -> first, for contrasts of one facet measured on the same measures
+    whose effects are exact negatives on every one (the two one-sided tests of one
+    comparison)."""
+    partner, taken = {}, set()
+    for a_i, a in enumerate(keys):
+        if a in taken:
+            continue
+        for b in keys[a_i + 1:]:
+            if b in taken or b[0] != a[0]:
+                continue
+            has_a = [m for m in measures if a + (m,) in cell]
+            if has_a != [m for m in measures if b + (m,) in cell]:
+                continue                                      # a pair covers the same measures
+            shared = has_a
+            vals = [(as_float(cell[a + (m,)].get(std["effect_size"])),
+                     as_float(cell[b + (m,)].get(std["effect_size"]))) for m in shared]
+            vals = [(x, y) for x, y in vals if x is not None and y is not None]
+            if vals and all(abs(x + y) <= 1e-9 * max(1.0, abs(x)) for x, y in vals):
+                partner[b] = a
+                taken |= {a, b}
+                break
+    return partner
+
+
 def effect_heatmap(spec: SpecAnalysis, table: SpecTable, out_path: Path, dpi: int = 150) -> Path | None:
     import matplotlib
 
@@ -48,23 +78,38 @@ def effect_heatmap(spec: SpecAnalysis, table: SpecTable, out_path: Path, dpi: in
             measures.append(m)
     measures = [m for m in measures if any((r.get(std["measure"], "") if "measure" in std else "") == m
                                            for r in rows)]
-    tests = []
+    def facet_of(r):
+        return r.get(std["facet"], "") if "facet" in std else ""
+
+    def measure_of(r):
+        return r.get(std["measure"], "") if "measure" in std else ""
+
+    keys, cell = [], {}
     for r in rows:
-        key = (r.get(std["facet"], "") if "facet" in std else "", r.get(std["contrast"], ""))
-        if key not in tests:
-            tests.append(key)
+        key = (facet_of(r), r.get(std["contrast"], ""))
+        if key not in keys:
+            keys.append(key)
+        cell[key + (measure_of(r),)] = r
+    partner = _pairs(keys, cell, measures, std)               # second contrast -> first
+    tests = [k for k in keys if k not in partner]
+    flipped = {v: k for k, v in partner.items()}               # first -> its opposite
     mat = np.full((len(tests), len(measures)), np.nan)
     sig = np.zeros_like(mat, dtype=bool)
+    sig_opposite = np.zeros_like(mat, dtype=bool)
     spans_zero = np.zeros_like(mat, dtype=bool)
-    for r in rows:
-        i = tests.index((r.get(std["facet"], "") if "facet" in std else "", r.get(std["contrast"], "")))
-        j = measures.index(r.get(std["measure"], "") if "measure" in std else "")
-        d = as_float(r.get(std["effect_size"]))
-        mat[i, j] = np.nan if d is None else d
-        sig[i, j] = _significant(r, std, spec.alpha)
-        lo = as_float(r.get(std.get("effect_ci_low", ""), None))
-        hi = as_float(r.get(std.get("effect_ci_high", ""), None))
-        spans_zero[i, j] = lo is not None and hi is not None and lo <= 0 <= hi
+    for i, key in enumerate(tests):
+        for j, m in enumerate(measures):
+            r = cell.get(key + (m,))
+            if r is None:
+                continue
+            d = as_float(r.get(std["effect_size"]))
+            mat[i, j] = np.nan if d is None else d
+            sig[i, j] = _significant(r, std, spec.alpha)
+            other = cell.get(flipped[key] + (m,)) if key in flipped else None
+            sig_opposite[i, j] = other is not None and _significant(other, std, spec.alpha)
+            lo = as_float(r.get(std.get("effect_ci_low", ""), None))
+            hi = as_float(r.get(std.get("effect_ci_high", ""), None))
+            spans_zero[i, j] = lo is not None and hi is not None and lo <= 0 <= hi
 
     em = table.qualifier("effect_size", "EffectMeasure") or "effect"
     vmax = float(np.nanmax(np.abs(mat))) if np.isfinite(mat).any() else 1.0
@@ -78,18 +123,22 @@ def effect_heatmap(spec: SpecAnalysis, table: SpecTable, out_path: Path, dpi: in
     for i in range(len(tests)):
         for j in range(len(measures)):
             v = mat[i, j]
+            paired = tests[i] in flipped
+            marks = ("▲" if paired and sig[i, j] else "") + ("▼" if sig_opposite[i, j] else "")
             if np.isfinite(v):
-                ax.text(j, i, f"{v:+.2g}", ha="center", va="center", fontsize=7,
+                ax.text(j, i, f"{v:+.2g}{marks}", ha="center", va="center", fontsize=7,
                         color="white" if abs(v) > 0.6 * vmax else "black",
-                        fontweight="bold" if sig[i, j] else "normal")
+                        fontweight="bold" if sig[i, j] or sig_opposite[i, j] else "normal")
             if spans_zero[i, j]:                       # independent of significance: a test
                 ax.add_patch(plt.Rectangle((j - 0.45, i - 0.45), 0.9, 0.9, fill=False, lw=0,
                                            hatch="////", ec="#999999"))
-            if sig[i, j]:                              # can pass while its summary effect's CI spans 0
+            if sig[i, j] or sig_opposite[i, j]:        # can pass while its summary effect's CI spans 0
                 ax.add_patch(plt.Rectangle((j - 0.45, i - 0.45), 0.9, 0.9, fill=False, lw=2.2,
                                            ec="black"))
     ax.set_xticks(range(len(measures)), measures, rotation=45, ha="right", fontsize=8)
-    ax.set_yticks(range(len(tests)), [" · ".join(x for x in t if x) for t in tests], fontsize=8)
+    labels = [" · ".join(x for x in t if x) + (f"  (▼ {flipped[t][1]})" if t in flipped else "")
+              for t in tests]
+    ax.set_yticks(range(len(tests)), labels, fontsize=8)
     scope = table.qualifier("effect_size", "EffectScope")
     pk = table.qualifier("p_value", "PKind") or "p"
     pscope = table.qualifier("p_value", "PScope")
@@ -98,7 +147,8 @@ def effect_heatmap(spec: SpecAnalysis, table: SpecTable, out_path: Path, dpi: in
     width = max(30, int(9 * max(w, 4.5)))           # characters a title line can hold
     lines = [str(spec.record.get("title", spec.id)),
              f"{em}{' (' + scope + ')' if scope else ''} per test; hatched: its interval includes 0",
-             f"outlined: {pk} p < {spec.alpha:g}{' (' + pscope + ')' if pscope else ''}"]
+             f"outlined: {pk} p < {spec.alpha:g}{' (' + pscope + ')' if pscope else ''}"
+             + ("; ▲ the row's own direction, ▼ the opposite one (named in the row)" if flipped else "")]
     ax.set_title("\n".join(textwrap.fill(x, width) for x in lines), fontsize=8)
     fig.tight_layout()
     out_path.parent.mkdir(parents=True, exist_ok=True)

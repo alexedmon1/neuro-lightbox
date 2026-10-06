@@ -128,3 +128,17 @@ def test_declared_axes_orient_the_image_not_the_header(tmp_path):
     assert ras.shape == (4, 6, 5)
     assert np.argwhere(ras == 1).tolist() == [[3, 5, 4]]
     assert np.argwhere(_load(path, None) == 1).tolist() == [[0, 0, 5]]   # header: as stored
+
+
+def test_opposite_one_sided_contrasts_share_a_row():
+    from neuro_lightbox.spec_render import _pairs
+
+    std = {"effect_size": "d"}
+    keys = [("w1", "a>b"), ("w1", "b>a"), ("w1", "other"), ("w2", "a>b")]
+    cell = {("w1", "a>b", "FA"): {"d": "0.5"}, ("w1", "b>a", "FA"): {"d": "-0.5"},
+            ("w1", "a>b", "MD"): {"d": "-1.25"}, ("w1", "b>a", "MD"): {"d": "1.25"},
+            ("w1", "other", "FA"): {"d": "-0.5"}, ("w2", "a>b", "FA"): {"d": "-0.5"}}
+    # 'other' negates a>b on FA but has no MD: not a pair. w2 is another facet.
+    assert _pairs(keys, cell, ["FA", "MD"], std) == {("w1", "b>a"): ("w1", "a>b")}
+    cell[("w1", "b>a", "MD")] = {"d": "1.2"}                  # not an exact negation
+    assert _pairs(keys, cell, ["FA", "MD"], std) == {}
