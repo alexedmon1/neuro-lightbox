@@ -256,3 +256,34 @@ def build_manifest(scan: ScanResult, title: str, max_table_rows: int = 500,
     }
 
     return manifest
+
+
+def apply_sections(manifest: dict, sections: list[dict]) -> None:
+    """List the study's sections in their declared order, the empty ones included.
+
+    Each section's paradigm entry gets its label, group and note in
+    ``paradigm_meta``; a section no analysis matched is kept as an empty entry marked
+    ``empty`` (the app shows it as not yet run). Whatever matched no section
+    (UNSECTIONED) and any other paradigm follow, in their scan order.
+    """
+    from .spec import UNSECTIONED, UNSECTIONED_GROUP, UNSECTIONED_LABEL
+
+    paradigms, meta = manifest["paradigms"], manifest["paradigm_meta"]
+    ordered = {}
+    for s in sections:
+        key = s["key"]
+        ordered[key] = paradigms.get(key, {})
+        m = meta.setdefault(key, {})
+        m["label"] = s["label"]
+        for field in ("group", "note"):
+            if s.get(field):
+                m[field] = s[field]
+        if not ordered[key]:
+            m["empty"] = True
+    for key, analyses in paradigms.items():
+        ordered.setdefault(key, analyses)
+    if UNSECTIONED in ordered:
+        # Its own group header, so it is not read as part of the last section's group.
+        meta.setdefault(UNSECTIONED, {"label": UNSECTIONED_LABEL, "group": UNSECTIONED_GROUP})
+    manifest["paradigms"] = ordered
+    manifest["sections"] = [s["key"] for s in sections]

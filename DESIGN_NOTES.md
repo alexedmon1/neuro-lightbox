@@ -43,7 +43,12 @@ first in reading order; every header carries its description, units and role.
 
 **Study config** (`study.yaml`): `profile: mri` (the default and only profile),
 `paths.results`, `contrasts:` (labels, order), `links:` (pages beside the results, e.g.
-neurofaune's preprocessing QC index, linked relative to the gallery).
+neurofaune's preprocessing QC index, linked relative to the gallery), `sections:` (the
+study's grouping of its analyses — label, optional group header and note, and a `match`
+on `analysis_type` / `modality` / `measures` / `id_prefix`; first match wins, unmatched
+analyses go to *Other*, empty sections are listed as *no results yet*). Sections live in
+the study's config, not in `analysis.json`: what an analysis is belongs to its producer,
+how a study divides its gallery belongs to the study.
 
 **Rules that hold**: no study, workflow tool or domain words in the core (the purity
 test); a reader reports what is missing, never guesses; every number shown can be traced

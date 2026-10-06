@@ -203,3 +203,51 @@ def test_study_links_reach_the_sidebar_relative_to_the_gallery(tmp_path):
     assert res.exit_code == 0, res.output
     m = json.loads((tmp_path / "analyses" / "gallery" / "data" / "manifest.json").read_text())
     assert m["links"] == [{"label": "Preprocessing QC", "href": "../../preprocessing/qc/index.html"}]
+
+
+# ── Sections ────────────────────────────────────────────────────────────────────
+
+def _analysis(**record):
+    from neuro_lightbox.spec import SpecAnalysis
+
+    return SpecAnalysis(folder=Path("x"), record=record, provenance=None, tables=[])
+
+
+def test_sections_are_checked():
+    from neuro_lightbox.spec import normalize_sections
+
+    assert normalize_sections(None) == []
+    got = normalize_sections([{"label": "Diffusion: TBSS", "match": {"analysis_type": "tbss"}}])
+    assert got[0]["key"] == "diffusion_tbss" and got[0]["match"] == {"analysis_type": ["tbss"]}
+    for bad, why in [
+        ([{"match": {"analysis_type": "tbss"}}], "label"),
+        ([{"label": "A"}], "match"),
+        ([{"label": "A", "match": {"analysis_typ": "tbss"}}], "unknown match key"),
+        ([{"label": "A", "match": {"modality": "dwi"}}, {"label": "a", "match": {"modality": "func"}}],
+         "repeated"),
+        ([{"label": "Unsectioned", "match": {"modality": "dwi"}}], "reserved"),
+        ({"label": "A"}, "list"),
+    ]:
+        with pytest.raises(ValueError, match=why):
+            normalize_sections(bad)
+
+
+def test_section_of_first_match_wins_and_unmatched_is_listed():
+    from neuro_lightbox.spec import UNSECTIONED, normalize_sections, section_of
+
+    sections = normalize_sections([
+        {"label": "ReHo", "match": {"analysis_type": "voxelwise", "modality": "func", "measures": ["reho"]}},
+        {"label": "fALFF", "match": {"analysis_type": "voxelwise", "modality": "func", "measures": "fALFF"}},
+        {"label": "TBSS", "match": {"analysis_type": ["tbss", "fixel"], "modality": ["dwi", "msme"]}},
+        {"label": "murinet", "match": {"id_prefix": "murinet/"}},
+    ])
+    assert section_of(_analysis(analysis_type="voxelwise", modality="func", measures=["ReHo"]), sections) == "reho"
+    assert section_of(_analysis(analysis_type="voxelwise", modality="func", measures=["fALFF"]), sections) == "falff"
+    # both measures: the first section that matches
+    both = _analysis(analysis_type="voxelwise", modality="func", measures=["fALFF", "ReHo"])
+    assert section_of(both, sections) == "reho"
+    assert section_of(_analysis(analysis_type="tbss", modality="msme"), sections) == "tbss"
+    assert section_of(_analysis(analysis_type="other", id="murinet/radiomics"), sections) == "murinet"
+    # every condition must hold: tbss without a modality does not match
+    assert section_of(_analysis(analysis_type="tbss"), sections) == UNSECTIONED
+    assert section_of(_analysis(analysis_type="vbm", modality="anat"), sections) == UNSECTIONED

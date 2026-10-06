@@ -36,6 +36,7 @@ GOLDEN = Path(__file__).parent / "golden"
 CASES = {
     "mri_h1c": ("mri_h1c", []),
     "mri_spec": ("mri_spec", []),
+    "mri_sections": ("mri_sections", []),
 }
 
 _VERSIONS = ("matplotlib", "numpy", "PIL")

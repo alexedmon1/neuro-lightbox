@@ -212,3 +212,85 @@ class StudyNames:
             if key in rank:
                 return rank[key]
         return len(self.order)
+
+
+# ── Sections: the study's grouping of its analyses ─────────────────────────────
+#
+# The specification says what an analysis is (``analysis_type``, ``modality``,
+# ``measures``, ``id``); how a study wants its gallery divided is the study's, so
+# it is declared in the gallery config (``sections:``), not in analysis.json. An
+# analysis is filed under the first section whose ``match`` it meets; one that
+# meets none is listed under UNSECTIONED, never dropped. A section nothing meets
+# yet is still shown, as not yet run, with its note.
+
+UNSECTIONED = "unsectioned"
+UNSECTIONED_LABEL = "Matching no section"
+UNSECTIONED_GROUP = "Other"
+MATCH_KEYS = ("analysis_type", "modality", "measures", "id_prefix")
+
+
+def _slug(text: str) -> str:
+    import re
+
+    return re.sub(r"[^a-z0-9]+", "_", str(text).lower()).strip("_")
+
+
+def _one_of(value) -> list[str]:
+    return [str(v) for v in (value if isinstance(value, list) else [value])]
+
+
+def normalize_sections(raw) -> list[dict]:
+    """The config's ``sections:`` list, checked: ``[{key, label, group, note, match}]``.
+
+    ``label`` and a non-empty ``match`` are required; ``key`` defaults to the label's
+    slug. ``match`` keys (all must hold): ``analysis_type``, ``modality`` (a value or
+    a list of them), ``measures`` (any one of them, case-insensitive), ``id_prefix``.
+    Raises ValueError on anything else, so a typo does not silently empty a section.
+    """
+    if raw is None:
+        return []
+    if not isinstance(raw, list):
+        raise ValueError("sections: must be a list")
+    out, seen = [], set()
+    for i, s in enumerate(raw):
+        if not isinstance(s, dict) or not s.get("label"):
+            raise ValueError(f"sections[{i}]: needs a label")
+        key = _slug(s.get("key") or s["label"])
+        if not key or key == UNSECTIONED or key in seen:
+            raise ValueError(f"sections[{i}] ({s['label']!r}): key {key!r} is empty, reserved or repeated")
+        match = s.get("match")
+        if not isinstance(match, dict) or not match:
+            raise ValueError(f"sections[{i}] ({s['label']!r}): needs a match")
+        unknown = set(match) - set(MATCH_KEYS)
+        if unknown:
+            raise ValueError(f"sections[{i}] ({s['label']!r}): unknown match key(s) {sorted(unknown)}; "
+                             f"known: {', '.join(MATCH_KEYS)}")
+        seen.add(key)
+        out.append({"key": key, "label": str(s["label"]),
+                    "group": str(s["group"]) if s.get("group") else None,
+                    "note": str(s["note"]) if s.get("note") else None,
+                    "match": {k: _one_of(v) for k, v in match.items()}})
+    return out
+
+
+def section_matches(analysis: SpecAnalysis, match: dict) -> bool:
+    """Whether an analysis meets every condition of a section's match."""
+    if "analysis_type" in match and analysis.analysis_type not in match["analysis_type"]:
+        return False
+    if "modality" in match and str(analysis.record.get("modality") or "") not in match["modality"]:
+        return False
+    if "measures" in match:
+        want = {m.lower() for m in match["measures"]}
+        if not want & {m.lower() for m in analysis.measures}:
+            return False
+    if "id_prefix" in match and not any(analysis.id.startswith(p) for p in match["id_prefix"]):
+        return False
+    return True
+
+
+def section_of(analysis: SpecAnalysis, sections: list[dict]) -> str:
+    """The key of the first section the analysis meets, else UNSECTIONED."""
+    for s in sections:
+        if section_matches(analysis, s["match"]):
+            return s["key"]
+    return UNSECTIONED

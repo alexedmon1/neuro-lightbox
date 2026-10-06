@@ -10,7 +10,7 @@ from pathlib import Path
 import jinja2
 
 from .config import BuildConfig
-from .manifest import build_manifest
+from .manifest import apply_sections, build_manifest
 from .profiles import get_profile
 from .scanner import ResultsScanner, ScanResult, SpecScanner, _slugify
 from .spec import find_analyses
@@ -38,7 +38,8 @@ def build(config: BuildConfig, verbose: bool = True) -> Path:
         # A tree written to the results specification is read by what its
         # analysis.json files list; any other tree by its folder layout.
         if find_analyses(res_input.path):
-            scanner = SpecScanner(res_input.path, res_input.label, warn=_log)
+            scanner = SpecScanner(res_input.path, res_input.label, warn=_log,
+                                  sections=config.sections)
         else:
             scanner = ResultsScanner(res_input.path, res_input.label)
         partial = scanner.scan()
@@ -164,6 +165,8 @@ def build(config: BuildConfig, verbose: bool = True) -> Path:
         contrast_order=config.contrasts,
         contrast_design=config.contrast_design,
     )
+    if config.sections:
+        apply_sections(manifest, config.sections)
     # Pages beside the results (e.g. the preprocessing QC index), linked relative to the
     # gallery so the pair can move together.
     if config.links:

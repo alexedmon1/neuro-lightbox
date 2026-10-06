@@ -63,6 +63,9 @@
       if (parts[1] === "qc") renderQC(parts[2]);
       else if (parts[1] === "subjects") renderSubjects(parts[2]);
       else renderInputsHome();
+    } else if (parts[0] === "section") {
+      // #/section/<key> -- a study section with no results yet
+      renderEmptySection(decodeURIComponent(parts[1] || ""));
     } else if (parts[0] === "domain") {
       // #/domain/<source>/<paradigm>/<domain>
       renderDomain(decodeURIComponent(parts[1] || ""),
@@ -191,6 +194,16 @@
   function paradigmMeta(p) { return (M.paradigm_meta && M.paradigm_meta[p]) || null; }
   function paradigmGroup(p) { var m = paradigmMeta(p); return (m && m.group) || null; }
   function paradigmLabel(p) { var m = paradigmMeta(p); return (m && m.label) || formatName(p); }
+  // A study section (gallery config `sections:`) that no analysis matched yet, and
+  // the note a section carries (e.g. a caveat), shown on its pages.
+  function paradigmEmpty(p) { var m = paradigmMeta(p); return !!(m && m.empty); }
+  function sectionNoteHtml(p) {
+    var m = paradigmMeta(p);
+    return (m && m.note) ? '<div class="section-note">' + escapeHtml(m.note) + '</div>' : "";
+  }
+  function emptySectionHtml(p) {
+    return '<p class="section-empty">No results yet.</p>' + sectionNoteHtml(p);
+  }
 
   // Display name for an analysis (module meta.display_name overrides the
   // formatted module name), e.g. electrode_comparison → "PSD".
@@ -282,7 +295,8 @@
               break;
             }
           }
-          if (!hasData) continue;
+          var empty = !hasData && paradigmEmpty(paradigm);
+          if (!hasData && !empty) continue;
 
           var grp = paradigmGroup(paradigm);
           if (grp !== lastGroup) {
@@ -292,6 +306,12 @@
           lastGroup = grp;  // null for ungrouped → next grouped paradigm re-emits
 
           html += '<div class="nav-study-design">' + escapeHtml(paradigmLabel(paradigm)) + '</div>';
+          if (empty) {
+            var eroute = "/section/" + encodeURIComponent(paradigm);
+            html += '<a class="nav-item nav-empty" href="#' + escapeHtml(eroute) + '" data-route="' +
+              escapeHtml(eroute) + '">no results yet</a>';
+            continue;
+          }
           // Group analyses by domain (one nav item per domain → domain page).
           // The promoted domains get their own study-design heading (deferred to the
           // group end), so they are not listed as domains under this paradigm's label.
@@ -356,7 +376,13 @@
       }
       for (var paradigm of Object.keys(M.paradigms)) {
         var domains = domainsForParadigm(paradigm, src);
-        if (domains.length === 0) continue;
+        if (domains.length === 0) {
+          if (paradigmEmpty(paradigm)) {
+            html += '<h3 style="margin:12px 0 6px">' + escapeHtml(paradigmLabel(paradigm)) + '</h3>' +
+              emptySectionHtml(paradigm);
+          }
+          continue;
+        }
         html += '<h3 style="margin:12px 0 6px">' + escapeHtml(paradigmLabel(paradigm)) + '</h3>';
         html += "<ul>" + domainListItems(paradigm, domains, src) + "</ul>";
       }
@@ -396,11 +422,29 @@
 
     for (var paradigm of Object.keys(M.paradigms)) {
       var domains = domainsForParadigm(paradigm, src);
-      if (domains.length === 0) continue;
+      if (domains.length === 0) {
+        if (paradigmEmpty(paradigm)) {
+          html += '<h3 style="margin:12px 0 6px">' + escapeHtml(paradigmLabel(paradigm)) + '</h3>' +
+            emptySectionHtml(paradigm);
+        }
+        continue;
+      }
       html += '<h3 style="margin:12px 0 6px">' + escapeHtml(paradigmLabel(paradigm)) + '</h3>';
       html += "<ul>" + domainListItems(paradigm, domains, src) + "</ul>";
     }
     setContent(html);
+  }
+
+  /* ── A study section with no results yet ── */
+  function renderEmptySection(key) {
+    clearSourceSelector();
+    if (!paradigmMeta(key)) {
+      setContent('<div class="empty-state"><p>Section not found</p></div>');
+      return;
+    }
+    setBreadcrumb(["Analytics", paradigmLabel(key)]);
+    setContent('<h2 class="section-header">' + escapeHtml(paradigmLabel(key)) + '</h2>' +
+      emptySectionHtml(key));
   }
 
   /* ── Study Design page (list analyses for a paradigm+source) ── */
@@ -410,11 +454,16 @@
       setContent('<div class="empty-state"><p>Study design not found</p></div>');
       return;
     }
+    if (paradigmEmpty(paradigm)) {
+      renderEmptySection(paradigm);
+      return;
+    }
     setBreadcrumb(analyticsCrumbs(src, [paradigmLabel(paradigm)]));
     clearSourceSelector();
 
     var domains = domainsForParadigm(paradigm, src);
-    var html = '<h2 class="section-header">' + escapeHtml(paradigmLabel(paradigm)) + '</h2>';
+    var html = '<h2 class="section-header">' + escapeHtml(paradigmLabel(paradigm)) + '</h2>' +
+      sectionNoteHtml(paradigm);
     html += "<ul>" + domainListItems(paradigm, domains, src) + "</ul>";
     setContent(html);
   }
@@ -518,7 +567,7 @@
   function renderAnalysisContent(paradigm, analysis, data, source, allSources) {
     var inner = buildAnalysisInner(paradigm, analysis, data, source, allSources, "a");
     var html = '<h2 class="section-header">' + escapeHtml(designLabel(paradigm, analysis)) + ' — ' +
-      escapeHtml(analysisLabel(paradigm, analysis)) + '</h2>' + inner.html;
+      escapeHtml(analysisLabel(paradigm, analysis)) + '</h2>' + sectionNoteHtml(paradigm) + inner.html;
     setContent(html);
     initLightbox();
     bindTableToggles(inner.tables);
@@ -651,7 +700,8 @@
     }
 
     var html = '<h2 class="section-header">' + escapeHtml(domain) +
-      (domainSub ? ' <span class="domain-sub">' + escapeHtml(domainSub) + '</span>' : "") + '</h2>';
+      (domainSub ? ' <span class="domain-sub">' + escapeHtml(domainSub) + '</span>' : "") + '</h2>' +
+      sectionNoteHtml(paradigm);
     if (ordered.length > 1) {
       html += '<div class="pill-bar" role="tablist">';
       ordered.forEach(function (o, i) {

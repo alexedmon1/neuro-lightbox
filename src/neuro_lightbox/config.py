@@ -45,6 +45,11 @@ class BuildConfig:
     # its paradigms under a shared group header (e.g. resting/vertex -> "Resting"
     # with "ROI-based"/"Vertex-based" sub-labels). None = flat, formatName labels.
     paradigm_display: dict | None = None
+    # The study's sections (study YAML ``sections:``, checked by
+    # spec.normalize_sections): spec analyses are listed by section, in this order,
+    # and a section nothing matches yet is shown as not yet run. None = by
+    # analysis_type.
+    sections: list[dict] | None = None
     # Treatment-group display: id -> readable label, and the id order to list
     # groups in (both from the study YAML's ``groups:`` / ``group_order:``).
     # None = format the raw id (underscores -> spaces), alphabetical order.

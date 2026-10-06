@@ -1,0 +1,18 @@
+# Golden-build fixture: the mri_spec analyses (synthetic) listed by study sections.
+# Diffusion TBSS matches tbss/demo; nothing matches the MSME section, which is shown
+# as not yet run with its note; vbm/demo_change matches no section and is listed
+# under Other.
+name: MRI results specification, by section (synthetic)
+profile: mri
+paths:
+  results: ../mri_spec/results
+  gallery: ./gallery
+sections:
+  - label: "Diffusion: TBSS"
+    group: Structure
+    match: {analysis_type: tbss, modality: dwi}
+    note: "Synthetic note shown on this section's pages."
+  - label: "MSME: TBSS"
+    group: Structure
+    match: {analysis_type: tbss, modality: msme}
+    note: "Not run yet (synthetic note)."

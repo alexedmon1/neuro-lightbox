@@ -14,6 +14,7 @@ import click
 from .config import BuildConfig, SourceInput
 from .profiles import DEFAULT as DEFAULT_PROFILE
 from .profiles import available, get_profile
+from .spec import normalize_sections
 
 
 def normalize_study_contrasts(study_cfg: dict) -> list[dict]:
@@ -234,6 +235,8 @@ def build(
     contrast_design = None
     # Per-paradigm nav display mapping (from --config): paradigm -> {group, label}.
     paradigm_display = None
+    # The study's sections (from --config `sections:`): spec analyses grouped by them.
+    sections = None
     # Analyses to omit from the gallery (from --config); CLI flag takes precedence.
     cfg_exclude = None
     # Treatment-group display names / order (from --config `groups:`).
@@ -350,6 +353,11 @@ def build(
                 for name, p in (study_cfg.get("paradigms") or {}).items()
                 if isinstance(p, dict) and p.get("display")
             } or None
+        try:
+            sections = normalize_sections(study_cfg.get("sections")) or None
+        except ValueError as exc:
+            click.echo(f"Error: {config_file}: {exc}", err=True)
+            sys.exit(1)
         cfg_exclude = study_cfg.get("exclude_analyses")
         group_labels, group_order = study_group_display(study_cfg)
     else:
@@ -380,6 +388,7 @@ def build(
         contrast_meta=contrast_meta,
         contrast_design=contrast_design,
         paradigm_display=paradigm_display,
+        sections=sections,
         group_labels=group_labels,
         group_order=group_order,
         home_link=home_link,

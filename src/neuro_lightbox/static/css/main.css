@@ -1290,3 +1290,24 @@ main {
 th.std-col { text-decoration: underline dotted var(--text-muted); text-underline-offset: 3px; }
 th[title] { cursor: help; }
 
+
+/* === Study sections (gallery config `sections:`) === */
+/* A section no analysis matched yet: listed, muted, linking to its note. */
+.nav-item.nav-empty {
+  color: var(--text-muted);
+  font-style: italic;
+}
+.section-empty {
+  color: var(--text-muted);
+  font-style: italic;
+  margin: 4px 0 8px;
+}
+/* A section's note (e.g. a caveat on what its measures can show). */
+.section-note {
+  border-left: 3px solid var(--accent-color);
+  background: var(--bg-secondary);
+  padding: 8px 12px;
+  margin: 8px 0 14px;
+  font-size: 13px;
+  color: var(--text-secondary);
+}

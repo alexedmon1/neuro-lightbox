@@ -198,24 +198,35 @@ class SpecScanner:
     """Scan a results root written to the results specification (:mod:`.spec`).
 
     Every analysis folder under the root becomes one analysis of the gallery:
-    grouped by its ``analysis_type``, named by its ``id``, with exactly the tables
-    and figures its ``analysis.json`` lists — nothing is picked up by filename.
+    grouped by its ``analysis_type`` -- or, when the study declares ``sections``, by
+    the first section it matches (:func:`.spec.section_of`) -- named by its ``id``,
+    with exactly the tables and figures its ``analysis.json`` lists — nothing is
+    picked up by filename.
     """
 
-    def __init__(self, path: Path, label: str, warn=lambda msg: None):
+    def __init__(self, path: Path, label: str, warn=lambda msg: None,
+                 sections: list[dict] | None = None):
         self.path = Path(path)
         self.label = label
         self.warn = warn
+        self.sections = sections or []
 
     def scan(self) -> ScanResult:
-        from .spec import find_analyses, load_analysis
+        from .spec import UNSECTIONED, find_analyses, load_analysis, section_of
 
         result = ScanResult()
         for folder in find_analyses(self.path):
             spec = load_analysis(folder, self.warn)
             if spec is None:
                 continue
-            paradigm, analysis = _slugify(spec.analysis_type), _slugify(spec.id)
+            if self.sections:
+                paradigm = section_of(spec, self.sections)
+                if paradigm == UNSECTIONED:
+                    self.warn(f"  NOTE: {spec.id!r} ({spec.analysis_type}) matches no section; "
+                              "listed under Other")
+            else:
+                paradigm = _slugify(spec.analysis_type)
+            analysis = _slugify(spec.id)
             key = (paradigm, analysis)
             if key in result.spec:
                 self.warn(f"  WARNING: two analyses with id {spec.id!r}; {folder} skipped")

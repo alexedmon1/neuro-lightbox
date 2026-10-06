@@ -61,7 +61,26 @@ neurofaune, neurovrai and study scripts write it) in
 
 The gallery reads exactly what each `analysis.json` lists; nothing is inferred
 from a column name, a filename or a folder. Every analysis folder under a results
-root becomes one analysis of the gallery, grouped by its `analysis_type`. A
+root becomes one analysis of the gallery, grouped by its `analysis_type` — or by
+the study's own sections, when its config declares them:
+
+```yaml
+sections:                       # in the gallery's study.yaml, listed in this order
+  - label: "Diffusion: TBSS"
+    group: Structure            # optional nav header shared by sections
+    match: {analysis_type: tbss, modality: dwi}
+  - label: "ReHo"
+    match: {analysis_type: voxelwise, modality: func, measures: [ReHo]}
+  - label: "Radiomics"
+    match: {id_prefix: "murinet/radiomics"}
+    note: "Shown on the section's pages (e.g. a caveat, or why nothing is here yet)."
+```
+
+An analysis goes to the first section whose `match` it meets — every key given
+must hold: `analysis_type` and `modality` (one value or a list), `measures` (any
+one of them), `id_prefix`. One that meets none is listed under *Other*, never
+dropped, and the build names it. A section nothing meets yet is still listed, as
+*no results yet*, so what is missing is as visible as what is there. A
 folder written to a specification version this reader does not know is skipped
 with a warning. Check a folder before building with neurofaune's
 `neurofaune results check <folder>`.
