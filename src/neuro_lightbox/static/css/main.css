@@ -1311,3 +1311,12 @@ th[title] { cursor: help; }
   font-size: 13px;
   color: var(--text-secondary);
 }
+/* A section group's heading in the overview / source listing (e.g. a modality). */
+.overview-group {
+  margin: 22px 0 2px;
+  padding-bottom: 4px;
+  border-bottom: 1px solid var(--border-color);
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-primary);
+}

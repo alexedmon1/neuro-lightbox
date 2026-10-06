@@ -765,5 +765,5 @@
     "total_summaries": 2,
     "paradigm_count": 2
   },
-  "sections": ["diffusion_tbss", "msme_tbss"]
+  "sections": ["diffusion_tbss", "msme_tbss", "unsectioned"]
 }

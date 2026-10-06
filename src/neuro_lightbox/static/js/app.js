@@ -201,6 +201,19 @@
     var m = paradigmMeta(p);
     return (m && m.note) ? '<div class="section-note">' + escapeHtml(m.note) + '</div>' : "";
   }
+  // A study section's group (e.g. its modality), for breadcrumbs and the overview:
+  // only for the study's own sections, so other galleries read as before.
+  function sectionGroup(p) {
+    return (M.sections && M.sections.indexOf(p) >= 0) ? paradigmGroup(p) : null;
+  }
+  function groupCrumb(p) { var g = sectionGroup(p); return g ? [g] : []; }
+  // Emits a group heading in a listing when the section's group changes.
+  function groupHeadingHtml(p, state) {
+    var g = sectionGroup(p);
+    if (!g || g === state.last) return "";
+    state.last = g;
+    return '<div class="overview-group">' + escapeHtml(g) + '</div>';
+  }
   function emptySectionHtml(p) {
     return '<p class="section-empty">No results yet.</p>' + sectionNoteHtml(p);
   }
@@ -374,15 +387,18 @@
       if (aSources.length > 1) {
         html += '<h2 class="section-header">' + escapeHtml(src) + '</h2>';
       }
+      var ovGroup = {last: null};
       for (var paradigm of Object.keys(M.paradigms)) {
         var domains = domainsForParadigm(paradigm, src);
         if (domains.length === 0) {
           if (paradigmEmpty(paradigm)) {
-            html += '<h3 style="margin:12px 0 6px">' + escapeHtml(paradigmLabel(paradigm)) + '</h3>' +
+            html += groupHeadingHtml(paradigm, ovGroup) +
+              '<h3 style="margin:12px 0 6px">' + escapeHtml(paradigmLabel(paradigm)) + '</h3>' +
               emptySectionHtml(paradigm);
           }
           continue;
         }
+        html += groupHeadingHtml(paradigm, ovGroup);
         html += '<h3 style="margin:12px 0 6px">' + escapeHtml(paradigmLabel(paradigm)) + '</h3>';
         html += "<ul>" + domainListItems(paradigm, domains, src) + "</ul>";
       }
@@ -420,15 +436,18 @@
     var srcEnc = encodeURIComponent(src);
     var html = '<h2 class="section-header">' + escapeHtml(src) + '</h2>';
 
+    var shGroup = {last: null};
     for (var paradigm of Object.keys(M.paradigms)) {
       var domains = domainsForParadigm(paradigm, src);
       if (domains.length === 0) {
         if (paradigmEmpty(paradigm)) {
-          html += '<h3 style="margin:12px 0 6px">' + escapeHtml(paradigmLabel(paradigm)) + '</h3>' +
+          html += groupHeadingHtml(paradigm, shGroup) +
+            '<h3 style="margin:12px 0 6px">' + escapeHtml(paradigmLabel(paradigm)) + '</h3>' +
             emptySectionHtml(paradigm);
         }
         continue;
       }
+      html += groupHeadingHtml(paradigm, shGroup);
       html += '<h3 style="margin:12px 0 6px">' + escapeHtml(paradigmLabel(paradigm)) + '</h3>';
       html += "<ul>" + domainListItems(paradigm, domains, src) + "</ul>";
     }
@@ -442,7 +461,7 @@
       setContent('<div class="empty-state"><p>Section not found</p></div>');
       return;
     }
-    setBreadcrumb(["Analytics", paradigmLabel(key)]);
+    setBreadcrumb(["Analytics"].concat(groupCrumb(key), [paradigmLabel(key)]));
     setContent('<h2 class="section-header">' + escapeHtml(paradigmLabel(key)) + '</h2>' +
       emptySectionHtml(key));
   }
@@ -458,7 +477,7 @@
       renderEmptySection(paradigm);
       return;
     }
-    setBreadcrumb(analyticsCrumbs(src, [paradigmLabel(paradigm)]));
+    setBreadcrumb(analyticsCrumbs(src, groupCrumb(paradigm).concat([paradigmLabel(paradigm)])));
     clearSourceSelector();
 
     var domains = domainsForParadigm(paradigm, src);
@@ -476,7 +495,8 @@
       return;
     }
 
-    setBreadcrumb(analyticsCrumbs(src, [designLabel(paradigm, analysis), analysisLabel(paradigm, analysis)]));
+    setBreadcrumb(analyticsCrumbs(src, groupCrumb(paradigm).concat(
+      [designLabel(paradigm, analysis), analysisLabel(paradigm, analysis)])));
 
     // Source selector (if multiple sources have this analysis)
     var sources = M.sources.filter(function (s) {
@@ -684,7 +704,8 @@
     // with the paradigm it sits in; show its group (e.g. "Resting") instead.
     var isSection = (domain === SECTION_DOMAIN);
     var domainSub = isSection ? (paradigmGroup(paradigm) || "") : paradigmLabel(paradigm);
-    setBreadcrumb(analyticsCrumbs(src, isSection ? [domain] : [paradigmLabel(paradigm), domain]));
+    setBreadcrumb(analyticsCrumbs(src, isSection ? [domain]
+      : groupCrumb(paradigm).concat([paradigmLabel(paradigm), domain])));
     // Source toggle (e.g. two reconstructions) when more than one analytics
     // source has data in this domain — the same control as the analysis page.
     var domainSources = M.sources.filter(function (s) {

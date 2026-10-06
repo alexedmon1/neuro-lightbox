@@ -286,4 +286,6 @@ def apply_sections(manifest: dict, sections: list[dict]) -> None:
         # Its own group header, so it is not read as part of the last section's group.
         meta.setdefault(UNSECTIONED, {"label": UNSECTIONED_LABEL, "group": UNSECTIONED_GROUP})
     manifest["paradigms"] = ordered
-    manifest["sections"] = [s["key"] for s in sections]
+    # The study's sections in order, Other (when anything fell there) last: the app
+    # shows these with their group (breadcrumbs, overview headings).
+    manifest["sections"] = [s["key"] for s in sections] + ([UNSECTIONED] if UNSECTIONED in ordered else [])
