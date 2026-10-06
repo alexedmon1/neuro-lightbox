@@ -1326,3 +1326,12 @@ th[title] { cursor: help; }
   color: var(--text-secondary);
   margin: 0 0 10px;
 }
+/* Tests a later run supersedes (struck through; the current values are in that run). */
+.spec-tests tr.spec-superseded td { color: var(--text-muted); text-decoration: line-through; }
+.spec-tests tr.spec-superseded td .spec-superseded-by { text-decoration: none; display: inline-block;
+  margin-left: 6px; font-size: 11px; font-style: italic; }
+/* The runs a merged view holds. */
+.spec-runs { border-collapse: collapse; margin: 0 0 14px; font-size: 13px; }
+.spec-runs th, .spec-runs td { border-bottom: 1px solid var(--border-color); padding: 3px 10px 3px 0;
+  text-align: left; }
+ul.spec-clusters.spec-superseded li { color: var(--text-muted); text-decoration: line-through; }

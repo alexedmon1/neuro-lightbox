@@ -215,7 +215,7 @@ class SpecScanner:
         self.sections = sections or []
 
     def scan(self) -> ScanResult:
-        from .spec import UNSECTIONED, find_analyses, load_analysis, run_status, section_of
+        from .spec import UNSECTIONED, find_analyses, load_analysis, merge_current, run_status, section_of
 
         result = ScanResult()
         by_id: dict[str, list] = {}
@@ -261,12 +261,54 @@ class SpecScanner:
                     paradigm=paradigm, analysis=analysis,
                     filename="__".join(path.relative_to(folder).parts)))
         # The runs of each 0.2 analysis, read together: what each supersedes and whether
-        # it is current; the analysis is titled by its latest current run (by run id).
+        # it is current; the analysis is titled by its latest current run (by run id). An
+        # analysis with several runs also gets a merged entry of its current tests, listed
+        # before its runs.
+        merged_first: dict[tuple, tuple] = {}
         for aid, items in by_id.items():
             status = run_status([s for _k, s in items])
             current = [s for _k, s in items if status[s.run["id"]]["current"]] or [s for _k, s in items]
             latest = max(current, key=lambda s: s.run["id"])
+            title = latest.record.get("title") or aid
             for key, s in items:
-                result.spec_runs[key] = {"analysis_id": aid, "run": s.run["id"],
-                                         "title": latest.record.get("title") or aid, **status[s.run["id"]]}
+                result.spec_runs[key] = {"analysis_id": aid, "run": s.run["id"], "title": title,
+                                         **status[s.run["id"]]}
+            if len(items) < 2:
+                continue
+            import tempfile
+
+            paradigm = items[0][0][0]
+            mkey = (paradigm, _slugify(f"{aid}__current"))
+            merged = merge_current(aid, [s for _k, s in items], status,
+                                   Path(tempfile.mkdtemp(prefix="nl_current_")))
+            if merged is None:
+                continue
+            table = merged.tables[0]
+            entry = TableEntry(src_path=table.path, source_label=self.label, paradigm=paradigm,
+                               analysis=mkey[1], filename=table.path.name,
+                               dictionary=table.path.with_suffix(".json"))
+            info = {"analysis_id": aid, "run": None, "merged": True, "title": title,
+                    "runs": merged.record["runs"]}
+            merged_first[items[0][0]] = (mkey, merged, entry, info)
+        if merged_first:
+            spec, tables = {}, []
+            for key, s in result.spec.items():
+                if key in merged_first:
+                    mkey, merged, _e, info = merged_first[key]
+                    spec[mkey] = merged
+                    result.spec_runs[mkey] = info
+                    result.provenance[mkey] = {
+                        "generated_by": [{"Name": "neuro-lightbox", "Description":
+                                          "the current tests of runs " + ", ".join(r["run"] for r in info["runs"])
+                                          + " merged; each run's tab holds its own provenance"}],
+                        "run": {"status": "completed"}}
+                spec[key] = s
+            placed = set()
+            for t in result.tables:
+                mk = merged_first.get((t.paradigm, t.analysis))
+                if mk and mk[0] not in placed:
+                    tables.append(mk[2])
+                    placed.add(mk[0])
+                tables.append(t)
+            result.spec, result.tables = spec, tables
         return result

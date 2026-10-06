@@ -163,6 +163,9 @@ def build_manifest(scan: ScanResult, title: str, max_table_rows: int = 500,
                     for c, m in cols.items()}
             except (OSError, ValueError):
                 pass
+        run = (getattr(scan, "spec_runs", None) or {}).get((paradigm, analysis))
+        if run and run.get("superseded"):
+            _superseded_column(tbl_entry, run["superseded"])
         entry["tables"][source].append(tbl_entry)
 
     # Summaries — a concise 'significant results by contrast' digest derived from
@@ -192,8 +195,13 @@ def build_manifest(scan: ScanResult, title: str, max_table_rows: int = 500,
                 from .spec import StudyNames
                 from .spec_digest import spec_digest
 
-                entry["summary"] = spec_digest(spec, StudyNames(dict(contrast_labels or {}),
-                                                                list(contrast_order or [])))
+                run = (getattr(scan, "spec_runs", None) or {}).get((paradigm, analysis))
+                from .spec import RUN_COLUMN
+
+                entry["summary"] = spec_digest(
+                    spec, StudyNames(dict(contrast_labels or {}), list(contrast_order or [])),
+                    superseded={tuple(x[:3]): x[3] for x in (run or {}).get("superseded") or []},
+                    run_column=RUN_COLUMN if (run or {}).get("merged") else None)
                 n_summaries += 1
                 entry["meta"] = {"domain": None, "supplements": None,
                                  "description": spec.record.get("description"),
@@ -201,14 +209,15 @@ def build_manifest(scan: ScanResult, title: str, max_table_rows: int = 500,
                                  "display_name": spec.record.get("title")}
                 entry["spec"] = {k: spec.record.get(k) for k in
                                  ("id", "title", "role", "analysis_type", "modality", "measures")}
-                run = (getattr(scan, "spec_runs", None) or {}).get((paradigm, analysis))
                 if run:
-                    # one run of a 0.2 analysis: its runs share one page (the domain),
-                    # one tab each, and its summary opens with what the run is
+                    # a run of a 0.2 analysis, or its runs' current tests merged: the runs
+                    # share one page (the domain), one tab each, the merged view first; each
+                    # summary opens with what the tab is
                     entry["meta"]["domain"] = run["title"]
                     entry["meta"]["display_name"] = _run_label(run)
                     entry["spec"]["run"] = run
-                    entry["summary"] = _run_note(run) + (entry["summary"] or "")
+                    note = _merged_note(run) if run.get("merged") else _run_note(run)
+                    entry["summary"] = note + (entry["summary"] or "")
                 record = (getattr(scan, "provenance", None) or {}).get((paradigm, analysis))
                 if record:
                     entry["provenance"] = profile.trim_provenance(record)
@@ -301,6 +310,8 @@ def apply_sections(manifest: dict, sections: list[dict]) -> None:
 
 def _run_label(run: dict) -> str:
     """A run's tab label: its id, its label, and whether it has been superseded."""
+    if run.get("merged"):
+        return "Current — all runs"
     label = f"Run {run['run']}" + (f" — {run['label']}" if run.get("label") else "")
     if not run.get("current"):
         label += " (superseded)"
@@ -322,3 +333,42 @@ def _run_note(run: dict) -> str:
                      + ", ".join(f"{escape(r)} ({n})" for r, n in run["superseded_by"].items())
                      + ("; not current" if not run.get("current") else ""))
     return '<p class="spec-run">' + " · ".join(parts) + "</p>"
+
+
+def _merged_note(run: dict) -> str:
+    """The opening of the merged view: which runs it holds, each with its role and correction."""
+    from html import escape
+
+    rows = "".join(
+        f"<tr><td>{escape(r['run'])}</td><td>{escape(r.get('label') or '')}</td>"
+        f"<td>{escape(str(r.get('role') or ''))}</td><td>{escape(r.get('correction') or '')}</td>"
+        f"<td>{r['current_tests']}</td></tr>" for r in run.get("runs") or [])
+    return ('<p class="spec-run"><b>The current tests of every run</b>, merged: a test a later run '
+            'supersedes is shown from that run only. Each test keeps its own run\'s correction; p values '
+            'are not pooled across runs.</p><table class="spec-runs"><thead><tr><th>Run</th><th>Label</th>'
+            '<th>Role</th><th>Correction</th><th>Current tests</th></tr></thead><tbody>'
+            + rows + "</tbody></table>")
+
+
+def _superseded_column(tbl_entry: dict, superseded: list) -> None:
+    """A run's tests table, as embedded: a reader's column naming, per row, the later run
+    that supersedes that test (empty when current). The table on disk is not changed."""
+    cols = tbl_entry.get("columns") or {}
+    by_std = {m.get("standard"): c for c, m in cols.items() if m.get("standard")}
+    if "contrast" not in by_std:
+        return
+    idx = {k: tbl_entry["headers"].index(c) for k, c in by_std.items()
+           if k in ("measure", "contrast", "facet") and c in tbl_entry["headers"]}
+    gone = {tuple(x[:3]): x[3] for x in superseded}
+
+    def key(row):
+        return tuple(row[idx[k]] if k in idx and idx[k] < len(row) else "" for k in ("measure", "contrast", "facet"))
+
+    marks = [gone.get(key(r), "") for r in tbl_entry["rows"]]
+    if not any(marks):
+        return
+    tbl_entry["headers"] = ["superseded_by", *tbl_entry["headers"]]
+    tbl_entry["rows"] = [[m, *r] for m, r in zip(marks, tbl_entry["rows"])]
+    tbl_entry["columns"] = {"superseded_by": {
+        "description": "added by the gallery: the later run whose same test supersedes this row "
+                       "(results specification §3.2); empty when the row is current"}, **cols}

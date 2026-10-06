@@ -299,7 +299,7 @@ def test_a_reader_reads_0_2_and_not_0_3():
 
 def test_runs_of_one_analysis_are_read_together(two_runs):
     scan = SpecScanner(two_runs, "results").scan()
-    runs = {v["run"]: v for v in scan.spec_runs.values()}
+    runs = {v["run"]: v for v in scan.spec_runs.values() if not v.get("merged")}
     assert set(runs) == {"2026-10-05", "2026-10-08"}
     first, second = runs["2026-10-05"], runs["2026-10-08"]
     assert {first["analysis_id"], second["analysis_id"]} == {"dwi/tbss/demo"}
@@ -307,6 +307,13 @@ def test_runs_of_one_analysis_are_read_together(two_runs):
     assert second["supersedes"] == ["2026-10-05"] and second["current"]
     assert 0 < first["n_superseded"] < first["n_tests"] and first["current"]
     assert first["superseded_by"] == {"2026-10-08": first["n_superseded"]}
+    assert all(x[1:] and x[3] == "2026-10-08" and x[0] == "MD" for x in first["superseded"])
+    # the merged view: run 1's current tests and run 2's, each naming its run, listed first
+    (mkey,) = [k for k, v in scan.spec_runs.items() if v.get("merged")]
+    assert list(scan.spec)[0] == mkey
+    _cols, rows = scan.spec[mkey].tables[0].read()
+    assert len(rows) == first["n_tests"] - first["n_superseded"] + second["n_tests"]
+    assert {r["run"] for r in rows if "MD" in r.values()} == {"2026-10-08"}
 
 
 def test_runs_share_one_page_one_tab_each(two_runs, tmp_path):
@@ -314,8 +321,19 @@ def test_runs_share_one_page_one_tab_each(two_runs, tmp_path):
                             render_figures=False), verbose=False)
     m = json.loads((out / "data" / "manifest.json").read_text())
     entries = [e for p in m["paradigms"].values() for e in p.values() if (e.get("spec") or {}).get("run")]
-    assert len(entries) == 2 and len({e["meta"]["domain"] for e in entries}) == 1
-    labels = sorted(e["meta"]["display_name"] for e in entries)
-    assert labels[0].startswith("Run 2026-10-05 — registered (") and "superseded" in labels[0]
-    assert labels[1] == "Run 2026-10-08 — MD re-run"
-    assert all(e["summary"].startswith('<p class="spec-run">') for e in entries)
+    assert len(entries) == 3 and len({e["meta"]["domain"] for e in entries}) == 1
+    by = {e["meta"]["display_name"]: e for e in entries}
+    assert list(by)[0] == "Current — all runs"                     # the merged view is the first tab
+    first = next(e for k, e in by.items() if k.startswith("Run 2026-10-05 — registered ("))
+    assert "Run 2026-10-08 — MD re-run" in by and all(e["summary"].startswith('<p class="spec-run">')
+                                                       for e in entries)
+    # run 1: its superseded tests struck through in the summary, marked in its embedded table
+    assert 'class="spec-superseded"' in first["summary"] and "superseded by run 2026-10-08" in first["summary"]
+    assert "this test is superseded by run 2026-10-08" in first["summary"]          # its clusters too
+    # (its clusters table too: a superseded test's clusters go with it)
+    marked = [sum(1 for r in t["rows"] if r[0] == "2026-10-08")
+              for t in first["tables"]["results"] if t["headers"][0] == "superseded_by"]
+    assert 2 in marked and all(n > 0 for n in marked)
+    # the merged view: each test's run, and each run's correction listed
+    merged = by["Current — all runs"]
+    assert "<th>Run</th>" in merged["summary"] and 'class="spec-runs"' in merged["summary"]

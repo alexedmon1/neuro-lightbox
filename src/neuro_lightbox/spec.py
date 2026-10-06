@@ -336,9 +336,88 @@ def run_status(runs: list[SpecAnalysis]) -> dict[str, dict]:
                 overlap = mine & keys[b.run["id"]]
                 if overlap:
                     by[b.run["id"]] = len(overlap)
-        n_sup = len({k for b in runs if b.run and rid in (b.run.get("supersedes") or [])
-                     for k in mine & keys[b.run["id"]]})
+        gone = {}
+        for b in runs:
+            if b.run and rid in (b.run.get("supersedes") or []):
+                for k in mine & keys[b.run["id"]]:
+                    gone.setdefault(k, b.run["id"])
         out[rid] = {"label": a.run.get("label"), "supersedes": list(a.run.get("supersedes") or []),
-                    "n_tests": len(mine), "n_superseded": n_sup, "superseded_by": by,
-                    "current": not (mine and n_sup == len(mine))}
+                    "n_tests": len(mine), "n_superseded": len(gone), "superseded_by": by,
+                    "current": not (mine and len(gone) == len(mine)),
+                    # [measure, contrast, facet, the run that supersedes it], JSON-friendly
+                    "superseded": sorted([*k, r] for k, r in gone.items())}
     return out
+
+
+#: The column a merged table names each test's run in (a reader's own column, described
+#: in the merged table's dictionary).
+RUN_COLUMN = "run"
+
+
+def merge_current(analysis_id: str, runs: list[SpecAnalysis], status: dict[str, dict],
+                  folder: Path) -> SpecAnalysis | None:
+    """The current tests of an analysis's runs as one analysis (written into ``folder``):
+    each run's headline tests table, without the tests a later run supersedes, with a
+    ``run`` column; measures the union; the correction and role kept per run (in
+    ``record["runs"]``), never pooled. None when no run has a tests table."""
+    import csv
+
+    runs = sorted((a for a in runs if a.run), key=lambda a: a.run["id"])
+    header: list[str] = []
+    dictionary: dict = {}
+    rows: list[dict] = []
+    measures: list[str] = []
+    for a in runs:
+        tables = sorted(a.tables_with_role("tests"), key=lambda t: not t.headline)
+        if not tables:
+            continue
+        t = tables[0]
+        std = t.standard()
+        m, c, f = std.get("measure"), std.get("contrast"), std.get("facet")
+        gone = {tuple(x[:3]) for x in status[a.run["id"]]["superseded"]}
+        cols, rs = t.read()
+        for col in cols:
+            if col not in header:
+                header.append(col)
+                dictionary[col] = t.columns.get(col, {"Description": col})
+        for r in rs:
+            key = (r.get(m, "") if m else "", r.get(c, "") if c else "", r.get(f, "") if f else "")
+            if key not in gone:
+                rows.append({**r, RUN_COLUMN: a.run["id"]})
+        measures += [x for x in a.measures if x not in measures]
+    if not header:
+        return None
+    folder.mkdir(parents=True, exist_ok=True)
+    path = folder / "current_tests.csv"
+    with open(path, "w", newline="", encoding="utf-8") as fh:
+        w = csv.DictWriter(fh, [RUN_COLUMN, *header], extrasaction="ignore")
+        w.writeheader()
+        w.writerows(rows)
+    dictionary = {RUN_COLUMN: {"Description": "the run this test comes from (results specification "
+                                              "§3.2); its correction is that run's"}, **dictionary}
+    path.with_suffix(".json").write_text(json.dumps(dictionary, indent=1), encoding="utf-8")
+    latest = max((a for a in runs if status[a.run["id"]]["current"]), key=lambda a: a.run["id"],
+                 default=runs[-1])
+    per_run = [{"run": a.run["id"], "label": a.run.get("label"), "role": a.record.get("role"),
+                "correction": ((a.record.get("inference") or {}).get("correction") or {}).get("statement"),
+                "current_tests": status[a.run["id"]]["n_tests"] - status[a.run["id"]]["n_superseded"]}
+               for a in runs]
+    roles = {r["role"] for r in per_run}
+    record = {**latest.record, "measures": measures, "maps": [], "figures": [],
+              "role": roles.pop() if len(roles) == 1 else "mixed: " + ", ".join(
+                  f"{r['role']} (run {r['run']})" for r in per_run),
+              "runs": per_run,
+              "tables": [{"path": path.name, "role": "tests", "headline": True,
+                          "rows": "one current test of one run",
+                          "description": "the current tests of every run, merged by neuro-lightbox"}]}
+    record.pop("run", None)
+    if len({r["correction"] for r in per_run}) > 1:
+        inf = dict(record.get("inference") or {})
+        inf["correction"] = {**(inf.get("correction") or {}),
+                             "statement": "each test as its own run corrected it: " + "; ".join(
+                                 f"run {r['run']}: {r['correction']}" for r in per_run)}
+        record["inference"] = inf
+    table = SpecTable(path=path, role="tests", rows_are="one current test of one run",
+                      description="the current tests of every run, merged by neuro-lightbox",
+                      headline=True, columns=dictionary)
+    return SpecAnalysis(folder=folder, record=record, provenance=None, tables=[table])

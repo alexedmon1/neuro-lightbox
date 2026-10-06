@@ -85,6 +85,14 @@ folder written to a specification version this reader does not know is skipped
 with a warning. Check a folder before building with neurofaune's
 `neurofaune results check <folder>`.
 
+**Runs (specification 0.2).** An analysis whose tests were run at different times is
+several folders sharing one `id`, one per run, each with `run: {id, label, supersedes}`.
+The gallery shows them on one page: a **Current — all runs** tab first — every run's
+current tests merged, each row naming its run, each run's role and correction listed,
+p values never pooled — then a tab per run. In a run, tests a later run supersedes are
+struck through in the summary (their clusters too) and marked in a `superseded_by`
+column the gallery adds to the embedded table; the files on disk are not changed.
+
 A results tree that is *not* written to the specification is still read by its
 folder layout (`tables/<group>/<analysis>/*.csv`, `figures/<group>/<analysis>/`),
 but gets its tables and figures only — no summary, because nothing in it says

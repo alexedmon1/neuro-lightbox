@@ -100,19 +100,36 @@ def _header(spec: SpecAnalysis) -> str:
     return "".join(html)
 
 
-def _tests_html(spec: SpecAnalysis, table: SpecTable, names: StudyNames) -> str:
+def _tests_html(spec: SpecAnalysis, table: SpecTable, names: StudyNames,
+                superseded: dict | None = None, run_column: str | None = None) -> str:
     std = table.standard()
-    _cols, rows = table.read()
+    cols, rows = table.read()
+    superseded = superseded or {}
+    run_column = run_column if run_column in cols else None
+
+    def gone(r):          # the later run that supersedes this test, if one does (spec §3.2)
+        return superseded.get((r.get(std["measure"], "") if "measure" in std else "",
+                               r.get(std.get("contrast", ""), ""),
+                               r.get(std["facet"], "") if "facet" in std else ""))
     alpha = spec.alpha
     measure_order = spec.measures
     em = table.qualifier("effect_size", "EffectMeasure") or "effect"
     pkind = table.qualifier("p_value", "PKind") or "?"
     pscope = table.qualifier("p_value", "PScope")
     has_extent = "frac_significant" in std or "n_significant" in std
-    n_sig = sum(_significant(r, std, alpha) for r in rows)
-    html = [f'<p class="spec-lead">{len(rows)} tests ({escape(table.rows_are)}); '
-            f'{n_sig} reach {escape(pkind)} p &lt; {alpha:g}. Every test is listed, '
-            f'significant or not.</p>']
+    current = [r for r in rows if not gone(r)]
+    n_sig = sum(_significant(r, std, alpha) for r in current)
+    n_gone = len(rows) - len(current)
+    if n_gone:
+        by = sorted({gone(r) for r in rows if gone(r)})
+        html = [f'<p class="spec-lead">{len(rows)} tests ({escape(table.rows_are)}); {n_gone} superseded '
+                f'by run {escape(", ".join(by))} (struck through: the current values are in that run); '
+                f'of the {len(current)} current, {n_sig} reach {escape(pkind)} p &lt; {alpha:g}. Every '
+                f'test is listed, significant or not.</p>']
+    else:
+        html = [f'<p class="spec-lead">{len(rows)} tests ({escape(table.rows_are)}); '
+                f'{n_sig} reach {escape(pkind)} p &lt; {alpha:g}. Every test is listed, '
+                f'significant or not.</p>']
     keys = _order([_test_key(r, std) for r in rows], [])
     keys = sorted(keys, key=lambda k: names.rank(*k))            # the study's order, if it gives one
     for facet, contrast in keys:
@@ -128,7 +145,7 @@ def _tests_html(spec: SpecAnalysis, table: SpecTable, names: StudyNames) -> str:
                     + "</h4>")
         if label:
             html.append(f'<p class="spec-label">{escape(label)}</p>')
-        head = ["Measure", f"{escape(em)} [CI]", "Observed"]
+        head = ["Measure"] + (["Run"] if run_column else []) + [f"{escape(em)} [CI]", "Observed"]
         if has_extent:
             head.append("Extent")
         head += [f"p ({escape(pkind)}{', ' + escape(pscope) if pscope else ''})", "n"]
@@ -141,8 +158,12 @@ def _tests_html(spec: SpecAnalysis, table: SpecTable, names: StudyNames) -> str:
             lo = as_float(r.get(std.get("effect_ci_low", ""), None))
             hi = as_float(r.get(std.get("effect_ci_high", ""), None))
             eff = _fmt(d) + (f" [{_fmt(lo)}, {_fmt(hi)}]" if lo is not None and hi is not None else "")
-            cells = [escape(r.get(std["measure"], "")) if ms else "", eff,
-                     escape(r.get(std["observed_direction"], "")) if "observed_direction" in std else ""]
+            by = gone(r)
+            cells = [(escape(r.get(std["measure"], "")) if ms else "")
+                     + (f' <span class="spec-superseded-by">superseded by run {escape(by)}</span>' if by else "")]
+            if run_column:
+                cells.append(escape(r.get(run_column, "")))
+            cells += [eff, escape(r.get(std["observed_direction"], "")) if "observed_direction" in std else ""]
             if has_extent:
                 frac = as_float(r.get(std.get("frac_significant", ""), None))
                 nsig = as_float(r.get(std.get("n_significant", ""), None))
@@ -152,14 +173,14 @@ def _tests_html(spec: SpecAnalysis, table: SpecTable, names: StudyNames) -> str:
             n = r.get(std["n"], "") if "n" in std else (
                 f"{r.get(std.get('n_a', ''), '')} vs {r.get(std.get('n_b', ''), '')}")
             cells += [_p(as_float(r.get(std.get("p_value", ""), None))), escape(str(n))]
-            cls = "spec-sig" if _significant(r, std, alpha) else "spec-null"
+            cls = "spec-superseded" if by else ("spec-sig" if _significant(r, std, alpha) else "spec-null")
             body.append(f'<tr class="{cls}">' + "".join(f"<td>{c}</td>" for c in cells) + "</tr>")
         html.append('<table class="spec-tests"><thead><tr>' + "".join(f"<th>{h}</th>" for h in head)
                     + "</tr></thead><tbody>" + "".join(body) + "</tbody></table>")
     return "".join(html)
 
 
-def _clusters_html(spec: SpecAnalysis, table: SpecTable) -> str:
+def _clusters_html(spec: SpecAnalysis, table: SpecTable, superseded: dict | None = None) -> str:
     std = table.standard()
     _cols, rows = table.read()
     if not rows:
@@ -179,8 +200,12 @@ def _clusters_html(spec: SpecAnalysis, table: SpecTable) -> str:
     for key, sel in groups.items():
         sel = sorted(sel, key=lambda r: -(as_float(r.get(size, None)) or 0))
         title = " · ".join(x for x in key if x)
+        by = (superseded or {}).get((key[0], key[2], key[1]))       # (measure, contrast, facet)
         html.append(f'<p class="spec-cluster-test"><b>{escape(title)}</b> — {len(sel)} cluster'
-                    f'{"s" if len(sel) != 1 else ""}</p><ul class="spec-clusters">')
+                    f'{"s" if len(sel) != 1 else ""}'
+                    + (f' <span class="spec-superseded-by">— this test is superseded by run {escape(by)}</span>'
+                       if by else "")
+                    + f'</p><ul class="spec-clusters{" spec-superseded" if by else ""}">')
         for r in sel[:CLUSTERS_SHOWN]:
             bits = []
             if "n_voxels" in std:
@@ -228,17 +253,20 @@ def _elements_html(spec: SpecAnalysis, table: SpecTable) -> str:
     return "".join(html) + "</ul>"
 
 
-def spec_digest(spec: SpecAnalysis, names: StudyNames | None = None) -> str:
+def spec_digest(spec: SpecAnalysis, names: StudyNames | None = None, superseded: dict | None = None,
+                run_column: str | None = None) -> str:
     """The summary HTML of one analysis (see module docstring); tests are named and
-    ordered by the study config where it says (``names``)."""
+    ordered by the study config where it says (``names``). ``superseded``: (measure,
+    contrast, facet) -> the later run that supersedes that test (its row is struck
+    through); ``run_column``: a merged table's column naming each test's run."""
     names = names or StudyNames()
     parts = [_header(spec)]
     tests = spec.tables_with_role("tests")
     tests = sorted(tests, key=lambda t: not t.headline)
     for t in tests:
-        parts.append(_tests_html(spec, t, names))
+        parts.append(_tests_html(spec, t, names, superseded, run_column))
     for t in spec.tables_with_role("clusters"):
-        parts.append(_clusters_html(spec, t))
+        parts.append(_clusters_html(spec, t, superseded))
     for t in spec.tables_with_role("elements"):
         parts.append(_elements_html(spec, t))
     if not tests:
